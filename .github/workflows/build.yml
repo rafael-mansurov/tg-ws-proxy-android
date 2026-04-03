@@ -1,0 +1,59 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache buildozer global dir
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-
+
+      - name: Cache buildozer local dir
+        uses: actions/cache@v4
+        with:
+          path: .buildozer
+          key: buildozer-local-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-local-
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            python3-pip python3-venv \
+            git zip unzip openjdk-17-jdk \
+            libffi-dev libssl-dev \
+            autoconf automake libtool \
+            build-essential ccache
+
+      - name: Install buildozer & cython
+        run: |
+          pip3 install --upgrade pip
+          pip3 install buildozer cython
+
+      - name: Set up Android SDK/NDK accept licenses
+        run: |
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+
+      - name: Build debug APK
+        run: buildozer android debug
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tg-ws-proxy-debug
+          path: bin/*.apk
+          retention-days: 30
