@@ -5,7 +5,7 @@ package.domain = unofficial.tgws
 source.dir = .
 source.include_exts = py,html
 source.include_patterns = ui/*
-version = 1.5.0
+version = 1.5.1
 requirements = python3,openssl,cryptography,cffi,android
 orientation = portrait
 fullscreen = 1
@@ -22,6 +22,7 @@ android.archs = arm64-v8a,armeabi-v7a
 android.permissions = INTERNET,ACCESS_NETWORK_STATE,WAKE_LOCK,POST_NOTIFICATIONS,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC
 
 p4a.bootstrap = webview
+p4a.port = 8080
 
 [buildozer]
 log_level = 2
