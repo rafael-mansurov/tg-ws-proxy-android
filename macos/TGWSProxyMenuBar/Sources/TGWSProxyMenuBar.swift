@@ -225,6 +225,29 @@ enum LaunchAtLoginHelper {
     }
 }
 
+// MARK: - Окно настроек (NSWindow: SettingsLink у MenuBarExtra часто молчит)
+
+private enum PreferencesWindow {
+    private static var controller: NSWindowController?
+
+    static func show(runner: ProxyRunner) {
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        if controller == nil {
+            let host = NSHostingController(rootView: SettingsForm(runner: runner))
+            let win = NSWindow(contentViewController: host)
+            win.title = "Настройки TG WS"
+            win.styleMask = [.titled, .closable, .miniaturizable]
+            win.setContentSize(NSSize(width: 560, height: 420))
+            win.center()
+            controller = NSWindowController(window: win)
+        } else {
+            controller?.window?.contentViewController = NSHostingController(
+                rootView: SettingsForm(runner: runner))
+        }
+        controller?.window?.makeKeyAndOrderFront(nil)
+    }
+}
+
 // MARK: - UI
 
 struct MenuCommandsView: View {
@@ -277,9 +300,10 @@ struct MenuCommandsView: View {
                 .foregroundStyle(.secondary)
         }
 
-        SettingsLink {
-            Text("Настройки…")
+        Button("Настройки…") {
+            PreferencesWindow.show(runner: runner)
         }
+        .keyboardShortcut(",", modifiers: .command)
 
         Divider()
 
@@ -365,10 +389,6 @@ struct TGWSProxyMenuBarApp: App {
             systemImage: runner.isRunning ? "bolt.horizontal.circle.fill" : "bolt.horizontal.circle"
         ) {
             MenuCommandsView(runner: runner)
-        }
-
-        Settings {
-            SettingsForm(runner: runner)
         }
     }
 }
