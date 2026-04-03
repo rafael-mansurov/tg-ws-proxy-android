@@ -1,2 +1,4 @@
 preview/
 .DS_Store
+macos/TGWSProxyMenuBar/.build/
+macos/*.app/
