@@ -8,6 +8,7 @@ import webbrowser
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.lang import Builder
+from kivy.properties import BooleanProperty, ListProperty
 from kivy.uix.boxlayout import BoxLayout
 
 HOST = "127.0.0.1"
@@ -309,12 +310,10 @@ def _stop_proxy_service() -> None:
 
 
 class TgWsApp(App):
-    running = False
-
-    # reactive colors
-    status_color = (0.45, 0.45, 0.6, 1)
-    status_bg = (0.12, 0.12, 0.2, 0.5)
-    status_border = (0.25, 0.25, 0.4, 0.4)
+    running = BooleanProperty(False)
+    status_color = ListProperty([0.45, 0.45, 0.6, 1])
+    status_bg = ListProperty([0.12, 0.12, 0.2, 0.5])
+    status_border = ListProperty([0.25, 0.25, 0.4, 0.4])
 
     def build(self):
         self.secret = secrets.token_hex(16)
