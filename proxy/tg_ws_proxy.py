@@ -1058,34 +1058,44 @@ async def _run(stop_event: Optional[asyncio.Event] = None):
 
     log_stats_task = asyncio.create_task(log_stats())
 
-    await _ws_pool.warmup(proxy_config.dc_redirects)
-
     try:
         async with server:
-            if stop_event:
-                serve_task = asyncio.create_task(server.serve_forever())
-                stop_task = asyncio.create_task(stop_event.wait())
-                done, _ = await asyncio.wait(
-                    (serve_task, stop_task),
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                if stop_task in done:
-                    server.close()
-                    await server.wait_closed()
-                    if not serve_task.done():
-                        serve_task.cancel()
+            # Прогрев WS-пула параллельно с приёмом клиентов. Раньше await warmup
+            # выполнялся до serve_forever — локальный порт открывался, но обработка
+            # MTProto не шла до конца прогрева, Telegram «висел» на подключении.
+            warm_task = asyncio.create_task(
+                _ws_pool.warmup(proxy_config.dc_redirects))
+            try:
+                if stop_event:
+                    serve_task = asyncio.create_task(server.serve_forever())
+                    stop_task = asyncio.create_task(stop_event.wait())
+                    done, _ = await asyncio.wait(
+                        (serve_task, stop_task),
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                    if stop_task in done:
+                        server.close()
+                        await server.wait_closed()
+                        if not serve_task.done():
+                            serve_task.cancel()
+                            try:
+                                await serve_task
+                            except asyncio.CancelledError:
+                                pass
+                    else:
+                        stop_task.cancel()
                         try:
-                            await serve_task
+                            await stop_task
                         except asyncio.CancelledError:
                             pass
                 else:
-                    stop_task.cancel()
-                    try:
-                        await stop_task
-                    except asyncio.CancelledError:
-                        pass
-            else:
-                await server.serve_forever()
+                    await server.serve_forever()
+            finally:
+                warm_task.cancel()
+                try:
+                    await warm_task
+                except asyncio.CancelledError:
+                    pass
     finally:
         log_stats_task.cancel()
         try:

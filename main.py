@@ -57,63 +57,72 @@ def _wait_proxy_listen(timeout_s: float = 25.0) -> bool:
 
 
 def _toast(msg: str) -> None:
+    """Toast только с UI-потока активности — иначе на Android часто не видно."""
     try:
+        from android.runnable import run_on_ui_thread
         from jnius import autoclass
 
         Toast = autoclass("android.widget.Toast")
-        PythonActivity = autoclass("org.kivy.android.PythonActivity")
-        Toast.makeText(
-            PythonActivity.mActivity,
-            msg,
-            Toast.LENGTH_LONG,
-        ).show()
+        Py = autoclass("org.kivy.android.PythonActivity")
+
+        @run_on_ui_thread
+        def _go():
+            Toast.makeText(Py.mActivity, msg, Toast.LENGTH_LONG).show()
+
+        _go()
     except Exception:
         pass
 
 
 def _notify_proxy_ready() -> None:
-    """Системная пушка (IMPORTANCE_DEFAULT), т.к. у foreground-сервиса в p4a канал IMPORTANCE_NONE."""
+    """Отдельный канал с IMPORTANCE_HIGH; вызов с UI-потока."""
     try:
+        from android.runnable import run_on_ui_thread
         from jnius import autoclass
 
-        activity = autoclass("org.kivy.android.PythonActivity").mActivity
-        Context = autoclass("android.content.Context")
-        Build = autoclass("android.os.Build")
-        NotificationManager = autoclass("android.app.NotificationManager")
-        NotificationChannel = autoclass("android.app.NotificationChannel")
-        Intent = autoclass("android.content.Intent")
-        PendingIntent = autoclass("android.app.PendingIntent")
-        PyAct = autoclass("org.kivy.android.PythonActivity")
+        @run_on_ui_thread
+        def _go():
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            Context = autoclass("android.content.Context")
+            Build = autoclass("android.os.Build")
+            NotificationManager = autoclass("android.app.NotificationManager")
+            NotificationChannel = autoclass("android.app.NotificationChannel")
+            Intent = autoclass("android.content.Intent")
+            PendingIntent = autoclass("android.app.PendingIntent")
+            PyAct = autoclass("org.kivy.android.PythonActivity")
 
-        nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
-        channel_id = "unofficial.tgws.proxy.status"
-        sdk = int(Build.VERSION.SDK_INT)
+            nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+            channel_id = "tgws_proxy_user_alert"
+            sdk = int(Build.VERSION.SDK_INT)
 
-        if sdk >= 26:
-            ch = NotificationChannel(
-                channel_id,
-                "TG WS Proxy",
-                NotificationManager.IMPORTANCE_DEFAULT,
+            if sdk >= 26:
+                ch = NotificationChannel(
+                    channel_id,
+                    "TG WS Proxy · статус",
+                    NotificationManager.IMPORTANCE_HIGH,
+                )
+                ch.setDescription("Сообщения о готовности прокси")
+                nm.createNotificationChannel(ch)
+
+            intent = Intent(activity, PyAct)
+            intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            pi = PendingIntent.getActivity(
+                activity,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE,
             )
-            ch.setDescription("Локальный прокси")
-            nm.createNotificationChannel(ch)
 
-        intent = Intent(activity, PyAct)
-        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        pflags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        pi = PendingIntent.getActivity(activity, 0, intent, pflags)
+            Builder = autoclass("android.app.Notification$Builder")
+            b = Builder(activity, channel_id) if sdk >= 26 else Builder(activity)
+            b.setSmallIcon(activity.getApplicationInfo().icon)
+            b.setContentTitle("Прокси включён")
+            b.setContentText("Можно открывать Telegram")
+            b.setContentIntent(pi)
+            b.setAutoCancel(True)
+            nm.notify(88302, b.build())
 
-        Builder = autoclass("android.app.Notification$Builder")
-        if sdk >= 26:
-            b = Builder(activity, channel_id)
-        else:
-            b = Builder(activity)
-        b.setSmallIcon(activity.getApplicationInfo().icon)
-        b.setContentTitle("Прокси включён")
-        b.setContentText("Можно открывать Telegram")
-        b.setContentIntent(pi)
-        b.setAutoCancel(True)
-        nm.notify(88301, b.build())
+        _go()
     except Exception:
         _toast("Прокси включён — можно открывать Telegram")
 
@@ -139,8 +148,9 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         except Exception:
             pass
         return False, "Прокси не поднялся за 25 с. Проверь разрешения и попробуй снова."
-    # Пока порт слушает, в сервисе ещё идёт warmup WS-пула — без паузы Telegram часто висит на «подключении».
-    time.sleep(4.0)
+    # Короткая пауза: прокси теперь обрабатывает клиентов параллельно с warmup, но первому
+    # коннекту иногда нужен крошечный буфер после accept.
+    time.sleep(1.2)
     _running = True
     _notify_proxy_ready()
     return True, None
