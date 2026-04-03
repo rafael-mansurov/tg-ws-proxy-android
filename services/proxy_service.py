@@ -7,6 +7,8 @@ import json
 import os
 import sys
 
+from proxy.dc_resolve import resolve_kws_edge_ipv4
+
 _started = False
 
 
@@ -27,6 +29,11 @@ def _run_proxy() -> None:
     argv = ["tg-ws-proxy", "--host", "127.0.0.1", "--port", "1443"]
     if secret:
         argv.extend(["--secret", secret])
+
+    for dc in (2, 4):
+        ip = resolve_kws_edge_ipv4(dc)
+        argv.extend(["--dc-ip", f"{dc}:{ip}"])
+
     sys.argv = argv
 
     from proxy.tg_ws_proxy import main as proxy_main

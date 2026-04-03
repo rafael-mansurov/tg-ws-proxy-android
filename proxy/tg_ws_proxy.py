@@ -157,6 +157,7 @@ class RawWebSocket:
     @staticmethod
     async def connect(ip: str, domain: str, path: str = '/apiws',
                       timeout: float = 10.0) -> 'RawWebSocket':
+        log.info("WS connect: tcp %s:443 TLS SNI=%s %s", ip, domain, path)
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(ip, 443, ssl=_ssl_ctx,
                                     server_hostname=domain),
