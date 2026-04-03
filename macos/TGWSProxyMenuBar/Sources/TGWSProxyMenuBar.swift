@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Darwin
 import ServiceManagement
 import SwiftUI
 
@@ -12,7 +13,7 @@ final class ProxyRunner: ObservableObject {
 
     private var process: Process?
     private var outputPipe: Pipe?
-    private var listenTimer: Timer?
+    private var userStopped = false
 
     /// Repo root (…/tg-ws-proxy-apk)
     @Published var repoPath: String {
@@ -85,6 +86,17 @@ final class ProxyRunner: ObservableObject {
         }
         proc.arguments = args
 
+        var env = ProcessInfo.processInfo.environment
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        env["HOME"] = home
+        env["USER"] = env["USER"] ?? NSUserName()
+        env["LANG"] = env["LANG"] ?? "en_US.UTF-8"
+        env["PYTHONUNBUFFERED"] = "1"
+        let path = env["PATH"] ?? ""
+        let extra = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
+        env["PATH"] = path.isEmpty ? extra : "\(path):\(extra)"
+        proc.environment = env
+
         let out = Pipe()
         proc.standardOutput = out
         proc.standardError = out
@@ -93,20 +105,40 @@ final class ProxyRunner: ObservableObject {
         proc.terminationHandler = { [weak self] p in
             Task { @MainActor in
                 guard let self else { return }
-                if self.process?.processIdentifier == p.processIdentifier {
-                    self.cleanupProcess()
+                guard self.process?.processIdentifier == p.processIdentifier else { return }
+                let tail = Self.readPipeRemainder(self.outputPipe)
+                let byUser = self.userStopped
+                self.userStopped = false
+                if !byUser && p.terminationStatus != 0, self.lastError == nil {
+                    if !tail.isEmpty {
+                        self.lastError = "Python выход \(p.terminationStatus):\n\(tail)"
+                    } else {
+                        self.lastError = "Прокси завершился (код \(p.terminationStatus))."
+                    }
                 }
+                self.cleanupProcessAfterTermination()
             }
         }
 
         do {
+            userStopped = false
             try proc.run()
             process = proc
             outputPipe = out
             isRunning = true
-            listenTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-                guard let self else { return }
-                Task { @MainActor in self.drainPipeChunk() }
+            let port = parsedPort(self.listenPort)
+            Task { @MainActor in
+                for _ in 0..<40 {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    guard let p = self.process, p.isRunning else { return }
+                    if socketPortOpen(host: "127.0.0.1", port: port) { return }
+                }
+                guard let p = self.process, p.isRunning else { return }
+                let tail = Self.readPipeRemainder(self.outputPipe)
+                self.lastError = tail.isEmpty
+                    ? "За 20 с порт \(port) не открылся — проверь путь к репо и Python в настройках."
+                    : "Порт не открылся. Лог:\n\(tail)"
+                p.terminate()
             }
         } catch {
             lastError = error.localizedDescription
@@ -114,9 +146,23 @@ final class ProxyRunner: ObservableObject {
         }
     }
 
+    private nonisolated static func readPipeRemainder(_ pipe: Pipe?) -> String {
+        guard let h = pipe?.fileHandleForReading else { return "" }
+        let data = h.readDataToEndOfFile()
+        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    /// После ухода процесса — без закрытия pipe до чтения (читает terminationHandler).
+    private func cleanupProcessAfterTermination() {
+        outputPipe = nil
+        process = nil
+        isRunning = false
+    }
+
     func stop() {
         guard isRunning else { return }
         if let p = process, p.isRunning {
+            userStopped = true
             p.terminate()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
                 guard let self else { return }
@@ -132,23 +178,35 @@ final class ProxyRunner: ObservableObject {
         }
     }
 
-    private func drainPipeChunk() {
-        let h = outputPipe?.fileHandleForReading
-        let data = h?.availableData ?? Data()
-        if !data.isEmpty, let s = String(data: data, encoding: .utf8) {
-           // При необходимости лог в консоль
-            NSLog("%@", s.trimmingCharacters(in: .whitespacesAndNewlines))
-        }
-    }
-
     private func cleanupProcess() {
-        listenTimer?.invalidate()
-        listenTimer = nil
         try? outputPipe?.fileHandleForReading.close()
         outputPipe = nil
         process = nil
         isRunning = false
     }
+}
+
+private func parsedPort(_ s: String) -> UInt16 {
+    let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+    let v = Int(t) ?? 1443
+    return UInt16(clamping: v)
+}
+
+private func socketPortOpen(host: String, port: UInt16) -> Bool {
+    let fd = socket(AF_INET, SOCK_STREAM, 0)
+    guard fd >= 0 else { return false }
+    defer { close(fd) }
+    var addr = sockaddr_in()
+    addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+    addr.sin_family = sa_family_t(AF_INET)
+    addr.sin_port = in_port_t(UInt16(port).byteSwapped)
+    inet_pton(AF_INET, host, &addr.sin_addr)
+    let rc = withUnsafePointer(to: &addr) {
+        $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+            connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+        }
+    }
+    return rc == 0
 }
 
 // MARK: - Launch at login
@@ -173,6 +231,15 @@ struct MenuCommandsView: View {
     @ObservedObject var runner: ProxyRunner
 
     var body: some View {
+        if let err = runner.lastError {
+            Text(err)
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(8)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+            Divider()
+        }
         Button(runner.isRunning ? "Выключить прокси" : "Включить прокси") {
             if runner.isRunning {
                 runner.stop()
