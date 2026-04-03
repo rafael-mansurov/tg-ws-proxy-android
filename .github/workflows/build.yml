@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +41,24 @@ jobs:
           path: bin/*.apk
           retention-days: 30
 
-      - name: Telegram — успех (zip с APK)
+      - name: Публичный APK в Release (прямая ссылка скачивания)
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          APK=$(ls -1 bin/*.apk | head -1)
+          cp -f "$APK" tg-ws-proxy-debug.apk
+          if gh release view latest-apk --repo "${{ github.repository }}" &>/dev/null; then
+            gh release delete latest-apk --cleanup-tag --yes --repo "${{ github.repository }}"
+          fi
+          gh release create latest-apk tg-ws-proxy-debug.apk \
+            --repo "${{ github.repository }}" \
+            --title "Последняя сборка (debug)" \
+            --notes "Автосборка ${{ github.sha }} · [лог Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" \
+            --latest=false
+
+      - name: Telegram — успех (прямая ссылка на APK)
         if: success()
         continue-on-error: true
         env:
@@ -50,40 +69,18 @@ jobs:
             echo "Telegram: секреты не заданы, пропуск."
             exit 0
           fi
-          python3 <<'PY'
-          import glob, os, sys, zipfile
-          out = "tg-ws-proxy-debug.zip"
-          files = sorted(glob.glob("bin/*.apk"))
-          if not files:
-              print("::error::В bin/ нет APK", file=sys.stderr)
-              sys.exit(1)
-          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-              for f in files:
-                  z.write(f, arcname=os.path.basename(f))
-          print(f"zip: {out} ({len(files)} apk)")
-          PY
-          SIZE=$(stat -c%s tg-ws-proxy-debug.zip)
-          # Лимит Telegram Bot API на документы ~50 MB
-          if [ "$SIZE" -gt 52428800 ]; then
-            MSG=$(printf '%s\n%s\n%s\n%s' \
-              "✅ APK собран, но zip >50MB — скачай с GitHub:" \
-              "${{ github.repository }} @ ${GITHUB_SHA:0:7}" \
-              "Артефакт: tg-ws-proxy-debug" \
-              "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
-            BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" '{chat_id: $c, text: $t}')
-            curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-              -H "Content-Type: application/json" -d "$BODY"
-            exit 0
-          fi
-          CAPTION=$(printf '%s\n%s\n%s\n%s' \
-            "✅ tg-ws-proxy (внутри .apk)" \
-            "${{ github.repository }}" \
+          DL="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-apk/tg-ws-proxy-debug.apk"
+          MSG=$(printf '%s\n\n%s\n%s\n\n%s\n%s\n' \
+            "✅ tg-ws-proxy собран" \
+            "Скачать APK (прямая ссылка):" \
+            "${DL}" \
             "Коммит: ${GITHUB_SHA:0:7}" \
-            "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
-          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
-            -F chat_id="$TELEGRAM_CHAT_ID" \
-            -F caption="$CAPTION" \
-            -F "document=@tg-ws-proxy-debug.zip;filename=tg-ws-proxy-debug.zip"
+            "Лог: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
+            '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$BODY"
 
       - name: Telegram — ошибка
         if: failure()

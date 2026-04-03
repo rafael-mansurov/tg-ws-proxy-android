@@ -118,6 +118,14 @@
     .status-sub { font-size: 11px; transition: color 0.25s; }
     .status.off .status-sub { color: rgba(120,120,130,0.6); }
     .status.on  .status-sub { color: #0d9488; }
+    .status.wait {
+      background: rgba(255,255,255,0.4);
+      border: 1px solid rgba(255,255,255,0.55);
+    }
+    .status.wait .status-title { color: rgba(34,158,217,0.95); }
+    .status.wait .status-sub { color: rgba(70,90,110,0.8); }
+    .dot.wait { background: rgba(34,158,217,0.9); animation: blink 0.9s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
 
     /* ── Cards ── */
     .row { display: flex; gap: 10px; }
@@ -247,6 +255,25 @@
 <script>
   let running = false;
   let secret = null;
+  let uiBusy = false;
+
+  function setStartBusy(on) {
+    uiBusy = on;
+    const tw = document.querySelector('.toggle-wrap');
+    tw.style.pointerEvents = on ? 'none' : '';
+    tw.style.opacity = on ? '0.55' : '';
+    const st = document.getElementById('status');
+    const dot = st.querySelector('.dot');
+    if (on) {
+      st.className = 'status wait';
+      dot.classList.add('wait');
+      document.getElementById('status-title').textContent = 'Запуск…';
+      document.getElementById('status-sub').textContent =
+        'Ждём сервис и прогрев соединений (до ~30 с)';
+    } else {
+      dot.classList.remove('wait');
+    }
+  }
 
   function proxyUrl() {
     // "dd" prefix = WebSocket MTProto proxy type
@@ -273,6 +300,8 @@
 
   async function onToggle() {
     const endpoint = running ? '/api/stop' : '/api/start';
+    const turningOn = !running;
+    if (turningOn) setStartBusy(true);
     try {
       const r = await fetch(endpoint, { method: 'POST' });
       const d = await r.json();
@@ -284,6 +313,9 @@
       updateUI(d.running, d.secret);
     } catch(e) {
       console.error(e);
+      if (turningOn) updateUI(false, null);
+    } finally {
+      if (turningOn) setStartBusy(false);
     }
   }
 
@@ -309,6 +341,7 @@
 
   // Poll status every 3s to stay in sync with the service
   async function pollStatus() {
+    if (uiBusy) return;
     try {
       const r = await fetch('/api/status');
       const d = await r.json();

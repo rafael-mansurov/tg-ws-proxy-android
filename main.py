@@ -71,6 +71,53 @@ def _toast(msg: str) -> None:
         pass
 
 
+def _notify_proxy_ready() -> None:
+    """Системная пушка (IMPORTANCE_DEFAULT), т.к. у foreground-сервиса в p4a канал IMPORTANCE_NONE."""
+    try:
+        from jnius import autoclass
+
+        activity = autoclass("org.kivy.android.PythonActivity").mActivity
+        Context = autoclass("android.content.Context")
+        Build = autoclass("android.os.Build")
+        NotificationManager = autoclass("android.app.NotificationManager")
+        NotificationChannel = autoclass("android.app.NotificationChannel")
+        Intent = autoclass("android.content.Intent")
+        PendingIntent = autoclass("android.app.PendingIntent")
+        PyAct = autoclass("org.kivy.android.PythonActivity")
+
+        nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+        channel_id = "unofficial.tgws.proxy.status"
+        sdk = int(Build.VERSION.SDK_INT)
+
+        if sdk >= 26:
+            ch = NotificationChannel(
+                channel_id,
+                "TG WS Proxy",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            )
+            ch.setDescription("Локальный прокси")
+            nm.createNotificationChannel(ch)
+
+        intent = Intent(activity, PyAct)
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        pflags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        pi = PendingIntent.getActivity(activity, 0, intent, pflags)
+
+        Builder = autoclass("android.app.Notification$Builder")
+        if sdk >= 26:
+            b = Builder(activity, channel_id)
+        else:
+            b = Builder(activity)
+        b.setSmallIcon(activity.getApplicationInfo().icon)
+        b.setContentTitle("Прокси включён")
+        b.setContentText("Можно открывать Telegram")
+        b.setContentIntent(pi)
+        b.setAutoCancel(True)
+        nm.notify(88301, b.build())
+    except Exception:
+        _toast("Прокси включён — можно открывать Telegram")
+
+
 def _start_service() -> Tuple[bool, Optional[str]]:
     """Start foreground service; wait until TCP accepts (avoids Telegram 'connecting' to dead port)."""
     global _running
@@ -92,8 +139,10 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         except Exception:
             pass
         return False, "Прокси не поднялся за 25 с. Проверь разрешения и попробуй снова."
+    # Пока порт слушает, в сервисе ещё идёт warmup WS-пула — без паузы Telegram часто висит на «подключении».
+    time.sleep(4.0)
     _running = True
-    _toast("Прокси включён — можно открывать Telegram")
+    _notify_proxy_ready()
     return True, None
 
 
