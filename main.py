@@ -18,6 +18,16 @@ UI_FILE = Path(__file__).parent / "ui" / "index.html"
 _running = False
 
 
+def _webview_open_tg_and_https_externally() -> None:
+    """tg://proxy?… is not a web page; p4a WebView must hand off to external apps."""
+    try:
+        from jnius import autoclass
+
+        autoclass("org.kivy.android.PythonActivity").mOpenExternalLinksInBrowser = True
+    except Exception:
+        pass
+
+
 # ── service control ──────────────────────────────────────────────────────────
 
 def _request_permissions() -> None:
@@ -105,5 +115,6 @@ class Handler(BaseHTTPRequestHandler):
 # ── entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    _webview_open_tg_and_https_externally()
     server = HTTPServer(("127.0.0.1", SERVE_PORT), Handler)
     server.serve_forever()
