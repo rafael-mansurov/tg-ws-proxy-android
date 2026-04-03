@@ -172,18 +172,18 @@
     .qr-wrap.is-hidden { display: none; }
     .qr-label { font-size: 10px; font-weight: 600; color: rgba(80,80,92,0.58); text-transform: uppercase; letter-spacing: 0.06em; }
     .qr-frame {
-      width: 144px; height: 144px; border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.5);
-      background: rgba(255,255,255,0.55);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
-      display: flex; align-items: center; justify-content: center; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      width: fit-content; height: fit-content; margin: 0 auto;
+      padding: 0; border: none; border-radius: 10px;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
     }
     .qr-svg-host { display: none; width: 132px; height: 132px; line-height: 0; }
     .qr-svg-host.visible { display: block; }
     .qr-svg-host svg { display: block; width: 132px; height: 132px; }
     .qr-placeholder { font-size: 11px; font-weight: 500; color: rgba(120,120,130,0.58); text-align: center; line-height: 1.35; padding: 0 12px; }
-    .qr-placeholder.hidden { display: none; }
+    .qr-placeholder.hidden { display: none !important; visibility: hidden; height: 0; padding: 0; overflow: hidden; }
   </style>
 </head>
 <body>
@@ -276,6 +276,11 @@
     try {
       const r = await fetch(endpoint, { method: 'POST' });
       const d = await r.json();
+      if (!d.ok) {
+        updateUI(false, null);
+        if (d.error) alert(d.error);
+        return;
+      }
       updateUI(d.running, d.secret);
     } catch(e) {
       console.error(e);
@@ -293,7 +298,7 @@
     if (!running || !secret) return;
     if (typeof QRCode === 'undefined') { ph.textContent = 'QR недоступен'; return; }
     ph.classList.add('hidden');
-    QRCode.toString(proxyUrl(), { type:'svg', width:132, margin:1, color:{dark:'#18181b',light:'#ffffff'} },
+    QRCode.toString(proxyUrl(), { type:'svg', width:132, margin:0, color:{dark:'#0f172a',light:'#e8ecf2'} },
       (err, svg) => {
         if (err || !running) return;
         host.innerHTML = svg;

@@ -5,8 +5,11 @@ Serves the UI and provides a REST API to control the proxy service.
 import json
 import os
 import secrets
+import socket
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from typing import Optional, Tuple
 
 HOST_PROXY = "127.0.0.1"
 PORT_PROXY = 1443
@@ -39,14 +42,59 @@ def _request_permissions() -> None:
         pass
 
 
-def _start_service() -> None:
+def _wait_proxy_listen(timeout_s: float = 25.0) -> bool:
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(0.4)
+            s.connect((HOST_PROXY, PORT_PROXY))
+            s.close()
+            return True
+        except OSError:
+            time.sleep(0.12)
+    return False
+
+
+def _toast(msg: str) -> None:
+    try:
+        from jnius import autoclass
+
+        Toast = autoclass("android.widget.Toast")
+        PythonActivity = autoclass("org.kivy.android.PythonActivity")
+        Toast.makeText(
+            PythonActivity.mActivity,
+            msg,
+            Toast.LENGTH_LONG,
+        ).show()
+    except Exception:
+        pass
+
+
+def _start_service() -> Tuple[bool, Optional[str]]:
+    """Start foreground service; wait until TCP accepts (avoids Telegram 'connecting' to dead port)."""
     global _running
     from jnius import autoclass
 
     Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
-    Service.start(PythonActivity.mActivity, json.dumps({"secret": SECRET}))
+    # 5-arg start: notification contentTitle/contentText (Android 8+), see p4a Service.tmpl.java
+    Service.start(
+        PythonActivity.mActivity,
+        "",
+        "TG WS Proxy",
+        "Прокси 127.0.0.1:1443 · нажми, чтобы открыть приложение",
+        json.dumps({"secret": SECRET}),
+    )
+    if not _wait_proxy_listen():
+        try:
+            Service.stop(PythonActivity.mActivity)
+        except Exception:
+            pass
+        return False, "Прокси не поднялся за 25 с. Проверь разрешения и попробуй снова."
     _running = True
+    _toast("Прокси включён — можно открывать Telegram")
+    return True, None
 
 
 def _stop_service() -> None:
@@ -100,12 +148,15 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if self.path == "/api/start":
             _request_permissions()
-            _start_service()
-            self._send_json({"ok": True, "running": _running, "secret": SECRET})
+            ok, err = _start_service()
+            if ok:
+                self._send_json({"ok": True, "running": _running, "secret": SECRET})
+            else:
+                self._send_json({"ok": False, "running": False, "error": err})
 
         elif self.path == "/api/stop":
             _stop_service()
-            self._send_json({"ok": True, "running": _running})
+            self._send_json({"ok": True, "running": _running, "secret": None})
 
         else:
             self.send_response(404)
