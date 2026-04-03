@@ -246,6 +246,31 @@ private enum PreferencesWindow {
         }
         controller?.window?.makeKeyAndOrderFront(nil)
     }
+
+    static func close() {
+        controller?.close()
+    }
+}
+
+/// Новый экземпляр .app и выход текущего (после старта прокси не держит порт).
+private enum AppRelauncher {
+    @MainActor
+    static func restart(runner: ProxyRunner) {
+        PreferencesWindow.close()
+        if runner.isRunning {
+            runner.stop()
+        }
+        let path = Bundle.main.bundlePath
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            p.arguments = ["-n", path]
+            try? p.run()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                NSApplication.shared.terminate(nil)
+            }
+        }
+    }
 }
 
 // MARK: - UI
@@ -304,6 +329,10 @@ struct MenuCommandsView: View {
             PreferencesWindow.show(runner: runner)
         }
         .keyboardShortcut(",", modifiers: .command)
+
+        Button("Обновить (перезапуск приложения)") {
+            AppRelauncher.restart(runner: runner)
+        }
 
         Divider()
 
