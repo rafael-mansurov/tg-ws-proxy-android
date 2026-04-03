@@ -83,7 +83,7 @@ jobs:
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             -F chat_id="$TELEGRAM_CHAT_ID" \
             -F caption="$CAPTION" \
-            -F document=@"tg-ws-proxy-debug.zip;filename=tg-ws-proxy-debug.zip"
+            -F "document=@tg-ws-proxy-debug.zip;filename=tg-ws-proxy-debug.zip"
 
       - name: Telegram — ошибка
         if: failure()
