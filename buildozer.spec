@@ -14,7 +14,7 @@ presplash.filename = %(source.dir)s/presplash.png
 android.presplash_color = #e8ecf2
 services = proxy:services/proxy_service.py:foreground:sticky
 
-android.api = 34
+android.api = 33
 android.minapi = 24
 android.ndk = 25b
 android.accept_sdk_license = True

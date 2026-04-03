@@ -12,17 +12,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache .buildozer
+      - name: Cache Buildozer (project + Android SDK home)
         uses: actions/cache@v4
         with:
-          path: .buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec') }}-v3
-          restore-keys: buildozer-
+          path: |
+            .buildozer
+            /home/runner/.buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}-v4-sdkhome
+          restore-keys: |
+            buildozer-${{ hashFiles('buildozer.spec') }}-
+            buildozer-
 
       - name: Build APK (kivy/buildozer docker)
         run: |
+          mkdir -p "${HOME}/.buildozer"
           docker run --rm \
             -v "${{ github.workspace }}:/home/user/hostcwd" \
+            -v "${HOME}/.buildozer:/home/user/.buildozer" \
             kivy/buildozer:latest \
             android debug
 
