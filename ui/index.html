@@ -249,7 +249,8 @@
   let secret = null;
 
   function proxyUrl() {
-    return `tg://proxy?server=127.0.0.1&port=1443&secret=${secret}`;
+    // "dd" prefix = WebSocket MTProto proxy type
+    return `tg://proxy?server=127.0.0.1&port=1443&secret=dd${secret}`;
   }
 
   function updateUI(isRunning, sec) {

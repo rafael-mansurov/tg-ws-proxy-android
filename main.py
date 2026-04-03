@@ -5,7 +5,6 @@ Serves the UI and provides a REST API to control the proxy service.
 import json
 import os
 import secrets
-import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -17,7 +16,6 @@ SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
 
 _running = False
-_desktop_loop = None
 
 
 # ── service control ──────────────────────────────────────────────────────────
@@ -33,51 +31,22 @@ def _request_permissions() -> None:
 
 def _start_service() -> None:
     global _running
-    try:
-        from jnius import autoclass
-        Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
-        PythonActivity = autoclass("org.kivy.android.PythonActivity")
-        Service.start(PythonActivity.mActivity, json.dumps({"secret": SECRET}))
-        _running = True
-    except ImportError:
-        _start_desktop()
+    from jnius import autoclass
+
+    Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
+    PythonActivity = autoclass("org.kivy.android.PythonActivity")
+    Service.start(PythonActivity.mActivity, json.dumps({"secret": SECRET}))
+    _running = True
 
 
 def _stop_service() -> None:
     global _running
-    try:
-        from jnius import autoclass
-        Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
-        PythonActivity = autoclass("org.kivy.android.PythonActivity")
-        Service.stop(PythonActivity.mActivity)
-    except ImportError:
-        _stop_desktop()
+    from jnius import autoclass
+
+    Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
+    PythonActivity = autoclass("org.kivy.android.PythonActivity")
+    Service.stop(PythonActivity.mActivity)
     _running = False
-
-
-def _start_desktop() -> None:
-    """Run proxy in a background thread when jnius is unavailable (desktop testing)."""
-    global _desktop_loop, _running
-    import asyncio
-    import sys
-
-    sys.argv = ["tg-ws-proxy", "--host", HOST_PROXY, "--port", str(PORT_PROXY), "--secret", SECRET]
-
-    def run() -> None:
-        global _desktop_loop
-        _desktop_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_desktop_loop)
-        from proxy.tg_ws_proxy import main as proxy_main
-        _desktop_loop.run_until_complete(proxy_main())
-
-    threading.Thread(target=run, daemon=True).start()
-    _running = True
-
-
-def _stop_desktop() -> None:
-    global _desktop_loop
-    if _desktop_loop and _desktop_loop.is_running():
-        _desktop_loop.call_soon_threadsafe(_desktop_loop.stop)
 
 
 # ── HTTP handler ─────────────────────────────────────────────────────────────
