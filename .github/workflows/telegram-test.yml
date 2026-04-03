@@ -1,0 +1,27 @@
+name: Telegram test (no APK)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверка Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          set -e
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::error::В runtime пусто: TELEGRAM_BOT_TOKEN или TELEGRAM_CHAT_ID"
+            exit 1
+          fi
+          MSG="🔔 Тест Actions (без сборки APK). $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
+          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
+            '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+          RESP=$(curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "$RESP" | jq -e '.ok == true' >/dev/null
+          echo "Telegram OK"
