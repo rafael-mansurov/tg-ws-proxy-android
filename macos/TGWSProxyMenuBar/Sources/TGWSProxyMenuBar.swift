@@ -252,11 +252,30 @@ struct MenuCommandsView: View {
         Divider()
 
         Button("Скопировать tg:// ссылку") {
-            guard !runner.tgLink.isEmpty else { return }
+            if runner.tgLink.isEmpty {
+                let a = NSAlert()
+                a.messageText = "Нельзя собрать ссылку"
+                a.informativeText = """
+                В «Настройках» нужно ввести секрет: ровно 32 символа hex без префикса dd \
+                (как в логе после строки Secret:). Тогда в ссылку подставится tg://proxy?…&secret=dd…
+
+                Если секрет пустой, прокси при каждом запуске сам выдаёт новый — стабильной ссылки нет, \
+                смотри вывод в Консоли или запускай из Терминала.
+                """
+                a.alertStyle = .informational
+                a.addButton(withTitle: "OK")
+                a.runModal()
+                return
+            }
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(runner.tgLink, forType: .string)
         }
-        .disabled(runner.tgLink.isEmpty)
+
+        if runner.tgLink.isEmpty {
+            Text("Ссылка: введи 32 hex в Настройках")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
 
         SettingsLink {
             Text("Настройки…")
@@ -300,7 +319,7 @@ struct SettingsForm: View {
             }
             Section("Прокси") {
                 TextField("Порт", text: $runner.listenPort)
-                TextField("Секрет: 32 hex без dd (пусто — прокси сам сгенерирует; в Telegram обнови ключ)", text: $runner.secretHex)
+                TextField("Секрет: 32 hex без dd (пусто — новый ключ каждый раз; для кнопки «Скопировать» заполни)", text: $runner.secretHex)
                     .font(.system(.body, design: .monospaced))
                 TextField("Python", text: $runner.pythonPath)
                 Text("Если /usr/bin/python3 не тот: /opt/homebrew/bin/python3")
