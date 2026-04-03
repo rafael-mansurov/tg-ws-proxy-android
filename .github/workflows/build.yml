@@ -39,8 +39,9 @@ jobs:
           path: bin/*.apk
           retention-days: 30
 
-      - name: Telegram — успех
+      - name: Telegram — успех (zip с APK)
         if: success()
+        continue-on-error: true
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -49,17 +50,40 @@ jobs:
             echo "Telegram: секреты не заданы, пропуск."
             exit 0
           fi
-          MSG=$(printf '%s\n%s\n%s\n%s\n%s' \
-            "✅ APK собран: tg-ws-proxy" \
-            "Репозиторий: ${{ github.repository }}" \
+          python3 <<'PY'
+          import glob, os, sys, zipfile
+          out = "tg-ws-proxy-debug.zip"
+          files = sorted(glob.glob("bin/*.apk"))
+          if not files:
+              print("::error::В bin/ нет APK", file=sys.stderr)
+              sys.exit(1)
+          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+              for f in files:
+                  z.write(f, arcname=os.path.basename(f))
+          print(f"zip: {out} ({len(files)} apk)")
+          PY
+          SIZE=$(stat -c%s tg-ws-proxy-debug.zip)
+          # Лимит Telegram Bot API на документы ~50 MB
+          if [ "$SIZE" -gt 52428800 ]; then
+            MSG=$(printf '%s\n%s\n%s\n%s' \
+              "✅ APK собран, но zip >50MB — скачай с GitHub:" \
+              "${{ github.repository }} @ ${GITHUB_SHA:0:7}" \
+              "Артефакт: tg-ws-proxy-debug" \
+              "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+            BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" '{chat_id: $c, text: $t}')
+            curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -H "Content-Type: application/json" -d "$BODY"
+            exit 0
+          fi
+          CAPTION=$(printf '%s\n%s\n%s\n%s' \
+            "✅ tg-ws-proxy (внутри .apk)" \
+            "${{ github.repository }}" \
             "Коммит: ${GITHUB_SHA:0:7}" \
-            "Артефакт в run: tg-ws-proxy-debug" \
             "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
-          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
-            '{chat_id: $c, text: $t, disable_web_page_preview: true}')
-          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "$BODY"
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            -F chat_id="$TELEGRAM_CHAT_ID" \
+            -F caption="$CAPTION" \
+            -F document=@"tg-ws-proxy-debug.zip;filename=tg-ws-proxy-debug.zip"
 
       - name: Telegram — ошибка
         if: failure()
