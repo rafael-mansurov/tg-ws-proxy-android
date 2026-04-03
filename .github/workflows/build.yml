@@ -16,44 +16,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          key: buildozer-${{ hashFiles('buildozer.spec') }}-v2
           restore-keys: buildozer-
 
-      - name: Cache buildozer local dir
-        uses: actions/cache@v4
+      - name: Build APK via buildozer Docker
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
-          path: .buildozer
-          key: buildozer-local-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-local-
+          command: android debug
+          buildozer_version: stable
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y \
-            python3-pip python3-venv \
-            git zip unzip openjdk-17-jdk \
-            libffi-dev libssl-dev \
-            autoconf automake libtool \
-            build-essential ccache
-
-      - name: Install buildozer & cython
-        run: |
-          pip3 install --upgrade pip
-          pip3 install buildozer cython
-
-      - name: Set up Android SDK/NDK accept licenses
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-
-      - name: Build debug APK
-        run: buildozer android debug
-        env:
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: tg-ws-proxy-debug
-          path: bin/*.apk
+          path: ${{ steps.buildozer.outputs.filename }}
           retention-days: 30

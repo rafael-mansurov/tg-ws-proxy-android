@@ -12,7 +12,7 @@ services = proxy:services/proxy_service.py:foreground:sticky
 
 android.api = 34
 android.minapi = 24
-android.ndk = 25b
+android.ndk = 23b
 android.accept_sdk_license = True
 android.archs = arm64-v8a,armeabi-v7a
 android.permissions = INTERNET,ACCESS_NETWORK_STATE,WAKE_LOCK,POST_NOTIFICATIONS,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC
