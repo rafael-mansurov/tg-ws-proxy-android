@@ -38,3 +38,43 @@ jobs:
           name: tg-ws-proxy-debug
           path: bin/*.apk
           retention-days: 30
+
+      - name: Telegram — успех
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram: секреты не заданы, пропуск."
+            exit 0
+          fi
+          MSG=$(printf '%s\n%s\n%s\n%s\n%s' \
+            "✅ APK собран: tg-ws-proxy" \
+            "Репозиторий: ${{ github.repository }}" \
+            "Коммит: ${GITHUB_SHA:0:7}" \
+            "Артефакт в run: tg-ws-proxy-debug" \
+            "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
+            '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$BODY"
+
+      - name: Telegram — ошибка
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            exit 0
+          fi
+          MSG=$(printf '%s\n%s' \
+            "❌ Сборка APK упала" \
+            "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
+            '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$BODY"
