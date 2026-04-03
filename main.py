@@ -1,5 +1,5 @@
 """
-Kivy shell: starts Android foreground service with the tg-ws-proxy core (proxy/).
+Kivy shell: starts Android foreground service with the tg-ws-proxy core.
 """
 import json
 import secrets
@@ -8,7 +8,7 @@ import webbrowser
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.lang import Builder
-from kivy.properties import BooleanProperty, ListProperty
+from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 
 HOST = "127.0.0.1"
@@ -17,73 +17,69 @@ PORT = 1443
 KV = """
 <ProxyScreen>:
     orientation: 'vertical'
+    padding: dp(16)
+    spacing: dp(12)
     canvas.before:
         Color:
-            rgba: 0.059, 0.059, 0.098, 1
+            rgba: 1, 1, 1, 1
         Rectangle:
             pos: self.pos
             size: self.size
 
-    # ── Header ──
+    # Header
     BoxLayout:
         size_hint_y: None
-        height: dp(64)
-        padding: dp(16), dp(10)
+        height: dp(56)
         spacing: dp(12)
-        canvas.before:
-            Color:
-                rgba: 0.09, 0.09, 0.16, 1
-            Rectangle:
-                pos: self.pos
-                size: self.size
 
         BoxLayout:
             size_hint: None, None
-            size: dp(38), dp(38)
+            size: dp(44), dp(44)
             pos_hint: {'center_y': 0.5}
             canvas.before:
                 Color:
-                    rgba: 0.33, 0.35, 0.95, 1
+                    rgba: 0.165, 0.671, 0.933, 1
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
                     radius: [10]
             Label:
-                text: '🔒'
-                font_size: dp(18)
+                text: '[b]🔒[/b]'
+                markup: True
+                font_size: dp(22)
 
         BoxLayout:
             orientation: 'vertical'
             pos_hint: {'center_y': 0.5}
             Label:
                 text: 'TG WS Proxy'
-                color: 1, 1, 1, 1
-                font_size: dp(15)
+                font_size: dp(16)
                 bold: True
+                color: 0.07, 0.07, 0.09, 1
                 halign: 'left'
                 text_size: self.size
                 valign: 'middle'
             Label:
                 text: 'MTProto прокси'
-                color: 0.4, 0.4, 0.55, 1
                 font_size: dp(11)
+                color: 0.6, 0.6, 0.65, 1
                 halign: 'left'
                 text_size: self.size
                 valign: 'middle'
 
-        # Toggle switch in header
+        # Toggle
         BoxLayout:
-            size_hint: None, None
-            size: dp(58), dp(64)
             orientation: 'vertical'
-            spacing: dp(2)
+            size_hint: None, None
+            size: dp(56), dp(56)
             pos_hint: {'center_y': 0.5}
+            spacing: dp(2)
 
             Switch:
                 id: proxy_switch
                 size_hint: None, None
-                size: dp(58), dp(34)
-                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                size: dp(56), dp(38)
+                pos_hint: {'center_x': 0.5}
                 active: False
                 on_active: app.on_toggle(self.active)
 
@@ -91,201 +87,176 @@ KV = """
                 id: toggle_label
                 text: 'Выкл'
                 font_size: dp(9)
-                color: 0.4, 0.4, 0.55, 1
+                color: 0.6, 0.6, 0.65, 1
                 size_hint_y: None
                 height: dp(14)
                 halign: 'center'
                 text_size: self.size
-                valign: 'top'
 
-    # ── Status badge ──
+    # Status
     BoxLayout:
         size_hint_y: None
-        height: dp(50)
-        padding: dp(14), dp(8)
+        height: dp(52)
+        padding: dp(14), dp(10)
+        canvas.before:
+            Color:
+                rgba: app.status_bg
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [12]
 
-        BoxLayout:
-            spacing: dp(8)
-            size_hint_y: None
-            height: dp(36)
-            pos_hint: {'center_y': 0.5}
-            padding: dp(12), dp(6)
-            canvas.before:
-                Color:
-                    rgba: app.status_bg
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [10]
-                Color:
-                    rgba: app.status_border
-                Line:
-                    rounded_rectangle: self.x, self.y, self.width, self.height, 10
+        Label:
+            id: dot_label
+            text: '●'
+            font_size: dp(10)
+            color: app.status_color
+            size_hint: None, 1
+            width: dp(20)
 
-            Label:
-                id: dot
-                text: '●'
-                color: app.status_color
-                font_size: dp(10)
-                size_hint: None, 1
-                width: dp(14)
+        Label:
+            id: status_label
+            text: app.status_text
+            font_size: dp(13)
+            bold: True
+            color: app.status_color
+            halign: 'left'
+            text_size: self.size
+            valign: 'middle'
 
-            Label:
-                id: status_label
-                text: 'Остановлен'
-                color: app.status_color
-                font_size: dp(13)
-                bold: True
-                halign: 'left'
-                text_size: self.size
-                valign: 'middle'
-
-    # ── Cards ──
+    # Cards row
     BoxLayout:
-        orientation: 'vertical'
-        padding: dp(14), 0
-        spacing: dp(8)
         size_hint_y: None
-        height: dp(180)
-
-        BoxLayout:
-            size_hint_y: None
-            height: dp(52)
-            spacing: dp(8)
-
-            BoxLayout:
-                orientation: 'vertical'
-                padding: dp(12), dp(8)
-                canvas.before:
-                    Color:
-                        rgba: 0.1, 0.1, 0.18, 1
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [10]
-                Label:
-                    text: 'СЕРВЕР'
-                    color: 0.35, 0.35, 0.5, 1
-                    font_size: dp(9)
-                    halign: 'left'
-                    text_size: self.size
-                    valign: 'bottom'
-                Label:
-                    id: host_label
-                    text: '127.0.0.1'
-                    color: 0.88, 0.9, 0.95, 1
-                    font_size: dp(13)
-                    halign: 'left'
-                    text_size: self.size
-                    valign: 'top'
-
-            BoxLayout:
-                orientation: 'vertical'
-                padding: dp(12), dp(8)
-                size_hint_x: 0.4
-                canvas.before:
-                    Color:
-                        rgba: 0.1, 0.1, 0.18, 1
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [10]
-                Label:
-                    text: 'ПОРТ'
-                    color: 0.35, 0.35, 0.5, 1
-                    font_size: dp(9)
-                    halign: 'left'
-                    text_size: self.size
-                    valign: 'bottom'
-                Label:
-                    id: port_label
-                    text: '1443'
-                    color: 0.88, 0.9, 0.95, 1
-                    font_size: dp(13)
-                    halign: 'left'
-                    text_size: self.size
-                    valign: 'top'
+        height: dp(64)
+        spacing: dp(10)
 
         BoxLayout:
             orientation: 'vertical'
             padding: dp(12), dp(8)
-            size_hint_y: None
-            height: dp(68)
+            spacing: dp(4)
             canvas.before:
                 Color:
-                    rgba: 0.1, 0.1, 0.18, 1
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [10]
-            Label:
-                text: 'SECRET'
-                color: 0.35, 0.35, 0.5, 1
-                font_size: dp(9)
-                halign: 'left'
-                text_size: self.size
-                valign: 'bottom'
-                size_hint_y: None
-                height: dp(18)
-            Label:
-                id: secret_label
-                text: '–'
-                color: 0.6, 0.55, 0.98, 1
-                font_size: dp(12)
-                halign: 'left'
-                text_size: self.size
-                valign: 'top'
-
-    Widget:
-        size_hint_y: 1
-
-    # ── Button ──
-    BoxLayout:
-        size_hint_y: None
-        height: dp(64)
-        padding: dp(14), dp(8)
-
-        Button:
-            id: tg_button
-            text: 'Открыть в Telegram'
-            font_size: dp(14)
-            bold: True
-            color: 1, 1, 1, 1
-            background_normal: ''
-            background_color: 0, 0, 0, 0
-            disabled: not app.running
-            on_release: app.open_in_telegram()
-            canvas.before:
-                Color:
-                    rgba: (0.33, 0.35, 0.95, 1) if not self.disabled else (0.2, 0.2, 0.3, 1)
+                    rgba: 0.96, 0.97, 0.98, 1
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
                     radius: [12]
+            Label:
+                text: 'СЕРВЕР'
+                font_size: dp(9)
+                color: 0.55, 0.55, 0.6, 1
+                halign: 'left'
+                text_size: self.size
+                bold: True
+            Label:
+                text: '127.0.0.1'
+                font_size: dp(14)
+                bold: True
+                color: 0.07, 0.07, 0.09, 1
+                halign: 'left'
+                text_size: self.size
 
-    # ── Home bar ──
-    BoxLayout:
-        size_hint_y: None
-        height: dp(28)
-        canvas.before:
-            Color:
-                rgba: 0.059, 0.059, 0.098, 1
-            Rectangle:
-                pos: self.pos
-                size: self.size
-        Widget
         BoxLayout:
-            size_hint: None, None
-            size: dp(100), dp(4)
-            pos_hint: {'center_y': 0.5}
+            orientation: 'vertical'
+            size_hint_x: 0.42
+            padding: dp(12), dp(8)
+            spacing: dp(4)
             canvas.before:
                 Color:
-                    rgba: 0.25, 0.25, 0.35, 1
+                    rgba: 0.96, 0.97, 0.98, 1
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [2]
-        Widget
+                    radius: [12]
+            Label:
+                text: 'ПОРТ'
+                font_size: dp(9)
+                color: 0.55, 0.55, 0.6, 1
+                halign: 'left'
+                text_size: self.size
+                bold: True
+            Label:
+                text: '1443'
+                font_size: dp(14)
+                bold: True
+                color: 0.07, 0.07, 0.09, 1
+                halign: 'left'
+                text_size: self.size
+
+    # Secret card
+    BoxLayout:
+        size_hint_y: None
+        height: dp(72)
+        padding: dp(12), dp(8)
+        spacing: dp(4)
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: 0.96, 0.97, 0.98, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [12]
+        Label:
+            text: 'SECRET'
+            font_size: dp(9)
+            color: 0.55, 0.55, 0.6, 1
+            halign: 'left'
+            text_size: self.size
+            bold: True
+            size_hint_y: None
+            height: dp(18)
+        Label:
+            id: secret_label
+            text: app.secret_display
+            font_size: dp(11)
+            color: 0.165, 0.671, 0.933, 1
+            halign: 'left'
+            text_size: self.size
+
+    # Log (диагностика)
+    BoxLayout:
+        size_hint_y: None
+        height: dp(60)
+        padding: dp(12), dp(8)
+        canvas.before:
+            Color:
+                rgba: 0.98, 0.96, 0.94, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [12]
+        Label:
+            id: log_label
+            text: app.log_text
+            font_size: dp(10)
+            color: 0.4, 0.3, 0.2, 1
+            halign: 'left'
+            valign: 'top'
+            text_size: self.size
+            markup: True
+
+    Widget
+
+    # Button
+    Button:
+        size_hint_y: None
+        height: dp(52)
+        text: 'Открыть в Telegram'
+        font_size: dp(15)
+        bold: True
+        color: 1, 1, 1, 1
+        disabled: not app.running
+        background_normal: ''
+        background_color: 0, 0, 0, 0
+        on_release: app.open_in_telegram()
+        canvas.before:
+            Color:
+                rgba: (0.165, 0.671, 0.933, 1) if not self.disabled else (0.88, 0.89, 0.92, 1)
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [14]
 """
 
 Builder.load_string(KV)
@@ -311,9 +282,11 @@ def _stop_proxy_service() -> None:
 
 class TgWsApp(App):
     running = BooleanProperty(False)
-    status_color = ListProperty([0.45, 0.45, 0.6, 1])
-    status_bg = ListProperty([0.12, 0.12, 0.2, 0.5])
-    status_border = ListProperty([0.25, 0.25, 0.4, 0.4])
+    status_text = StringProperty("Остановлен")
+    status_color = [0.6, 0.6, 0.65, 1]
+    status_bg = [0.94, 0.94, 0.96, 1]
+    secret_display = StringProperty("––––––––––––––––")
+    log_text = StringProperty("Лог: ожидание")
 
     def build(self):
         self.secret = secrets.token_hex(16)
@@ -325,43 +298,43 @@ class TgWsApp(App):
             from android.permissions import Permission, check_permission, request_permissions
             if not check_permission(Permission.POST_NOTIFICATIONS):
                 request_permissions([Permission.POST_NOTIFICATIONS])
-        except Exception:
-            pass
+            self.log_text = "Разрешения запрошены"
+        except Exception as e:
+            self.log_text = f"Permissions: {e}"
 
     def on_toggle(self, active: bool) -> None:
-        ids = self.screen.ids
         if active:
             self._request_permissions()
+            self.log_text = "Запуск сервиса…"
             try:
                 _start_proxy_service(self.secret)
                 self.running = True
-                ids.status_label.text = "Прокси запущен в фоне"
-                ids.toggle_label.text = "Вкл"
-                self.status_color = (0.13, 0.8, 0.4, 1)
-                self.status_bg = (0.13, 0.46, 0.26, 0.18)
-                self.status_border = (0.13, 0.7, 0.35, 0.35)
-                ids.secret_label.text = self.secret
+                self.status_text = "Прокси запущен"
+                self.status_color = [0.05, 0.6, 0.32, 1]
+                self.status_bg = [0.9, 0.98, 0.93, 1]
+                self.secret_display = self.secret
+                self.log_text = f"OK · 127.0.0.1:{PORT}"
             except Exception as e:
-                ids.proxy_switch.active = False
-                ids.status_label.text = f"Ошибка: {e}"
-                self.status_color = (0.9, 0.3, 0.3, 1)
-                self.status_bg = (0.4, 0.1, 0.1, 0.18)
-                self.status_border = (0.7, 0.2, 0.2, 0.35)
+                self.screen.ids.proxy_switch.active = False
+                self.status_text = "Ошибка запуска"
+                self.status_color = [0.8, 0.2, 0.2, 1]
+                self.status_bg = [0.99, 0.93, 0.93, 1]
+                self.log_text = f"Ошибка: {e}"
         else:
             try:
                 _stop_proxy_service()
-            except Exception:
-                pass
+                self.log_text = "Сервис остановлен"
+            except Exception as e:
+                self.log_text = f"Стоп: {e}"
             self.running = False
-            ids.status_label.text = "Остановлен"
-            ids.toggle_label.text = "Выкл"
-            self.status_color = (0.45, 0.45, 0.6, 1)
-            self.status_bg = (0.12, 0.12, 0.2, 0.5)
-            self.status_border = (0.25, 0.25, 0.4, 0.4)
-            ids.secret_label.text = "–"
+            self.status_text = "Остановлен"
+            self.status_color = [0.6, 0.6, 0.65, 1]
+            self.status_bg = [0.94, 0.94, 0.96, 1]
+            self.secret_display = "––––––––––––––––"
 
     def open_in_telegram(self) -> None:
         url = f"tg://proxy?server={HOST}&port={PORT}&secret={self.secret}"
+        self.log_text = f"Открываю: {url[:40]}…"
         webbrowser.open(url)
 
     def on_pause(self):
