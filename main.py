@@ -17,6 +17,36 @@ LOG_FILENAME = "tgws_proxy.log"
 LOG_TAIL_LINES = 120
 
 
+def _is_ignoring_battery_optimizations() -> bool:
+    """True — приложение исключено из оптимизации (сервис не убивается)."""
+    try:
+        from jnius import autoclass
+        Context = autoclass("android.content.Context")
+        PythonActivity = autoclass("org.kivy.android.PythonActivity")
+        activity = PythonActivity.mActivity
+        pm = activity.getSystemService(Context.POWER_SERVICE)
+        return bool(pm.isIgnoringBatteryOptimizations(activity.getPackageName()))
+    except Exception:
+        return True  # на не-Android — считаем что всё ок
+
+
+def _open_battery_optimization_settings() -> None:
+    """Открывает системный диалог исключения из оптимизации батареи."""
+    try:
+        from jnius import autoclass
+        Intent = autoclass("android.content.Intent")
+        Settings = autoclass("android.provider.Settings")
+        Uri = autoclass("android.net.Uri")
+        PythonActivity = autoclass("org.kivy.android.PythonActivity")
+        activity = PythonActivity.mActivity
+        pkg = activity.getPackageName()
+        intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+        intent.setData(Uri.parse(f"package:{pkg}"))
+        activity.startActivity(intent)
+    except Exception:
+        pass
+
+
 def _current_device_ip() -> str:
     """IP текущего сетевого интерфейса — то, что Telegram примет как адрес прокси."""
     try:
@@ -279,6 +309,9 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
+        elif self.path == "/api/battery":
+            self._send_json({"optimized": not _is_ignoring_battery_optimizations()})
+
         elif self.path == "/api/logs":
             try:
                 log_path = Path(_secret_storage_path().parent / LOG_FILENAME)
@@ -315,6 +348,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"ok": True, "running": _running, "secret": SECRET})
             else:
                 self._send_json({"ok": False, "running": False, "error": err})
+
+        elif self.path == "/api/battery":
+            _open_battery_optimization_settings()
+            self._send_json({"ok": True})
 
         elif self.path == "/api/stop":
             _stop_service()
