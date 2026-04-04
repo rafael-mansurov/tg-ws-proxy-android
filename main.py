@@ -15,6 +15,19 @@ HOST_PROXY = "127.0.0.1"
 PORT_PROXY = 1443
 LOG_FILENAME = "tgws_proxy.log"
 LOG_TAIL_LINES = 120
+
+
+def _current_device_ip() -> str:
+    """IP текущего сетевого интерфейса — то, что Telegram примет как адрес прокси."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        if ip and not ip.startswith("127."):
+            return ip
+    except OSError:
+        pass
+    return "127.0.0.1"
 # Заполняется в _init_app_state(): должен совпадать с секретом в уже запущенном сервисе
 # после перезапуска процесса WebView (иначе Telegram открывают с новым secret, прокси — со старым).
 SECRET = ""
@@ -287,6 +300,7 @@ class Handler(BaseHTTPRequestHandler):
                 "host": HOST_PROXY,
                 "port": PORT_PROXY,
                 "secret": SECRET if alive else None,
+                "link_host": _current_device_ip() if alive else None,
             })
 
         else:

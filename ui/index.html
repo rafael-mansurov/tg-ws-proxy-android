@@ -261,6 +261,7 @@
 <script>
   let running = false;
   let secret = null;
+  let linkHost = null;
   let uiBusy = false;
 
   function setStartBusy(on) {
@@ -282,13 +283,14 @@
   }
 
   function proxyUrl() {
-    // "dd" prefix = WebSocket MTProto proxy type
-    return `tg://proxy?server=127.0.0.1&port=1443&secret=dd${secret}`;
+    const host = linkHost || '127.0.0.1';
+    return `tg://proxy?server=${host}&port=1443&secret=dd${secret}`;
   }
 
-  function updateUI(isRunning, sec) {
+  function updateUI(isRunning, sec, lh) {
     running = isRunning;
     secret = sec || secret;
+    if (lh) linkHost = lh;
 
     document.getElementById('toggle').classList.toggle('on', running);
     document.getElementById('toggle-lbl').textContent = running ? 'Вкл' : 'Выкл';
@@ -316,7 +318,7 @@
         if (d.error) alert(d.error);
         return;
       }
-      updateUI(d.running, d.secret);
+      updateUI(d.running, d.secret, d.link_host);
     } catch(e) {
       console.error(e);
       if (turningOn) updateUI(false, null);
@@ -374,7 +376,7 @@
     try {
       const r = await fetch('/api/status');
       const d = await r.json();
-      updateUI(d.running, d.secret);
+      updateUI(d.running, d.secret, d.link_host);
     } catch(e) {}
   }
 
