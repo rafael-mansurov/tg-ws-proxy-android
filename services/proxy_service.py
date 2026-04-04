@@ -26,7 +26,9 @@ def _run_proxy() -> None:
         except (json.JSONDecodeError, TypeError, AttributeError):
             pass
 
-    argv = ["tg-ws-proxy", "--host", "127.0.0.1", "--port", "1443"]
+    # 0.0.0.0: на части прошивок надёжнее для входящих от других приложений (Telegram);
+    # в tg:// по-прежнему 127.0.0.1 — это тот же слушатель.
+    argv = ["tg-ws-proxy", "--host", "0.0.0.0", "--port", "1443"]
     if secret:
         argv.extend(["--secret", secret])
 

@@ -13,12 +13,73 @@ from typing import Optional, Tuple
 
 HOST_PROXY = "127.0.0.1"
 PORT_PROXY = 1443
-SECRET = secrets.token_hex(16)
+# Заполняется в _init_app_state(): должен совпадать с секретом в уже запущенном сервисе
+# после перезапуска процесса WebView (иначе Telegram открывают с новым secret, прокси — со старым).
+SECRET = ""
 SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
 
 _running = False
+
+
+def _secret_storage_path() -> Path:
+    try:
+        from jnius import autoclass
+
+        act = autoclass("org.kivy.android.PythonActivity").mActivity
+        if act is not None:
+            return Path(act.getFilesDir().getAbsolutePath()) / "tgws_proxy_secret.hex"
+    except Exception:
+        pass
+    return Path(__file__).resolve().parent / ".tgws_proxy_secret.hex"
+
+
+def _load_persisted_secret() -> Optional[str]:
+    p = _secret_storage_path()
+    try:
+        raw = p.read_text(encoding="utf-8").strip().lower()
+        if len(raw) == 32 and all(c in "0123456789abcdef" for c in raw):
+            return raw
+    except OSError:
+        pass
+    return None
+
+
+def _save_secret(hex32: str) -> None:
+    p = _secret_storage_path()
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(hex32, encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _ensure_secret() -> str:
+    s = _load_persisted_secret()
+    if s:
+        return s
+    s = secrets.token_hex(16)
+    _save_secret(s)
+    return s
+
+
+def _probe_proxy_port_open() -> bool:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.35)
+        s.connect((HOST_PROXY, PORT_PROXY))
+        s.close()
+        return True
+    except OSError:
+        return False
+
+
+def _init_app_state() -> None:
+    global SECRET, _running
+    SECRET = _ensure_secret()
+    if _probe_proxy_port_open():
+        _running = True
 
 
 def _webview_open_tg_and_https_externally() -> None:
@@ -132,6 +193,10 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     global _running
     from jnius import autoclass
 
+    if _probe_proxy_port_open():
+        _running = True
+        return True, None
+
     Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     # 5-arg start: notification contentTitle/contentText (Android 8+), see p4a Service.tmpl.java
@@ -181,6 +246,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
+        global _running
         if self.path in ("/", "/index.html"):
             try:
                 html = UI_FILE.read_bytes()
@@ -193,11 +259,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": str(e)}, 500)
 
         elif self.path == "/api/status":
+            alive = _running or _probe_proxy_port_open()
+            if alive:
+                _running = True
             self._send_json({
-                "running": _running,
+                "running": alive,
                 "host": HOST_PROXY,
                 "port": PORT_PROXY,
-                "secret": SECRET if _running else None,
+                "secret": SECRET if alive else None,
             })
 
         else:
@@ -226,5 +295,6 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     _webview_open_tg_and_https_externally()
+    _init_app_state()
     server = HTTPServer(("127.0.0.1", SERVE_PORT), Handler)
     server.serve_forever()

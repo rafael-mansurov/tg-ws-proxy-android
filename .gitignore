@@ -1,4 +1,4 @@
 preview/
 .DS_Store
-# меню-бар только локально, не в git
-macos/
+SWIFTBAR.md
+.cursor/rules/swiftbar-proxy.mdc

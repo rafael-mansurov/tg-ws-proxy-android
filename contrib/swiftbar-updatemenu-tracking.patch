@@ -1,0 +1,15 @@
+--- a/SwiftBar/MenuBar/MenuBarItem.swift
++++ b/SwiftBar/MenuBar/MenuBarItem.swift
+@@ -555,9 +555,9 @@
+     }
+ 
+     func updateMenu(content: String?) {
+-        DispatchQueue.main.async { [weak self] in
+-            self?._updateMenu(content: content)
+-        }
++        RunLoop.main.perform({ [weak self] in
++            self?._updateMenu(content: content)
++        }, inModes: [.default, .common, .eventTracking])
+     }
+ 
+     func _updateMenu(content: String?) {

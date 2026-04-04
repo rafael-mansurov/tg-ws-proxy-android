@@ -19,6 +19,8 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+from proxy.lan_ipv4 import lan_ipv4_preferred
+
 
 @dataclass
 class ProxyConfig:
@@ -115,6 +117,9 @@ def _xor_mask(data: bytes, mask: bytes) -> bytes:
 
 def get_link_host(host: str) -> Optional[str]:
     if host == '0.0.0.0':
+        lip = lan_ipv4_preferred()
+        if lip:
+            return lip
         try:
             with _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM) as _s:
                 _s.connect(('8.8.8.8', 80))
