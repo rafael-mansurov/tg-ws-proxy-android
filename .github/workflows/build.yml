@@ -56,10 +56,10 @@ jobs:
           gh release create latest-apk tg-ws-proxy-debug.apk tg-ws-proxy-debug.zip \
             --repo "${{ github.repository }}" \
             --title "Последняя сборка (debug)" \
-            --notes "Автосборка ${{ github.sha }} · [лог Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" \
+            --notes "Автосборка debug APK." \
             --latest=false
 
-      - name: Telegram — успех (ссылки APK и ZIP)
+      - name: Telegram — успех (ZIP и файл APK)
         if: success()
         continue-on-error: true
         env:
@@ -72,20 +72,20 @@ jobs:
           fi
           BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-apk"
           DL_ZIP="${BASE}/tg-ws-proxy-debug.zip"
-          DL_APK="${BASE}/tg-ws-proxy-debug.apk"
-          MSG=$(printf '%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n' \
+          MSG=$(printf '%s\n\n%s\n%s\n' \
             "✅ tg-ws-proxy собран" \
-            "Скачать ZIP (открываешь ссылку → скачивается архив с APK):" \
-            "${DL_ZIP}" \
-            "Или APK без zip:" \
-            "${DL_APK}" \
-            "Коммит: ${GITHUB_SHA:0:7}" \
-            "Лог: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+            "Скачать ZIP (архив с APK):" \
+            "${DL_ZIP}")
           BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
             '{chat_id: $c, text: $t, disable_web_page_preview: true}')
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
             -d "$BODY"
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            -F chat_id="$TELEGRAM_CHAT_ID" \
+            -F document=@"tg-ws-proxy-debug.apk" \
+            -F caption="tg-ws-proxy-debug.apk" \
+            || echo "::warning::Telegram: не удалось отправить APK файл (лимит бота ~50 МБ или сеть)."
 
       - name: Telegram — ошибка
         if: failure()
