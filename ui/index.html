@@ -225,7 +225,7 @@
     <div class="row">
       <div class="card">
         <div class="clabel">Сервер</div>
-        <div class="cvalue">127.0.0.1</div>
+        <div class="cvalue" id="server-val">127.0.0.1</div>
       </div>
       <div class="card" style="flex:0.6">
         <div class="clabel">Порт</div>
@@ -254,7 +254,10 @@
       <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Лог сервиса</div>
       <pre id="log-box" style="background:#0f172a;color:#94a3b8;font-size:10px;line-height:1.5;padding:10px;border-radius:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto;margin:0"></pre>
     </div>
-    <button type="button" id="log-btn" onclick="toggleLogs()" style="margin-top:10px;width:100%;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:13px;color:#64748b;cursor:pointer">Показать логи</button>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button type="button" id="log-btn" onclick="toggleLogs()" style="flex:1;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:13px;color:#64748b;cursor:pointer">Показать логи</button>
+      <button type="button" id="copy-log-btn" onclick="copyLogs()" style="display:none;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:13px;color:#64748b;cursor:pointer">Копировать</button>
+    </div>
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
@@ -290,7 +293,10 @@
   function updateUI(isRunning, sec, lh) {
     running = isRunning;
     secret = sec || secret;
-    if (lh) linkHost = lh;
+    if (lh) {
+      linkHost = lh;
+      document.getElementById('server-val').textContent = lh;
+    }
 
     document.getElementById('toggle').classList.toggle('on', running);
     document.getElementById('toggle-lbl').textContent = running ? 'Вкл' : 'Выкл';
@@ -339,6 +345,7 @@
     }
     section.style.display = 'block';
     btn.textContent = 'Скрыть логи';
+    document.getElementById('copy-log-btn').style.display = '';
     try {
       const r = await fetch('/api/logs');
       const d = await r.json();
@@ -348,6 +355,27 @@
     } catch(e) {
       document.getElementById('log-box').textContent = 'Ошибка загрузки лога: ' + e;
     }
+  }
+
+  function copyLogs() {
+    const text = document.getElementById('log-box').textContent;
+    const btn = document.getElementById('copy-log-btn');
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Скопировано!';
+      setTimeout(() => { btn.textContent = 'Копировать'; }, 2000);
+    }).catch(() => {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.textContent = 'Скопировано!';
+      setTimeout(() => { btn.textContent = 'Копировать'; }, 2000);
+    });
   }
 
   function openTelegram() {
