@@ -1,4 +1,5 @@
 preview/
+.buildozer/
 .DS_Store
 SWIFTBAR.md
 .cursor/rules/swiftbar-proxy.mdc
