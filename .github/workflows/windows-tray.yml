@@ -1,14 +1,17 @@
 name: Windows tray (contrib)
 
-# Это не APK: проверка скрипта трея, ZIP в Release и (опционально) Telegram.
-# Android по-прежнему в build.yml.
+# Сборка one-file TGWSProxyTray.exe (PyInstaller), ZIP в Release и (опционально) Telegram.
+# Android — отдельно в build.yml.
 
 on:
   push:
     branches: [main]
     paths:
       - "contrib/tgwsproxy_tray_windows.py"
+      - "contrib/tgwsproxy_tray_windows.spec"
       - "contrib/requirements-tray-windows.txt"
+      - "proxy/**"
+      - "scripts/*.py"
       - ".github/workflows/windows-tray.yml"
   workflow_dispatch:
 
@@ -25,30 +28,31 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Зависимости и синтаксис
+      - name: Зависимости, PyInstaller, сборка .exe
         run: |
           python -m pip install --upgrade pip
+          python -m pip install "pyinstaller>=6.0"
           python -m pip install -r contrib/requirements-tray-windows.txt
           python -m py_compile contrib/tgwsproxy_tray_windows.py
+          python -m PyInstaller --noconfirm contrib/tgwsproxy_tray_windows.spec
+          if (-not (Test-Path "dist/TGWSProxyTray.exe")) { throw "dist/TGWSProxyTray.exe missing" }
 
-      - name: Собрать ZIP
-        shell: bash
+      - name: Собрать ZIP (exe + README)
         run: |
-          set -euo pipefail
-          mkdir -p staging/contrib
-          cp contrib/tgwsproxy_tray_windows.py contrib/requirements-tray-windows.txt staging/contrib/
-          cat > staging/README-WINDOWS-TRAY.txt <<'EOF'
-          TG WS Proxy — иконка в системном трее (Windows).
-
-          Нужен полный клон репозитория: скрипт считает корнем проекта каталог-родитель contrib/.
-
-          В корне репозитория:
-            pip install -r contrib/requirements-tray-windows.txt
-            pythonw.exe contrib\tgwsproxy_tray_windows.py
-
-          Состояние и секрет: %LOCALAPPDATA%\TGWSProxy
-          EOF
-          ( cd staging && powershell -NoProfile -Command "Compress-Archive -Path * -DestinationPath ../tg-ws-proxy-windows-tray.zip -Force" )
+          New-Item -ItemType Directory -Force staging | Out-Null
+          Copy-Item -Force "dist/TGWSProxyTray.exe" "staging/TGWSProxyTray.exe"
+          $readme = @(
+            "TG WS Proxy — один файл TGWSProxyTray.exe",
+            "",
+            "1) Распакуйте архив.",
+            "2) Запустите TGWSProxyTray.exe (двойной клик).",
+            "3) Иконка — в области уведомлений Windows (часть иконок в «скрытых»).",
+            "4) SmartScreen может спросить подтверждение — это нормально для неподписанного .exe.",
+            "",
+            "Python и клон репозитория не нужны. Настройки и секрет: %LOCALAPPDATA%\TGWSProxy"
+          )
+          $readme | Set-Content -Encoding utf8 "staging/README-WINDOWS.txt"
+          Compress-Archive -Path "staging/*" -DestinationPath "tg-ws-proxy-windows-tray.zip" -Force
 
       - name: Артефакт ZIP
         uses: actions/upload-artifact@v4
@@ -69,8 +73,8 @@ jobs:
           fi
           gh release create latest-windows-tray tg-ws-proxy-windows-tray.zip \
             --repo "${{ github.repository }}" \
-            --title "Windows: трей-контроллер" \
-            --notes "Архив со скриптом трея и requirements. Клонировать весь репозиторий и запускать из корня (см. README в ZIP)." \
+            --title "Windows: TGWSProxyTray (portable)" \
+            --notes "Скачайте ZIP: внутри **TGWSProxyTray.exe** — один запуск, без установки Python. Распакуйте и запустите exe." \
             --latest=false
 
       - name: Telegram — успех
@@ -85,12 +89,12 @@ jobs:
             exit 0
           }
           $dl = "${{ github.server_url }}/${{ github.repository }}/releases/download/latest-windows-tray/tg-ws-proxy-windows-tray.zip"
-          $msg = "✅ TG WS Proxy — Windows tray`n`nСкачать ZIP:`n$dl"
+          $msg = "✅ TG WS Proxy — Windows (portable)`n`nСкачать ZIP с .exe:`n$dl"
           $send = @{ chat_id = $env:TELEGRAM_CHAT_ID; text = $msg; disable_web_page_preview = $true }
           $json = $send | ConvertTo-Json -Compress
           Invoke-RestMethod -Uri "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendMessage" -Method Post -Body $json -ContentType "application/json; charset=utf-8"
           curl.exe -fsS -X POST "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendDocument" `
-            -F "chat_id=$($env:TELEGRAM_CHAT_ID)" -F "document=@tg-ws-proxy-windows-tray.zip" -F "caption=tg-ws-proxy-windows-tray.zip"
+            -F "chat_id=$($env:TELEGRAM_CHAT_ID)" -F "document=@tg-ws-proxy-windows-tray.zip" -F "caption=tg-ws-proxy-windows-tray.zip (внутри TGWSProxyTray.exe)"
 
       - name: Telegram — ошибка
         if: failure()

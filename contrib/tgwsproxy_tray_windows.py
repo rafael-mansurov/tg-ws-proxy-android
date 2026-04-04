@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Windows: иконка в системном трее для TG WS Proxy.
 
+Обычный запуск из клона репозитория:
   pip install -r contrib/requirements-tray-windows.txt
   pythonw.exe contrib/tgwsproxy_tray_windows.py
 
-Репозиторий берётся как родитель каталога contrib/. Состояние: %LOCALAPPDATA%\\TGWSProxy\\
+Сборка one-file (всё в одном .exe, без Python и клона): см. contrib/tgwsproxy_tray_windows.spec
+Состояние: %LOCALAPPDATA%\\TGWSProxy\\
 """
 from __future__ import annotations
 
 import os
 import re
+import runpy
 import secrets
 import signal
 import socket
@@ -20,12 +23,36 @@ import time
 import webbrowser
 from pathlib import Path
 
-if __name__ == "__main__" and sys.platform != "win32":
-    print("Этот скрипт рассчитан на Windows.", file=sys.stderr)
-    sys.exit(1)
+_WORKER_FLAG = "--tgws-proxy-worker"
 
-REPO = Path(__file__).resolve().parents[1]
+
+def _repo_root() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parents[1]
+
+
+REPO = _repo_root()
 RUN_SCRIPT = REPO / "scripts" / "run_local_proxy.py"
+
+
+def _run_embedded_proxy_worker() -> None:
+    """Тот же .exe в режиме прокси (PyInstaller one-file)."""
+    root = _repo_root()
+    sys.path.insert(0, str(root))
+    try:
+        os.chdir(str(root))
+    except OSError:
+        pass
+    args = list(sys.argv)
+    try:
+        i = args.index(_WORKER_FLAG)
+    except ValueError:
+        return
+    sys.argv = ["run_local_proxy", *args[i + 1 :]]
+    runpy.run_path(str(root / "scripts" / "run_local_proxy.py"), run_name="__main__")
+
+
 PORT = 1443
 
 _default_local = os.environ.get("LOCALAPPDATA")
@@ -267,6 +294,22 @@ def _popen_no_window() -> int:
     return f
 
 
+def _proxy_worker_cmd(bind_host: str, secret: str) -> list[str]:
+    """Из .exe — только флаги; из исходников — тот же .py, чтобы Python знал точку входа."""
+    tail = [
+        _WORKER_FLAG,
+        "--host",
+        bind_host,
+        "--secret",
+        secret,
+        "--port",
+        str(PORT),
+    ]
+    if getattr(sys, "frozen", False):
+        return [sys.executable, *tail]
+    return [sys.executable, str(Path(__file__).resolve()), *tail]
+
+
 def start() -> None:
     ensure()
     if is_running():
@@ -276,16 +319,7 @@ def start() -> None:
     env["PYTHONUNBUFFERED"] = "1"
     bind_host = "0.0.0.0" if home_proxy_enabled() else "127.0.0.1"
     proc = subprocess.Popen(
-        [
-            sys.executable,
-            str(RUN_SCRIPT),
-            "--host",
-            bind_host,
-            "--secret",
-            secret,
-            "--port",
-            str(PORT),
-        ],
+        _proxy_worker_cmd(bind_host, secret),
         cwd=str(REPO),
         env=env,
         stdout=subprocess.DEVNULL,
@@ -608,7 +642,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # SIGINT в консоли
-    if sys.platform == "win32":
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
+    if _WORKER_FLAG in sys.argv:
+        _run_embedded_proxy_worker()
+        raise SystemExit(0)
+    if sys.platform != "win32":
+        print("Этот скрипт рассчитан на Windows.", file=sys.stderr)
+        raise SystemExit(1)
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     main()
