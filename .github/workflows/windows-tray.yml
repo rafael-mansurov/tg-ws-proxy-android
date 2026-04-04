@@ -73,8 +73,8 @@ jobs:
           fi
           gh release create latest-windows-tray tg-ws-proxy-windows-tray.zip \
             --repo "${{ github.repository }}" \
-            --title "Windows: TGWSProxyTray (portable)" \
-            --notes "Скачайте ZIP: внутри **TGWSProxyTray.exe** — один запуск, без установки Python. Распакуйте и запустите exe." \
+            --title "Программа для Windows (трей)" \
+            --notes "В архиве одна программа: распакуйте и запустите. Отдельно ставить Python не нужно." \
             --latest=false
 
       - name: Telegram — успех
@@ -89,12 +89,13 @@ jobs:
             exit 0
           }
           $dl = "${{ github.server_url }}/${{ github.repository }}/releases/download/latest-windows-tray/tg-ws-proxy-windows-tray.zip"
-          $msg = "✅ TG WS Proxy — Windows (portable)`n`nСкачать ZIP с .exe:`n$dl"
-          $send = @{ chat_id = $env:TELEGRAM_CHAT_ID; text = $msg; disable_web_page_preview = $true }
+          $msg = "✅ <b>Для ПК (Windows)</b>`n`nАрхив с программой — в сообщении ниже.`n`nЕсли файл потеряется: <a href=`"$dl`">скачать ещё раз</a>"
+          $send = @{ chat_id = $env:TELEGRAM_CHAT_ID; text = $msg; parse_mode = "HTML"; disable_web_page_preview = $true }
           $json = $send | ConvertTo-Json -Compress
           Invoke-RestMethod -Uri "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendMessage" -Method Post -Body $json -ContentType "application/json; charset=utf-8"
           curl.exe -fsS -X POST "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendDocument" `
-            -F "chat_id=$($env:TELEGRAM_CHAT_ID)" -F "document=@tg-ws-proxy-windows-tray.zip" -F "caption=tg-ws-proxy-windows-tray.zip (внутри TGWSProxyTray.exe)"
+            -F "chat_id=$($env:TELEGRAM_CHAT_ID)" -F "document=@tg-ws-proxy-windows-tray.zip" `
+            -F "caption=Распакуй папку и запусти программу — иконка появится рядом с часами."
 
       - name: Telegram — ошибка
         if: failure()
@@ -104,7 +105,7 @@ jobs:
         run: |
           if (-not $env:TELEGRAM_BOT_TOKEN -or -not $env:TELEGRAM_CHAT_ID) { exit 0 }
           $url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          $msg = "❌ Windows tray workflow упал`n$url"
-          $send = @{ chat_id = $env:TELEGRAM_CHAT_ID; text = $msg; disable_web_page_preview = $true }
+          $msg = "❌ <b>Windows</b> — сборка не удалась.`n`n<a href=`"$url`">Что пошло не так</a>"
+          $send = @{ chat_id = $env:TELEGRAM_CHAT_ID; text = $msg; parse_mode = "HTML"; disable_web_page_preview = $true }
           $json = $send | ConvertTo-Json -Compress
           Invoke-RestMethod -Uri "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendMessage" -Method Post -Body $json -ContentType "application/json; charset=utf-8"

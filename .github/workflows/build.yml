@@ -72,19 +72,19 @@ jobs:
           fi
           BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-apk"
           DL_ZIP="${BASE}/tg-ws-proxy-debug.zip"
-          MSG=$(printf '%s\n\n%s\n%s\n' \
-            "✅ tg-ws-proxy собран" \
-            "Скачать ZIP (архив с APK):" \
-            "${DL_ZIP}")
+          MSG=$(printf '%s\n\n%s\n\n%s' \
+            "✅ <b>Для телефона (Android)</b>" \
+            "Установочный файл — в сообщении ниже." \
+            "Если файл потеряется: <a href=\"${DL_ZIP}\">скачать архив</a>")
           BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
-            '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+            '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
             -d "$BODY"
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             -F chat_id="$TELEGRAM_CHAT_ID" \
             -F document=@"tg-ws-proxy-debug.apk" \
-            -F caption="tg-ws-proxy-debug.apk" \
+            -F caption=$'Установи на телефон как обычное приложение (при необходимости разреши установку из файла).' \
             || echo "::warning::Telegram: не удалось отправить APK файл (лимит бота ~50 МБ или сеть)."
 
       - name: Telegram — ошибка
@@ -96,11 +96,12 @@ jobs:
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             exit 0
           fi
-          MSG=$(printf '%s\n%s' \
-            "❌ Сборка APK упала" \
-            "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MSG=$(printf '%s\n\n%s' \
+            "❌ <b>Android</b> — сборка не удалась." \
+            "<a href=\"${RUN_URL}\">Что пошло не так</a>")
           BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
-            '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+            '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
             -d "$BODY"
