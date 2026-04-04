@@ -249,6 +249,12 @@
         <div class="qr-placeholder" id="qr-placeholder">Загрузка QR…</div>
       </div>
     </div>
+
+    <div id="log-section" style="display:none;margin-top:12px">
+      <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Лог сервиса</div>
+      <pre id="log-box" style="background:#0f172a;color:#94a3b8;font-size:10px;line-height:1.5;padding:10px;border-radius:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto;margin:0"></pre>
+    </div>
+    <button type="button" id="log-btn" onclick="toggleLogs()" style="margin-top:10px;width:100%;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:13px;color:#64748b;cursor:pointer">Показать логи</button>
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
@@ -316,6 +322,29 @@
       if (turningOn) updateUI(false, null);
     } finally {
       if (turningOn) setStartBusy(false);
+    }
+  }
+
+  let logsVisible = false;
+  async function toggleLogs() {
+    const section = document.getElementById('log-section');
+    const btn = document.getElementById('log-btn');
+    logsVisible = !logsVisible;
+    if (!logsVisible) {
+      section.style.display = 'none';
+      btn.textContent = 'Показать логи';
+      return;
+    }
+    section.style.display = 'block';
+    btn.textContent = 'Скрыть логи';
+    try {
+      const r = await fetch('/api/logs');
+      const d = await r.json();
+      const box = document.getElementById('log-box');
+      box.textContent = d.log || '(пусто)';
+      box.scrollTop = box.scrollHeight;
+    } catch(e) {
+      document.getElementById('log-box').textContent = 'Ошибка загрузки лога: ' + e;
     }
   }
 

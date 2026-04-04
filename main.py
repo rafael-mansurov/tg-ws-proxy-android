@@ -13,6 +13,8 @@ from typing import Optional, Tuple
 
 HOST_PROXY = "127.0.0.1"
 PORT_PROXY = 1443
+LOG_FILENAME = "tgws_proxy.log"
+LOG_TAIL_LINES = 120
 # Заполняется в _init_app_state(): должен совпадать с секретом в уже запущенном сервисе
 # после перезапуска процесса WebView (иначе Telegram открывают с новым secret, прокси — со старым).
 SECRET = ""
@@ -263,6 +265,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(html)
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
+
+        elif self.path == "/api/logs":
+            try:
+                log_path = Path(_secret_storage_path().parent / LOG_FILENAME)
+                if log_path.exists():
+                    lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+                    tail = "\n".join(lines[-LOG_TAIL_LINES:])
+                else:
+                    tail = "(лог-файл ещё не создан — запустите прокси)"
+            except Exception as e:
+                tail = f"(ошибка чтения лога: {e})"
+            self._send_json({"log": tail})
 
         elif self.path == "/api/status":
             alive = _running or _probe_proxy_port_open()

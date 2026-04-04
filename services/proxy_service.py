@@ -59,6 +59,26 @@ def _secret_from_app_file() -> Optional[str]:
     return None
 
 
+LOG_FILENAME = "tgws_proxy.log"
+
+
+def _app_base_path() -> Optional[Path]:
+    try:
+        from android.storage import app_storage_path
+        return Path(app_storage_path())
+    except Exception:
+        pass
+    try:
+        from jnius import autoclass
+        PySvc = autoclass("org.kivy.android.PythonService")
+        svc = PySvc.mService
+        if svc is not None:
+            return Path(svc.getFilesDir().getAbsolutePath())
+    except Exception:
+        pass
+    return None
+
+
 def _resolve_secret() -> Optional[str]:
     return _secret_from_service_argument() or _secret_from_app_file()
 
@@ -78,6 +98,11 @@ def _run_proxy() -> None:
         sys.stderr.flush()
         sys.exit(1)
 
+    log_file = None
+    base = _app_base_path()
+    if base:
+        log_file = str(base / LOG_FILENAME)
+
     argv = [
         "tg-ws-proxy",
         "--host",
@@ -86,7 +111,10 @@ def _run_proxy() -> None:
         "1443",
         "--secret",
         secret,
+        "--verbose",
     ]
+    if log_file:
+        argv.extend(["--log-file", log_file])
 
     for dc in (2, 4):
         ip = resolve_kws_edge_ipv4(dc)
