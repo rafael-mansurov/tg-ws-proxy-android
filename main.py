@@ -197,6 +197,12 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         _running = True
         return True, None
 
+    if len(SECRET) != 32:
+        return False, "Секрет не готов. Закрой приложение и открой снова."
+
+    # Сервис читает этот же файл, если PYTHON_SERVICE_ARGUMENT не доехал (типичная проблема p4a).
+    _save_secret(SECRET)
+
     Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     # 5-arg start: notification contentTitle/contentText (Android 8+), see p4a Service.tmpl.java
