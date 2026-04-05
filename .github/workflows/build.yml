@@ -95,14 +95,23 @@ jobs:
           set -euo pipefail
           APK=$(ls -1 bin/*.apk | head -1)
           cp -f "$APK" tg-ws-proxy-debug.apk
+          NOTES="Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}"
           if gh release view latest-apk --repo "${{ github.repository }}" &>/dev/null; then
-            gh release delete latest-apk --cleanup-tag --yes --repo "${{ github.repository }}"
+            gh release upload latest-apk tg-ws-proxy-debug.apk \
+              --repo "${{ github.repository }}" \
+              --clobber
+            gh release edit latest-apk \
+              --repo "${{ github.repository }}" \
+              --title "Приложение для Android (APK)" \
+              --notes "${NOTES}" \
+              --latest=false
+          else
+            gh release create latest-apk tg-ws-proxy-debug.apk \
+              --repo "${{ github.repository }}" \
+              --title "Приложение для Android (APK)" \
+              --notes "${NOTES}" \
+              --latest=false
           fi
-          gh release create latest-apk tg-ws-proxy-debug.apk \
-            --repo "${{ github.repository }}" \
-            --title "Приложение для Android (APK)" \
-            --notes "Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}" \
-            --latest=false
 
       - name: Telegram — успех (ссылка и файл APK)
         if: success()
