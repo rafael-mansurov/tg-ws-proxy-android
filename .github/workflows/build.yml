@@ -39,14 +39,6 @@ jobs:
             echo "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > .ci/release.keystore
             chmod 600 .ci/release.keystore
 
-            {
-              echo ""
-              echo "# CI signing config"
-              echo "android.release_artifact = apk"
-              echo "android.release_keystore = .ci/release.keystore"
-              echo "android.release_keyalias = ${ANDROID_KEY_ALIAS}"
-            } >> buildozer.spec
-
             echo "BUILD_MODE=release" >> "${GITHUB_ENV}"
             echo "P4A_RELEASE_KEYSTORE_PASSWD=${ANDROID_KEYSTORE_PASSWORD}" >> "${GITHUB_ENV}"
             echo "P4A_RELEASE_KEYALIAS_PASSWD=${ANDROID_KEY_ALIAS_PASSWORD}" >> "${GITHUB_ENV}"
@@ -67,16 +59,24 @@ jobs:
             buildozer-
 
       - name: Build APK (kivy/buildozer docker)
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -euo pipefail
           mkdir -p "${HOME}/.buildozer"
           echo "Build mode: ${BUILD_MODE}"
           echo "Version: ${APP_VERSION}"
+          SIGN_ENV=()
+          if [ "${BUILD_MODE}" = "release" ]; then
+            SIGN_ENV+=( -e "P4A_RELEASE_KEYSTORE=/home/user/hostcwd/.ci/release.keystore" )
+            SIGN_ENV+=( -e "P4A_RELEASE_KEYALIAS=${ANDROID_KEY_ALIAS}" )
+          fi
           docker run --rm \
             -v "${{ github.workspace }}:/home/user/hostcwd" \
             -v "${HOME}/.buildozer:/home/user/.buildozer" \
-            -e P4A_RELEASE_KEYSTORE_PASSWD="${P4A_RELEASE_KEYSTORE_PASSWD:-}" \
-            -e P4A_RELEASE_KEYALIAS_PASSWD="${P4A_RELEASE_KEYALIAS_PASSWD:-}" \
+            "${SIGN_ENV[@]}" \
+            -e "P4A_RELEASE_KEYSTORE_PASSWD=${P4A_RELEASE_KEYSTORE_PASSWD:-}" \
+            -e "P4A_RELEASE_KEYALIAS_PASSWD=${P4A_RELEASE_KEYALIAS_PASSWD:-}" \
             kivy/buildozer:latest \
             android "${BUILD_MODE}"
 
