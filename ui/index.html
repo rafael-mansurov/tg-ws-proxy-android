@@ -280,21 +280,11 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 22px;
+      border-radius: 16px;
       padding: 14px 16px;
       flex: 1; min-width: 0;
       display: flex; flex-direction: column; gap: 8px;
       box-shadow: none;
-      position: relative;
-      overflow: hidden;
-    }
-    .card::after {
-      content: '';
-      position: absolute;
-      left: 10%; right: 10%; bottom: 0;
-      height: 45%;
-      background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(255,60,40,0.06) 0%, transparent 70%);
-      pointer-events: none;
     }
     .clabel { color: rgba(255,255,255,0.38); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
     .cvalue { color: #ffffff; font-size: 15px; font-weight: 700; font-family: ui-monospace,'SFMono-Regular',Menlo,monospace; letter-spacing: -0.02em; }
@@ -317,7 +307,7 @@
     .btn {
       width: 100%;
       border: 1px solid transparent;
-      border-radius: 22px;
+      border-radius: 16px;
       padding: 16px 18px;
       font-size: 15px; font-weight: 700;
       letter-spacing: -0.02em;
@@ -482,15 +472,15 @@
       <div class="htitle" id="header-title">TG WS Proxy</div>
       <div class="hsub" id="header-sub">MTProto · локальный</div>
     </div>
+    <div class="header-toggle-wrap toggle-wrap" id="header-toggle-wrap" role="switch" aria-checked="false" aria-label="Прокси" onclick="onToggle()">
+      <div class="toggle-track" id="toggle"><div class="toggle-thumb"></div></div>
+    </div>
     <button type="button" class="header-gear-btn" id="header-settings-btn" onclick="openSettings()" aria-label="Настройки" title="Настройки">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
         <circle cx="12" cy="12" r="3"/>
       </svg>
     </button>
-    <div class="header-toggle-wrap toggle-wrap" id="header-toggle-wrap" role="switch" aria-checked="false" aria-label="Прокси" onclick="onToggle()">
-      <div class="toggle-track" id="toggle"><div class="toggle-thumb"></div></div>
-    </div>
   </div>
 
   <div id="page-main" class="page is-active">
@@ -557,14 +547,20 @@
 
     <!-- Поддержка -->
     <div style="margin-top:16px;padding-bottom:4px;text-align:center">
-      <a href="https://t.me/mansurov_rafael" target="_blank"
-        style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;
-               color:rgba(55,65,81,1);font-size:12px;font-weight:600;
-               padding:8px 16px;border-radius:20px;
+      <a href="https://t.me/mansurov_rafael" target="_blank" style="
+               display:inline-flex;
+               align-items:center;
+               gap:7px;
+               text-decoration:none;
+               color: rgb(255 255 255);
+               font-size:12px;
+               font-weight:500;
+               padding:8px 16px;
+               border-radius:20px;
                border:1px solid rgba(0,0,0,0.08);
-               background:rgba(255,255,255,0.5)">
+               background: rgb(255 255 255 / 6%);">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
         Поддержка
       </a>
