@@ -100,7 +100,7 @@ jobs:
           fi
           gh release create latest-apk tg-ws-proxy-debug.apk \
             --repo "${{ github.repository }}" \
-            --title "Последняя сборка (${BUILD_MODE})" \
+            --title "Приложение для Android (APK)" \
             --notes "Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}" \
             --latest=false
 
