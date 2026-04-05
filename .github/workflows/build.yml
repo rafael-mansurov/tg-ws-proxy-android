@@ -53,7 +53,7 @@ jobs:
           path: |
             .buildozer
             /home/runner/.buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec', 'tools/p4a_hook.py', 'tools/p4a_webview_loader/**', 'tools/p4a_python_activity/**') }}-v6-sdkhome
+          key: buildozer-${{ hashFiles('buildozer.spec', 'icon.png', 'presplash.png', 'tools/p4a_hook.py', 'tools/p4a_webview_loader/**', 'tools/p4a_python_activity/**') }}-v7-sdkhome
           restore-keys: |
             buildozer-${{ hashFiles('buildozer.spec') }}-
             buildozer-
