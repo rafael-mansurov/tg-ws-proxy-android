@@ -254,12 +254,14 @@ def _start_service() -> Tuple[bool, Optional[str]]:
 
     Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
+    link_host = _proxy_link_host()
+    fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
     # 5-arg start: notification contentTitle/contentText (Android 8+), see p4a Service.tmpl.java
     Service.start(
         PythonActivity.mActivity,
         "",
         "TG WS Proxy",
-        "Прокси 127.0.0.1:1443 · нажми, чтобы открыть приложение",
+        fg_text,
         json.dumps({"secret": SECRET}),
     )
     if not _wait_proxy_listen():
@@ -373,7 +375,7 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     _webview_open_tg_and_https_externally()
-    # Init in background so WebView gets our HTML instantly (hides p4a loading stripes)
+    # Init in background so WebView gets HTML as soon as the server is up (splash hides on first paint of this URL).
     threading.Thread(target=_init_app_state, daemon=True).start()
     server = HTTPServer(("127.0.0.1", SERVE_PORT), Handler)
     server.serve_forever()

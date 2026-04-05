@@ -14,25 +14,71 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Подготовка версии (растет на каждом запуске)
+        run: |
+          set -euo pipefail
+          BASE_VERSION=$(awk -F' = ' '/^version = / {print $2}' buildozer.spec | cut -d. -f1-2)
+          if [ -z "${BASE_VERSION}" ]; then
+            BASE_VERSION="1.0"
+          fi
+          APP_VERSION="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"
+          sed -i.bak -E "s/^version = .*/version = ${APP_VERSION}/" buildozer.spec
+          rm -f buildozer.spec.bak
+          echo "APP_VERSION=${APP_VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Настройка подписи и типа сборки
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "${ANDROID_KEYSTORE_BASE64}" ] && [ -n "${ANDROID_KEYSTORE_PASSWORD}" ] && [ -n "${ANDROID_KEY_ALIAS}" ] && [ -n "${ANDROID_KEY_ALIAS_PASSWORD}" ]; then
+            mkdir -p .ci
+            echo "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > .ci/release.keystore
+            chmod 600 .ci/release.keystore
+
+            {
+              echo ""
+              echo "# CI signing config"
+              echo "android.release_artifact = apk"
+              echo "android.release_keystore = .ci/release.keystore"
+              echo "android.release_keyalias = ${ANDROID_KEY_ALIAS}"
+            } >> buildozer.spec
+
+            echo "BUILD_MODE=release" >> "${GITHUB_ENV}"
+            echo "P4A_RELEASE_KEYSTORE_PASSWD=${ANDROID_KEYSTORE_PASSWORD}" >> "${GITHUB_ENV}"
+            echo "P4A_RELEASE_KEYALIAS_PASSWD=${ANDROID_KEY_ALIAS_PASSWORD}" >> "${GITHUB_ENV}"
+          else
+            echo "::warning::Release signing secrets are missing. Building debug APK (not suitable for stable in-place upgrades)."
+            echo "BUILD_MODE=debug" >> "${GITHUB_ENV}"
+          fi
+
       - name: Cache Buildozer (project + Android SDK home)
         uses: actions/cache@v4
         with:
           path: |
             .buildozer
             /home/runner/.buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec') }}-v4-sdkhome
+          key: buildozer-${{ hashFiles('buildozer.spec', 'tools/p4a_hook.py', 'tools/p4a_webview_loader/**', 'tools/p4a_python_activity/**') }}-v6-sdkhome
           restore-keys: |
             buildozer-${{ hashFiles('buildozer.spec') }}-
             buildozer-
 
       - name: Build APK (kivy/buildozer docker)
         run: |
+          set -euo pipefail
           mkdir -p "${HOME}/.buildozer"
+          echo "Build mode: ${BUILD_MODE}"
+          echo "Version: ${APP_VERSION}"
           docker run --rm \
             -v "${{ github.workspace }}:/home/user/hostcwd" \
             -v "${HOME}/.buildozer:/home/user/.buildozer" \
+            -e P4A_RELEASE_KEYSTORE_PASSWD="${P4A_RELEASE_KEYSTORE_PASSWD:-}" \
+            -e P4A_RELEASE_KEYALIAS_PASSWD="${P4A_RELEASE_KEYALIAS_PASSWD:-}" \
             kivy/buildozer:latest \
-            android debug
+            android "${BUILD_MODE}"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -55,8 +101,8 @@ jobs:
           fi
           gh release create latest-apk tg-ws-proxy-debug.apk tg-ws-proxy-debug.zip \
             --repo "${{ github.repository }}" \
-            --title "Последняя сборка (debug)" \
-            --notes "Автосборка debug APK." \
+            --title "Последняя сборка (${BUILD_MODE})" \
+            --notes "Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}" \
             --latest=false
 
       - name: Telegram — успех (ZIP и файл APK)
@@ -75,7 +121,7 @@ jobs:
           MSG=$(printf '%s\n\n%s\n\n%s' \
             "✅ <b>Для телефона (Android)</b>" \
             "Установочный файл — в сообщении ниже." \
-            "Если файл потеряется: <a href=\"${DL_ZIP}\">скачать архив</a>")
+            "Режим сборки: ${BUILD_MODE}, версия: ${APP_VERSION}. Если файл потеряется: <a href=\"${DL_ZIP}\">скачать архив</a>")
           BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
             '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \

@@ -23,6 +23,8 @@ android.permissions = INTERNET,ACCESS_NETWORK_STATE,WAKE_LOCK,POST_NOTIFICATIONS
 
 p4a.bootstrap = webview
 p4a.port = 8080
+p4a.hook = tools/p4a_hook.py
+android.gradle_dependencies = androidx.core:core-splashscreen:1.0.1
 
 [buildozer]
 log_level = 2

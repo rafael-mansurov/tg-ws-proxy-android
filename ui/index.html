@@ -9,38 +9,6 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── Boot overlay (hides p4a loading stripes) ── */
-    #boot-overlay {
-      position: fixed; inset: 0; z-index: 9999;
-      background: #e8ecf2;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 20px;
-      transition: opacity .35s ease;
-    }
-    #boot-overlay.hide { opacity: 0; pointer-events: none; }
-    .boot-icon {
-      width: 72px; height: 72px;
-      background: rgba(34,158,217,0.92);
-      border-radius: 22px;
-      border: 1px solid rgba(255,255,255,0.28);
-      box-shadow: 0 8px 32px rgba(34,158,217,0.28), inset 0 1px 0 rgba(255,255,255,0.35);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .boot-icon svg { width: 38px; height: 38px; color: #fff; }
-    .boot-title { font-size: 18px; font-weight: 700; color: rgba(12,12,14,0.88); letter-spacing: -.02em; }
-    .boot-dots { display: flex; gap: 7px; }
-    .boot-dots span {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: rgba(34,158,217,0.7);
-      animation: boot-pulse 1.1s ease-in-out infinite;
-    }
-    .boot-dots span:nth-child(2) { animation-delay: .18s; }
-    .boot-dots span:nth-child(3) { animation-delay: .36s; }
-    @keyframes boot-pulse {
-      0%,80%,100% { transform: scale(.7); opacity: .4; }
-      40%          { transform: scale(1);  opacity: 1;  }
-    }
-
     body {
       min-height: 100dvh;
       padding: env(safe-area-inset-top, 16px) 0 env(safe-area-inset-bottom, 16px);
@@ -103,6 +71,46 @@
     .toggle-lbl { font-size: 9px; font-weight: 500; color: rgba(100,100,110,0.4); transition: color 0.2s; }
     .toggle-track.on + .toggle-lbl { color: rgba(34,158,217,0.7); }
 
+    .header-back-btn {
+      display: none;
+      width: 40px; height: 40px; flex-shrink: 0;
+      align-items: center; justify-content: center;
+      border: 1px solid rgba(255,255,255,0.42); border-radius: 12px;
+      background: rgba(255,255,255,0.45);
+      color: rgba(12,12,14,0.88);
+      cursor: pointer;
+    }
+    .header-back-btn.is-on { display: flex; }
+    .header-back-btn:active { opacity: 0.88; }
+    .header-app-icon { flex-shrink: 0; }
+    .header-app-icon.is-hidden { display: none !important; }
+
+    .header-gear-btn {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border: none; border-radius: 12px;
+      background: rgba(255,255,255,0.35);
+      border: 1px solid rgba(255,255,255,0.42);
+      color: rgba(70,70,85,0.88);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-gear-btn svg { width: 22px; height: 22px; display: block; }
+    .header-gear-btn:active { opacity: 0.88; }
+    .header-gear-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+    .header-gear-btn.is-hidden { display: none !important; }
+
+    .header-toggle-wrap.is-hidden { display: none !important; }
+
+    /* ── Pages ── */
+    .page {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .page.is-active { display: flex; }
+
     /* ── Content ── */
     .content {
       flex: 1;
@@ -151,13 +159,52 @@
     .status.off .status-sub { color: rgba(120,120,130,0.6); }
     .status.on  .status-sub { color: #0d9488; }
     .status.wait {
-      background: rgba(255,255,255,0.4);
-      border: 1px solid rgba(255,255,255,0.55);
+      background: rgba(224,242,254,0.65);
+      border: 1px solid rgba(34,158,217,0.45);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.5) inset, 0 4px 20px rgba(34,158,217,0.12);
+      min-height: 72px;
     }
-    .status.wait .status-title { color: rgba(34,158,217,0.95); }
-    .status.wait .status-sub { color: rgba(70,90,110,0.8); }
-    .dot.wait { background: rgba(34,158,217,0.9); animation: blink 0.9s ease-in-out infinite; }
+    .status.wait .status-title {
+      color: #0369a1;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .status.wait .status-sub { color: rgba(12,74,110,0.88); font-size: 12px; font-weight: 500; line-height: 1.4; }
+    .status.wait .dot-ring { background: rgba(125,211,252,0.55); }
+    .dot.wait { background: rgba(2,132,199,0.95); animation: blink 0.9s ease-in-out infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    /* ── Запуск прокси (явная фаза ожидания) ── */
+    .starting-panel {
+      display: none;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 16px;
+      margin-bottom: 10px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(34,158,217,0.96) 0%, rgba(3,105,161,0.98) 100%);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.38);
+      box-shadow: 0 8px 28px rgba(14,116,184,0.35);
+      animation: starting-pulse 2.2s ease-in-out infinite;
+    }
+    .starting-panel.is-on { display: flex; }
+    @keyframes starting-pulse {
+      0%, 100% { box-shadow: 0 8px 28px rgba(14,116,184,0.32); }
+      50%       { box-shadow: 0 10px 36px rgba(14,116,184,0.48); }
+    }
+    .starting-spinner {
+      width: 38px; height: 38px; flex-shrink: 0; margin-top: 1px;
+      border: 3px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: starting-spin 0.7s linear infinite;
+    }
+    @keyframes starting-spin { to { transform: rotate(360deg); } }
+    .starting-texts { min-width: 0; flex: 1; }
+    .starting-title { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .starting-sub { font-size: 12px; font-weight: 500; line-height: 1.45; opacity: 0.94; }
 
     /* ── Cards ── */
     .row { display: flex; gap: 10px; }
@@ -174,7 +221,13 @@
     }
     .clabel { color: rgba(80,80,92,0.58); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
     .cvalue { color: rgba(12,12,14,0.92); font-size: 14px; font-weight: 600; font-family: ui-monospace,'SFMono-Regular',Menlo,monospace; letter-spacing: -0.02em; }
-    .cvalue.secret { color: #229ED9; font-size: 11px; font-weight: 500; word-break: break-all; line-height: 1.45; transition: color 0.2s; }
+    .cvalue.secret {
+      color: #229ED9; font-size: 11px; font-weight: 500; line-height: 1.35;
+      white-space: nowrap; overflow-x: auto; overflow-y: hidden; max-width: 100%;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      transition: color 0.2s;
+    }
     .cvalue.secret.dim { color: rgba(180,180,190,0.45); }
 
     .spacer { flex: 1; min-height: 8px; }
@@ -207,58 +260,131 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
     }
 
-    /* ── QR ── */
-    .qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .qr-wrap.is-hidden { display: none; }
-    .qr-label { font-size: 10px; font-weight: 600; color: rgba(80,80,92,0.58); text-transform: uppercase; letter-spacing: 0.06em; }
+    /* ── QR (модальное окно) ── */
     .qr-frame {
       display: flex; align-items: center; justify-content: center;
       width: fit-content; height: fit-content; margin: 0 auto;
-      padding: 0; border: none; border-radius: 10px;
-      background: transparent;
-      box-shadow: none;
-      overflow: visible;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.36);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.65),
+        0 4px 22px rgba(15,23,42,0.1);
+      overflow: hidden;
     }
-    .qr-svg-host { display: none; width: 132px; height: 132px; line-height: 0; }
+    .qr-svg-host { display: none; width: 176px; height: 176px; line-height: 0; border-radius: 10px; overflow: hidden; }
     .qr-svg-host.visible { display: block; }
-    .qr-svg-host svg { display: block; width: 132px; height: 132px; }
+    .qr-svg-host svg { display: block; width: 176px; height: 176px; border-radius: 10px; }
     .qr-placeholder { font-size: 11px; font-weight: 500; color: rgba(120,120,130,0.58); text-align: center; line-height: 1.35; padding: 0 12px; }
     .qr-placeholder.hidden { display: none !important; visibility: hidden; height: 0; padding: 0; overflow: hidden; }
+
+    .btn-text {
+      display: block; width: 100%; margin-top: 10px;
+      padding: 0;
+      font-size: 14px; font-weight: 600; font-family: inherit;
+      color: rgba(34,158,217,0.95);
+      background: transparent; border: none; cursor: pointer;
+      letter-spacing: -0.01em;
+      text-align: center;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .btn-text:active { opacity: 0.75; }
+    .btn-text:disabled {
+      color: rgba(130,130,140,0.45);
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    .settings-logs-block .log-btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .qr-modal {
+      display: none;
+      position: fixed; inset: 0; z-index: 10000;
+      align-items: center; justify-content: center;
+      padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+    }
+    .qr-modal.is-open { display: flex; }
+    .qr-modal-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(15,23,42,0.48);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .qr-modal-panel {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 320px;
+      padding: 22px 20px 20px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(255,255,255,0.7);
+      box-shadow: 0 24px 48px rgba(15,23,42,0.2), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    .qr-modal-title {
+      font-size: 15px; font-weight: 700;
+      color: rgba(12,12,14,0.9);
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .qr-modal-close {
+      position: absolute; top: 12px; right: 12px;
+      width: 36px; height: 36px;
+      border: none; border-radius: 10px;
+      background: rgba(0,0,0,0.06);
+      color: rgba(60,60,70,0.75);
+      font-size: 22px; line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+    .qr-modal-close:active { background: rgba(0,0,0,0.1); }
+    .qr-modal .qr-frame { margin: 0 auto; }
   </style>
 </head>
 <body>
 
-<!-- Boot overlay — covers p4a stripes until our server responds -->
-<div id="boot-overlay">
-  <div class="boot-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
-  </div>
-  <div class="boot-title">TG WS Proxy</div>
-  <div class="boot-dots">
-    <span></span><span></span><span></span>
-  </div>
-</div>
-
   <div class="header">
-    <div class="hicon">
+    <button type="button" class="header-back-btn" id="header-back" onclick="closeSettings()" aria-label="Назад">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="hicon header-app-icon" id="header-app-icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
       </svg>
     </div>
     <div class="htitles">
-      <div class="htitle">TG WS Proxy</div>
-      <div class="hsub">MTProto · локальный</div>
+      <div class="htitle" id="header-title">TG WS Proxy</div>
+      <div class="hsub" id="header-sub">MTProto · локальный</div>
     </div>
-    <div class="toggle-wrap" onclick="onToggle()">
+    <button type="button" class="header-gear-btn" id="header-settings-btn" onclick="openSettings()" aria-label="Настройки" title="Настройки">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+    <div class="header-toggle-wrap toggle-wrap" id="header-toggle-wrap" onclick="onToggle()">
       <div class="toggle-track" id="toggle"><div class="toggle-thumb"></div></div>
       <div class="toggle-lbl" id="toggle-lbl">Выкл</div>
     </div>
   </div>
 
+  <div id="page-main" class="page is-active">
   <div class="content">
+    <div id="starting-panel" class="starting-panel" aria-live="polite">
+      <div class="starting-spinner" aria-hidden="true"></div>
+      <div class="starting-texts">
+        <div class="starting-title">Запуск прокси</div>
+        <div class="starting-sub">Сервис поднимается — это не зависание. Обычно 10–30 секунд, не закрывайте приложение.</div>
+      </div>
+    </div>
     <div id="battery-banner" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:12px;padding:12px 14px;margin-bottom:12px">
       <div style="font-size:13px;font-weight:600;color:#856404;margin-bottom:4px">⚠ Оптимизация батареи включена</div>
       <div style="font-size:12px;color:#856404;margin-bottom:10px">Прокси будет останавливаться когда вы закрываете приложение. Отключите оптимизацию батареи чтобы сервис работал в фоне.</div>
@@ -292,24 +418,36 @@
     <div class="spacer"></div>
 
     <button type="button" class="btn off" id="tg-btn" onclick="openTelegram()">Открыть в Telegram</button>
+    <button type="button" class="btn-text" id="qr-show-btn" disabled onclick="openQrModal()">Показать QR-код</button>
+  </div>
+  </div>
 
-    <div class="qr-wrap is-hidden" id="qr-section">
-      <div class="qr-label">QR для Telegram</div>
-      <div class="qr-frame">
-        <div id="qr-svg-host" class="qr-svg-host"></div>
-        <div class="qr-placeholder" id="qr-placeholder">Загрузка QR…</div>
+  <div id="page-settings" class="page">
+    <div class="content">
+      <div class="settings-logs-block">
+        <div id="log-section" style="display:none">
+          <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Лог сервиса</div>
+          <pre id="log-box" style="background:#0f172a;color:#94a3b8;font-size:10px;line-height:1.5;padding:10px;border-radius:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:min(52dvh,360px);overflow-y:auto;margin:0"></pre>
+        </div>
+        <div class="log-btn-row">
+          <button type="button" id="log-btn" onclick="toggleLogs()" style="flex:1;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:13px;color:#64748b;cursor:pointer">Показать логи</button>
+          <button type="button" id="copy-log-btn" onclick="copyLogs()" style="display:none;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:13px;color:#64748b;cursor:pointer">Копировать</button>
+        </div>
       </div>
     </div>
+  </div>
 
-    <div id="log-section" style="display:none;margin-top:12px">
-      <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Лог сервиса</div>
-      <pre id="log-box" style="background:#0f172a;color:#94a3b8;font-size:10px;line-height:1.5;padding:10px;border-radius:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto;margin:0"></pre>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button type="button" id="log-btn" onclick="toggleLogs()" style="flex:1;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:13px;color:#64748b;cursor:pointer">Показать логи</button>
-      <button type="button" id="copy-log-btn" onclick="copyLogs()" style="display:none;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:9px;font-size:13px;color:#64748b;cursor:pointer">Копировать</button>
+<div id="qr-modal" class="qr-modal" aria-hidden="true">
+  <div class="qr-modal-backdrop" onclick="closeQrModal()"></div>
+  <div class="qr-modal-panel" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+    <button type="button" class="qr-modal-close" onclick="closeQrModal()" aria-label="Закрыть">×</button>
+    <div class="qr-modal-title" id="qr-modal-title">QR для Telegram</div>
+    <div class="qr-frame">
+      <div id="qr-modal-svg-host" class="qr-svg-host"></div>
+      <div class="qr-placeholder" id="qr-modal-placeholder">Загрузка QR…</div>
     </div>
   </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
 <script>
@@ -317,18 +455,33 @@
   let secret = null;
   let linkHost = null;
   let uiBusy = false;
+  let currentPage = 'main';
+  const HEADER_TITLE_MAIN = 'TG WS Proxy';
+  const HEADER_SUB_DEFAULT = 'MTProto · локальный';
+  const HEADER_SUB_SETTINGS = 'Логи и диагностика';
 
   function setStartBusy(on) {
     uiBusy = on;
     const tw = document.querySelector('.toggle-wrap');
-    tw.style.pointerEvents = on ? 'none' : '';
-    tw.style.opacity = on ? '0.55' : '';
+    if (tw) {
+      tw.style.pointerEvents = on ? 'none' : '';
+      tw.style.opacity = on ? '0.55' : '';
+    }
+    const gear = document.getElementById('header-settings-btn');
+    if (gear && currentPage === 'main') gear.disabled = on;
+    const panel = document.getElementById('starting-panel');
+    if (panel) panel.classList.toggle('is-on', on);
+    const hsub = document.getElementById('header-sub');
+    if (hsub) {
+      if (on) hsub.textContent = 'Запуск прокси…';
+      else hsub.textContent = currentPage === 'settings' ? HEADER_SUB_SETTINGS : HEADER_SUB_DEFAULT;
+    }
     const st = document.getElementById('status');
     const dot = st.querySelector('.dot');
     if (on) {
       st.className = 'status wait';
       dot.classList.add('wait');
-      document.getElementById('status-title').textContent = 'Запуск…';
+      document.getElementById('status-title').textContent = 'Идёт запуск…';
       document.getElementById('status-sub').textContent =
         'Ждём сервис и прогрев соединений (до ~30 с)';
     } else {
@@ -358,9 +511,38 @@
     sv.textContent = running && secret ? secret : '––––––––––––––––';
     sv.classList.toggle('dim', !running);
     document.getElementById('tg-btn').className = 'btn ' + (running ? 'on' : 'off');
-    const qr = document.getElementById('qr-section');
-    qr.classList.toggle('is-hidden', !running);
-    if (running) refreshQr();
+    const qrBtn = document.getElementById('qr-show-btn');
+    if (qrBtn) qrBtn.disabled = !(running && secret);
+  }
+
+  function openSettings() {
+    if (uiBusy) return;
+    currentPage = 'settings';
+    document.getElementById('page-main').classList.remove('is-active');
+    document.getElementById('page-settings').classList.add('is-active');
+    document.getElementById('header-back').classList.add('is-on');
+    document.getElementById('header-app-icon').classList.add('is-hidden');
+    document.getElementById('header-settings-btn').classList.add('is-hidden');
+    document.getElementById('header-toggle-wrap').classList.add('is-hidden');
+    document.getElementById('header-title').textContent = 'Настройки';
+    const hsub = document.getElementById('header-sub');
+    if (hsub && !uiBusy) hsub.textContent = HEADER_SUB_SETTINGS;
+  }
+
+  function closeSettings() {
+    currentPage = 'main';
+    document.getElementById('page-settings').classList.remove('is-active');
+    document.getElementById('page-main').classList.add('is-active');
+    document.getElementById('header-back').classList.remove('is-on');
+    document.getElementById('header-app-icon').classList.remove('is-hidden');
+    document.getElementById('header-settings-btn').classList.remove('is-hidden');
+    document.getElementById('header-toggle-wrap').classList.remove('is-hidden');
+    document.getElementById('header-title').textContent = HEADER_TITLE_MAIN;
+    const hsub = document.getElementById('header-sub');
+    if (hsub) {
+      if (uiBusy) hsub.textContent = 'Запуск прокси…';
+      else hsub.textContent = HEADER_SUB_DEFAULT;
+    }
   }
 
   async function onToggle() {
@@ -407,11 +589,12 @@
     if (!logsVisible) {
       section.style.display = 'none';
       btn.textContent = 'Показать логи';
+      document.getElementById('copy-log-btn').style.display = 'none';
       return;
     }
     section.style.display = 'block';
     btn.textContent = 'Скрыть логи';
-    document.getElementById('copy-log-btn').style.display = '';
+    document.getElementById('copy-log-btn').style.display = 'inline-block';
     try {
       const r = await fetch('/api/logs');
       const d = await r.json();
@@ -450,26 +633,52 @@
   }
 
   function refreshQr() {
-    const host = document.getElementById('qr-svg-host');
-    const ph   = document.getElementById('qr-placeholder');
+    const host = document.getElementById('qr-modal-svg-host');
+    const ph = document.getElementById('qr-modal-placeholder');
+    if (!host || !ph) return;
     if (!running || !secret) return;
-    if (typeof QRCode === 'undefined') { ph.textContent = 'QR недоступен'; return; }
-    ph.classList.add('hidden');
-    QRCode.toString(proxyUrl(), { type:'svg', width:132, margin:0, color:{dark:'#0f172a',light:'#e8ecf2'} },
+    if (typeof QRCode === 'undefined') {
+      ph.textContent = 'QR недоступен';
+      ph.classList.remove('hidden');
+      host.classList.remove('visible');
+      host.innerHTML = '';
+      return;
+    }
+    ph.textContent = 'Загрузка QR…';
+    ph.classList.remove('hidden');
+    host.classList.remove('visible');
+    host.innerHTML = '';
+    QRCode.toString(proxyUrl(), { type:'svg', width:176, margin:2, color:{dark:'#0f172a',light:'#c5d0e0'} },
       (err, svg) => {
-        if (err || !running) return;
+        if (err || !running || !secret) return;
+        ph.classList.add('hidden');
         host.innerHTML = svg;
         host.classList.add('visible');
       }
     );
   }
 
-  // Boot overlay
-  function hideBootOverlay() {
-    const ov = document.getElementById('boot-overlay');
-    if (!ov) return;
-    ov.classList.add('hide');
-    setTimeout(() => ov.remove(), 380);
+  function openQrModal() {
+    if (!running || !secret) return;
+    const modal = document.getElementById('qr-modal');
+    if (!modal) return;
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    refreshQr();
+    const onKey = (e) => { if (e.key === 'Escape') closeQrModal(); };
+    document.addEventListener('keydown', onKey);
+    modal._qrEsc = onKey;
+  }
+
+  function closeQrModal() {
+    const modal = document.getElementById('qr-modal');
+    if (!modal) return;
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    if (modal._qrEsc) {
+      document.removeEventListener('keydown', modal._qrEsc);
+      modal._qrEsc = null;
+    }
   }
 
   // Poll status every 3s to stay in sync with the service
@@ -478,8 +687,7 @@
     try {
       const r = await fetch('/api/status');
       const d = await r.json();
-      if (d.booting) return; // still initializing — keep overlay
-      hideBootOverlay();
+      if (d.booting) return;
       updateUI(d.running, d.secret, d.link_host);
     } catch(e) {}
   }
