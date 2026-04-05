@@ -69,37 +69,6 @@ UI_FILE = Path(__file__).parent / "ui" / "index.html"
 _running = False
 
 
-def _app_files_dir() -> Path:
-    try:
-        from jnius import autoclass
-        act = autoclass("org.kivy.android.PythonActivity").mActivity
-        if act is not None:
-            return Path(act.getFilesDir().getAbsolutePath())
-    except Exception:
-        pass
-    return Path(__file__).resolve().parent
-
-
-def _vps_config_path() -> Path:
-    return _app_files_dir() / "tgws_vps_config.json"
-
-
-def _load_vps_config() -> dict:
-    try:
-        return json.loads(_vps_config_path().read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-
-
-def _save_vps_config(cfg: dict) -> None:
-    try:
-        p = _vps_config_path()
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps(cfg), encoding="utf-8")
-    except Exception:
-        pass
-
-
 def _secret_storage_path() -> Path:
     try:
         from jnius import autoclass
@@ -356,9 +325,6 @@ class Handler(BaseHTTPRequestHandler):
                 tail = f"(ошибка чтения лога: {e})"
             self._send_json({"log": tail})
 
-        elif self.path == "/api/vps":
-            self._send_json(_load_vps_config())
-
         elif self.path == "/api/status":
             alive = _running or _probe_proxy_port_open()
             if alive:
@@ -387,17 +353,6 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/battery":
             _open_battery_optimization_settings()
             self._send_json({"ok": True})
-
-        elif self.path == "/api/vps":
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length) or b"{}") if length else {}
-            cfg = _load_vps_config()
-            if "ip" in body:
-                cfg["ip"] = str(body["ip"]).strip()
-            if "secret" in body:
-                cfg["secret"] = str(body["secret"]).strip().lower()
-            _save_vps_config(cfg)
-            self._send_json({"ok": True, **cfg})
 
         elif self.path == "/api/stop":
             _stop_service()

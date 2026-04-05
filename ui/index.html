@@ -256,25 +256,6 @@
       </div>
     </div>
 
-    <!-- VPS прокси -->
-    <div style="margin-top:18px">
-      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">VPS прокси (мобильный интернет)</div>
-      <div style="background:rgba(255,255,255,0.72);border-radius:14px;padding:12px 14px;border:1px solid rgba(0,0,0,0.07)">
-        <div style="font-size:11px;color:#64748b;margin-bottom:4px">IP сервера</div>
-        <input id="vps-ip" type="text" inputmode="numeric" placeholder="1.2.3.4"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:14px;background:#fff;outline:none;box-sizing:border-box;margin-bottom:10px"
-          oninput="onVpsInput()" />
-        <div style="font-size:11px;color:#64748b;margin-bottom:4px">Secret (из setup-vps.sh)</div>
-        <input id="vps-secret" type="text" placeholder="abc123..."
-          style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:14px;background:#fff;outline:none;box-sizing:border-box;font-family:monospace;margin-bottom:10px"
-          oninput="onVpsInput()" />
-        <button id="vps-tg-btn" onclick="openVpsTelegram()"
-          style="width:100%;background:#229ed9;color:#fff;border:none;border-radius:10px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;opacity:.45;transition:opacity .2s">
-          Открыть в Telegram (VPS)
-        </button>
-      </div>
-    </div>
-
     <div id="log-section" style="display:none;margin-top:12px">
       <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Лог сервиса</div>
       <pre id="log-box" style="background:#0f172a;color:#94a3b8;font-size:10px;line-height:1.5;padding:10px;border-radius:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto;margin:0"></pre>
@@ -437,56 +418,6 @@
       }
     );
   }
-
-  // ── VPS mode ────────────────────────────────────────────────────────────────
-  let vpsIp = '';
-  let vpsSecret = '';
-
-  async function loadVpsConfig() {
-    try {
-      const r = await fetch('/api/vps');
-      const d = await r.json();
-      vpsIp = d.ip || '';
-      vpsSecret = d.secret || '';
-      document.getElementById('vps-ip').value = vpsIp;
-      document.getElementById('vps-secret').value = vpsSecret;
-      updateVpsBtn();
-    } catch(e) {}
-  }
-
-  function updateVpsBtn() {
-    const btn = document.getElementById('vps-tg-btn');
-    const ready = vpsIp.length > 3 && vpsSecret.length >= 8;
-    btn.style.opacity = ready ? '1' : '.45';
-    btn.style.cursor = ready ? 'pointer' : 'default';
-  }
-
-  let vpsSaveTimer = null;
-  function onVpsInput() {
-    vpsIp = document.getElementById('vps-ip').value.trim();
-    vpsSecret = document.getElementById('vps-secret').value.trim().toLowerCase();
-    updateVpsBtn();
-    clearTimeout(vpsSaveTimer);
-    vpsSaveTimer = setTimeout(saveVpsConfig, 800);
-  }
-
-  async function saveVpsConfig() {
-    try {
-      await fetch('/api/vps', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ip: vpsIp, secret: vpsSecret})
-      });
-    } catch(e) {}
-  }
-
-  function openVpsTelegram() {
-    if (!vpsIp || vpsSecret.length < 8) return;
-    const sec = vpsSecret.startsWith('dd') ? vpsSecret.slice(2) : vpsSecret;
-    window.location.href = `tg://proxy?server=${vpsIp}&port=1443&secret=dd${sec}`;
-  }
-
-  loadVpsConfig();
 
   // Poll status every 3s to stay in sync with the service
   async function pollStatus() {
