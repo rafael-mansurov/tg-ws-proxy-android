@@ -17,7 +17,23 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers import Cipher as _Cipher, algorithms, modes
+
+try:
+    from cryptography.hazmat.backends import default_backend as _default_backend
+    _CRYPTO_BACKEND = _default_backend()
+except ImportError:
+    _CRYPTO_BACKEND = None
+
+
+def Cipher(algorithm, mode):  # noqa: N802
+    """Compatibility wrapper: old cryptography requires backend=, new drops it."""
+    if _CRYPTO_BACKEND is not None:
+        try:
+            return _Cipher(algorithm, mode, backend=_CRYPTO_BACKEND)
+        except TypeError:
+            pass
+    return _Cipher(algorithm, mode)
 
 from proxy.lan_ipv4 import lan_ipv4_preferred
 
