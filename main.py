@@ -68,6 +68,14 @@ SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
 
 _running = False
+
+
+def _icon_png_path() -> Optional[Path]:
+    root = Path(__file__).parent
+    for p in (root / "icon.png", root / "ui" / "icon.png"):
+        if p.is_file():
+            return p
+    return None
 _app_ready = False   # True after _init_app_state() completes
 
 
@@ -314,6 +322,24 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(html)
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
+
+        elif self.path == "/icon.png":
+            icon_path = _icon_png_path()
+            if icon_path is None:
+                self.send_response(404)
+                self.end_headers()
+                return
+            try:
+                data = icon_path.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/png")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            except OSError:
+                self.send_response(404)
+                self.end_headers()
 
         elif self.path == "/api/battery":
             self._send_json({"optimized": not _is_ignoring_battery_optimizations()})

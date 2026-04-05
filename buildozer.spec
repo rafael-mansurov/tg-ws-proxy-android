@@ -4,14 +4,14 @@ package.name = tgwsproxy
 package.domain = unofficial.tgws
 source.dir = .
 source.include_exts = py,html
-source.include_patterns = ui/*
+source.include_patterns = ui/*,icon.png
 version = 1.5.6
 requirements = python3,openssl,cryptography,cffi,android
 orientation = portrait
 fullscreen = 0
 icon.filename = %(source.dir)s/icon.png
 presplash.filename = %(source.dir)s/presplash.png
-android.presplash_color = #e8ecf2
+android.presplash_color = #0f0f11
 services = proxy:services/proxy_service.py:foreground:sticky
 
 android.api = 33
