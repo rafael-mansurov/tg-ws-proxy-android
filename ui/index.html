@@ -534,7 +534,7 @@
 
   <div id="page-settings" class="page">
     <div class="content">
-      <div id="battery-banner-settings" style="display:none;background:linear-gradient(165deg,rgba(34,38,46,0.88) 0%,rgba(20,24,32,0.92) 100%);border:1px solid rgba(150,170,210,0.24);border-radius:20px;padding:14px 14px;margin-bottom:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
+      <div id="battery-banner-settings" style="display:block;background:linear-gradient(165deg,rgba(34,38,46,0.88) 0%,rgba(20,24,32,0.92) 100%);border:1px solid rgba(150,170,210,0.24);border-radius:20px;padding:14px 14px;margin-bottom:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
         <div style="font-size:13px;font-weight:700;color:rgba(235,242,255,0.95);margin-bottom:6px">Оптимизация батареи включена</div>
         <div style="font-size:12px;font-weight:500;color:rgba(205,216,236,0.72);margin-bottom:10px;line-height:1.45">Чтобы прокси не выключался в фоне, отключите оптимизацию для этого приложения.</div>
         <button onclick="openBatterySettings()" style="width:100%;background:rgba(124,150,201,0.2);color:rgba(235,243,255,0.95);border:1px solid rgba(145,170,219,0.38);border-radius:14px;padding:10px 12px;font-size:13px;font-weight:650;cursor:pointer">Открыть настройки батареи</button>
@@ -726,9 +726,7 @@
       const r = await fetch('/api/battery');
       const d = await r.json();
       const mainBanner = document.getElementById('battery-banner');
-      const settingsBanner = document.getElementById('battery-banner-settings');
       if (mainBanner) mainBanner.style.display = d.optimized ? 'block' : 'none';
-      if (settingsBanner) settingsBanner.style.display = d.optimized ? 'block' : 'none';
     } catch(e) {}
   }
 
