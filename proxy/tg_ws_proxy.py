@@ -117,8 +117,7 @@ def _xor_mask(data: bytes, mask: bytes) -> bytes:
 
 def get_link_host(host: str) -> Optional[str]:
     if host == '0.0.0.0':
-        # APK: proxy is always local to the device; Telegram connects to localhost.
-        return '127.0.0.1'
+        return lan_ipv4_preferred() or '127.0.0.1'
     else:
         return host
 

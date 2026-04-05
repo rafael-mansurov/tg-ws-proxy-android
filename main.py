@@ -47,9 +47,10 @@ def _open_battery_optimization_settings() -> None:
         pass
 
 
-def _current_device_ip() -> str:
-    """IP текущего сетевого интерфейса — то, что Telegram примет как адрес прокси."""
+def _proxy_link_host() -> str:
+    """Return the device's LAN IP so Telegram can reach the proxy on the same phone."""
     try:
+        import socket
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
@@ -57,7 +58,7 @@ def _current_device_ip() -> str:
             return ip
     except OSError:
         pass
-    return "127.0.0.1"
+    return HOST_PROXY
 # Заполняется в _init_app_state(): должен совпадать с секретом в уже запущенном сервисе
 # после перезапуска процесса WebView (иначе Telegram открывают с новым secret, прокси — со старым).
 SECRET = ""
@@ -333,7 +334,7 @@ class Handler(BaseHTTPRequestHandler):
                 "host": HOST_PROXY,
                 "port": PORT_PROXY,
                 "secret": SECRET if alive else None,
-                "link_host": _current_device_ip() if alive else None,
+                "link_host": _proxy_link_host() if alive else None,
             })
 
         else:
