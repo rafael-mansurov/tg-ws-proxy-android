@@ -16,6 +16,7 @@ HOST_PROXY = "127.0.0.1"
 PORT_PROXY = 1443
 LOG_FILENAME = "tgws_proxy.log"
 LOG_TAIL_LINES = 120
+READY_NOTIFICATION_ID = 88302
 
 
 def _is_ignoring_battery_optimizations() -> bool:
@@ -237,12 +238,32 @@ def _notify_proxy_ready() -> None:
             b.setContentTitle("Прокси включён")
             b.setContentText("Можно открывать Telegram")
             b.setContentIntent(pi)
-            b.setAutoCancel(True)
-            nm.notify(88302, b.build())
+            b.setAutoCancel(False)
+            b.setOngoing(True)
+            b.setOnlyAlertOnce(True)
+            nm.notify(READY_NOTIFICATION_ID, b.build())
 
         _go()
     except Exception:
         _toast("Прокси включён — можно открывать Telegram")
+
+
+def _clear_proxy_ready_notification() -> None:
+    """Снять закреплённое уведомление готовности при остановке прокси."""
+    try:
+        from android.runnable import run_on_ui_thread
+        from jnius import autoclass
+
+        @run_on_ui_thread
+        def _go():
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            Context = autoclass("android.content.Context")
+            nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+            nm.cancel(READY_NOTIFICATION_ID)
+
+        _go()
+    except Exception:
+        pass
 
 
 def _start_service() -> Tuple[bool, Optional[str]]:
@@ -294,6 +315,7 @@ def _stop_service() -> None:
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     Service.stop(PythonActivity.mActivity)
     _running = False
+    _clear_proxy_ready_notification()
 
 
 # ── HTTP handler ─────────────────────────────────────────────────────────────
