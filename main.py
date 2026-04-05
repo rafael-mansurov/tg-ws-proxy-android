@@ -69,6 +69,7 @@ SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
 
 _running = False
+_ready_notification_shown = False
 
 
 def _icon_png_path() -> Optional[Path]:
@@ -195,6 +196,8 @@ def _toast(msg: str) -> None:
 
 def _notify_proxy_ready() -> None:
     """Отдельный канал с IMPORTANCE_HIGH; вызов с UI-потока."""
+    global _ready_notification_shown
+    _ready_notification_shown = True
     try:
         from android.runnable import run_on_ui_thread
         from jnius import autoclass
@@ -242,6 +245,7 @@ def _notify_proxy_ready() -> None:
             b.setOngoing(True)
             b.setOnlyAlertOnce(True)
             nm.notify(READY_NOTIFICATION_ID, b.build())
+            _ready_notification_shown = True
 
         _go()
     except Exception:
@@ -250,6 +254,7 @@ def _notify_proxy_ready() -> None:
 
 def _clear_proxy_ready_notification() -> None:
     """Снять закреплённое уведомление готовности при остановке прокси."""
+    global _ready_notification_shown
     try:
         from android.runnable import run_on_ui_thread
         from jnius import autoclass
@@ -260,6 +265,7 @@ def _clear_proxy_ready_notification() -> None:
             Context = autoclass("android.content.Context")
             nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
             nm.cancel(READY_NOTIFICATION_ID)
+            _ready_notification_shown = False
 
         _go()
     except Exception:
@@ -385,6 +391,8 @@ class Handler(BaseHTTPRequestHandler):
             alive = _running or _probe_proxy_port_open()
             if alive:
                 _running = True
+                if not _ready_notification_shown:
+                    _notify_proxy_ready()
             self._send_json({
                 "running": alive,
                 "host": HOST_PROXY,
