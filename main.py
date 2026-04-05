@@ -6,6 +6,7 @@ import json
 import os
 import secrets
 import socket
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -67,6 +68,7 @@ SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
 
 _running = False
+_app_ready = False   # True after _init_app_state() completes
 
 
 def _secret_storage_path() -> Path:
@@ -122,10 +124,11 @@ def _probe_proxy_port_open() -> bool:
 
 
 def _init_app_state() -> None:
-    global SECRET, _running
+    global SECRET, _running, _app_ready
     SECRET = _ensure_secret()
     if _probe_proxy_port_open():
         _running = True
+    _app_ready = True
 
 
 def _webview_open_tg_and_https_externally() -> None:
@@ -326,6 +329,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"log": tail})
 
         elif self.path == "/api/status":
+            if not _app_ready:
+                self._send_json({"booting": True, "running": False})
+                return
             alive = _running or _probe_proxy_port_open()
             if alive:
                 _running = True
@@ -367,6 +373,7 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     _webview_open_tg_and_https_externally()
-    _init_app_state()
+    # Init in background so WebView gets our HTML instantly (hides p4a loading stripes)
+    threading.Thread(target=_init_app_state, daemon=True).start()
     server = HTTPServer(("127.0.0.1", SERVE_PORT), Handler)
     server.serve_forever()
