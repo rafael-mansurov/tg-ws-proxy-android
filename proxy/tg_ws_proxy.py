@@ -794,8 +794,9 @@ async def _handle_client(reader, writer, secret: bytes):
         try:
             handshake = await asyncio.wait_for(
                 reader.readexactly(HANDSHAKE_LEN), timeout=10)
-        except asyncio.IncompleteReadError:
-            log.debug("[%s] client disconnected before handshake", label)
+        except asyncio.IncompleteReadError as exc:
+            log.debug("[%s] client disconnected before handshake (got %d bytes: %s)",
+                      label, len(exc.partial), exc.partial[:16].hex() if exc.partial else "none")
             return
 
         result = _try_handshake(handshake, secret)
