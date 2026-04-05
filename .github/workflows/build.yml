@@ -87,7 +87,7 @@ jobs:
           path: bin/*.apk
           retention-days: 30
 
-      - name: Публичный APK и ZIP в Release
+      - name: Публичный APK в Release
         if: success()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -95,17 +95,16 @@ jobs:
           set -euo pipefail
           APK=$(ls -1 bin/*.apk | head -1)
           cp -f "$APK" tg-ws-proxy-debug.apk
-          zip -j tg-ws-proxy-debug.zip tg-ws-proxy-debug.apk
           if gh release view latest-apk --repo "${{ github.repository }}" &>/dev/null; then
             gh release delete latest-apk --cleanup-tag --yes --repo "${{ github.repository }}"
           fi
-          gh release create latest-apk tg-ws-proxy-debug.apk tg-ws-proxy-debug.zip \
+          gh release create latest-apk tg-ws-proxy-debug.apk \
             --repo "${{ github.repository }}" \
             --title "Последняя сборка (${BUILD_MODE})" \
             --notes "Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}" \
             --latest=false
 
-      - name: Telegram — успех (ZIP и файл APK)
+      - name: Telegram — успех (ссылка и файл APK)
         if: success()
         continue-on-error: true
         env:
@@ -117,11 +116,11 @@ jobs:
             exit 0
           fi
           BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-apk"
-          DL_ZIP="${BASE}/tg-ws-proxy-debug.zip"
+          DL_APK="${BASE}/tg-ws-proxy-debug.apk"
           MSG=$(printf '%s\n\n%s\n\n%s' \
             "✅ <b>Для телефона (Android)</b>" \
             "Установочный файл — в сообщении ниже." \
-            "Режим сборки: ${BUILD_MODE}, версия: ${APP_VERSION}. Если файл потеряется: <a href=\"${DL_ZIP}\">скачать архив</a>")
+            "Режим сборки: ${BUILD_MODE}, версия: ${APP_VERSION}. Ссылка: <a href=\"${DL_APK}\">скачать APK</a>")
           BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
             '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
