@@ -158,6 +158,10 @@
       flex-direction: column;
       gap: 12px;
       overflow-y: auto;
+      min-height: 0;
+    }
+    #page-settings > .content {
+      overflow: hidden;
     }
 
     /* ── Status ── */
@@ -378,10 +382,18 @@
       opacity: 1;
     }
 
+    .settings-logs-block {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
     .settings-logs-block .log-btn-row {
       display: flex;
       gap: 8px;
       margin-top: 10px;
+      flex-shrink: 0;
     }
 
     .qr-modal {
@@ -499,6 +511,15 @@
       <button onclick="openBatterySettings()" style="width:100%;background:linear-gradient(180deg,#ff6b35 0%,#c41e1e 100%);color:#fff;border:none;border-radius:16px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 0 28px rgba(255,80,60,0.45),inset 0 1px 0 rgba(255,255,255,0.25)">Отключить оптимизацию →</button>
     </div>
 
+    <div id="update-banner" style="display:none;background:linear-gradient(165deg,rgba(10,40,80,0.92) 0%,rgba(5,25,55,0.96) 100%);border:1px solid rgba(34,158,217,0.40);border-radius:22px;padding:16px 16px;box-shadow:0 0 40px rgba(34,158,217,0.10),inset 0 1px 0 rgba(100,200,255,0.08)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="font-size:14px;font-weight:700;color:#fff;text-shadow:0 0 20px rgba(34,158,217,0.5)">Доступно обновление <span id="update-version-label" style="color:#4fc3f7"></span></div>
+        <button onclick="dismissUpdate()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;line-height:1;cursor:pointer;padding:0;flex-shrink:0" aria-label="Закрыть">✕</button>
+      </div>
+      <div style="font-size:12px;font-weight:500;color:rgba(160,210,255,0.72);margin:6px 0 12px;line-height:1.45">Скачайте новый APK и установите поверх текущей версии.</div>
+      <a id="update-download-link" href="#" target="_blank" style="display:block;text-align:center;background:linear-gradient(180deg,#229ed9 0%,#1565c0 100%);color:#fff;border:none;border-radius:16px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 0 28px rgba(34,158,217,0.40),inset 0 1px 0 rgba(255,255,255,0.20)">Скачать APK →</a>
+    </div>
+
     <div class="status off" id="status">
       <div class="dot-ring"><div class="dot"></div></div>
       <div class="status-texts">
@@ -540,9 +561,9 @@
         <button id="battery-settings-btn" onclick="openBatterySettings()" style="width:100%;background:rgba(124,150,201,0.2);color:rgba(235,243,255,0.95);border:1px solid rgba(145,170,219,0.38);border-radius:14px;padding:10px 12px;font-size:13px;font-weight:650;cursor:pointer">Открыть настройки батареи</button>
       </div>
       <div class="settings-logs-block">
-        <div id="log-section" style="display:none">
+        <div id="log-section" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden">
           <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Лог сервиса</div>
-          <pre id="log-box" style="background:#050508;color:rgba(255,255,255,0.75);font-size:10px;line-height:1.5;padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,0.08);box-shadow:inset 0 0 40px rgba(0,100,200,0.06);overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:min(52dvh,360px);overflow-y:auto;margin:0"></pre>
+          <pre id="log-box" style="background:#050508;color:rgba(255,255,255,0.75);font-size:10px;line-height:1.5;padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,0.08);box-shadow:inset 0 0 40px rgba(0,100,200,0.06);overflow-x:auto;white-space:pre-wrap;word-break:break-all;overflow-y:auto;margin:0;flex:1;min-height:0"></pre>
         </div>
         <div class="log-btn-row">
           <button type="button" id="log-btn" onclick="toggleLogs()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px;font-size:13px;font-weight:600;color:#fff;cursor:pointer">Показать логи</button>
@@ -601,13 +622,17 @@
   const HEADER_SUB_DEFAULT = 'MTProto · локальный';
   const HEADER_SUB_SETTINGS = 'Логи и диагностика';
 
-  /* Предпросмотр дизайна «прокси запущен» без сервера:
-     — откройте файл с диска (file://) — по умолчанию включено; добавьте ?demo=0 чтобы выключить
-     — или с сервера: index.html?demo=1
-     В APK (http) не срабатывает, пока не добавите ?demo=1 вручную. */
+  /* Режимы предпросмотра (без сервера):
+     ?demo=1 — прокси запущен, тумблер работает   (default при file://)
+     ?demo=2 — процесс запуска (стартовая панель)
+     ?demo=3 — баннер оптимизации батареи
+     ?demo=4 — баннер доступного обновления
+     ?demo=0 — отключить демо (чтобы открыть файл напрямую без демо) */
   const _demoQ = new URLSearchParams(location.search);
-  const DESIGN_DEMO = _demoQ.get('demo') === '1'
-    || (location.protocol === 'file:' && _demoQ.get('demo') !== '0');
+  const DEMO_MODE = _demoQ.has('demo')
+    ? (parseInt(_demoQ.get('demo')) || 0)
+    : (location.protocol === 'file:' ? 1 : 0);
+  const DESIGN_DEMO = DEMO_MODE === 1;  // только режим 1 имеет живой тумблер
   const DEMO_SECRET = 'a1b2c3d4e5f6789012345678901234abcd5678901234567890abcdefaa';
   const DEMO_HOST = '192.168.1.42';
 
@@ -762,7 +787,7 @@
       document.getElementById('copy-log-btn').style.display = 'none';
       return;
     }
-    section.style.display = 'block';
+    section.style.display = 'flex';
     btn.textContent = 'Скрыть логи';
     document.getElementById('copy-log-btn').style.display = 'inline-block';
     try {
@@ -863,14 +888,67 @@
     } catch(e) {}
   }
 
-  if (DESIGN_DEMO) {
+  const GH_REPO = 'rafael-mansurov/tg-ws-proxy-android';
+  const APK_URL = `https://github.com/${GH_REPO}/releases/download/latest-apk/tg-ws-proxy-debug.apk`;
+
+  function _parseVersion(s) {
+    return (s || '').trim().split('.').map(Number);
+  }
+  function _isNewer(latest, current) {
+    const a = _parseVersion(latest), b = _parseVersion(current);
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      const na = a[i] || 0, nb = b[i] || 0;
+      if (na > nb) return true;
+      if (na < nb) return false;
+    }
+    return false;
+  }
+
+  async function checkForUpdate() {
+    try {
+      const [verRes, ghRes] = await Promise.all([
+        fetch('/api/version'),
+        fetch(`https://api.github.com/repos/${GH_REPO}/releases/tags/latest-apk`, { cache: 'no-store' }),
+      ]);
+      if (!verRes.ok || !ghRes.ok) return;
+      const { version: current } = await verRes.json();
+      const release = await ghRes.json();
+      // release.body: "Автосборка debug APK. Версия: 1.0.123"
+      const m = (release.body || '').match(/Версия:\s*([\d.]+)/);
+      if (!m) return;
+      const latest = m[1];
+      if (!_isNewer(latest, current)) return;
+      document.getElementById('update-version-label').textContent = `v${latest}`;
+      document.getElementById('update-download-link').href = APK_URL;
+      document.getElementById('update-banner').style.display = 'block';
+    } catch(e) {}
+  }
+
+  function dismissUpdate() {
+    document.getElementById('update-banner').style.display = 'none';
+  }
+
+  if (DEMO_MODE === 1) {
     updateUI(true, DEMO_SECRET, DEMO_HOST);
+  } else if (DEMO_MODE === 2) {
+    updateUI(false, null, null);
+    setStartBusy(true);
+  } else if (DEMO_MODE === 3) {
+    updateUI(true, DEMO_SECRET, DEMO_HOST);
+    document.getElementById('battery-banner').style.display = 'block';
+    document.getElementById('battery-banner-settings').style.display = 'block';
+  } else if (DEMO_MODE === 4) {
+    updateUI(true, DEMO_SECRET, DEMO_HOST);
+    document.getElementById('update-version-label').textContent = 'v1.0.99';
+    document.getElementById('update-download-link').href = '#';
+    document.getElementById('update-banner').style.display = 'block';
   } else {
     pollStatus();
     const _fastPoll = setInterval(pollStatus, 600);
     setTimeout(() => { clearInterval(_fastPoll); setInterval(pollStatus, 3000); }, 5000);
     checkBatteryOpt();
     setInterval(checkBatteryOpt, 10000);
+    setTimeout(checkForUpdate, 4000);
   }
 </script>
 </body>

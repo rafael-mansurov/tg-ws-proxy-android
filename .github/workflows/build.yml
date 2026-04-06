@@ -24,6 +24,7 @@ jobs:
           APP_VERSION="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"
           sed -i.bak -E "s/^version = .*/version = ${APP_VERSION}/" buildozer.spec
           rm -f buildozer.spec.bak
+          printf 'APP_VERSION = "%s"\n' "${APP_VERSION}" > version.py
           echo "APP_VERSION=${APP_VERSION}" >> "${GITHUB_ENV}"
 
       - name: Настройка подписи и типа сборки
@@ -95,9 +96,10 @@ jobs:
           set -euo pipefail
           APK=$(ls -1 bin/*.apk | head -1)
           cp -f "$APK" tg-ws-proxy-debug.apk
+          echo "${APP_VERSION}" > version.txt
           NOTES="Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}"
           if gh release view latest-apk --repo "${{ github.repository }}" &>/dev/null; then
-            gh release upload latest-apk tg-ws-proxy-debug.apk \
+            gh release upload latest-apk tg-ws-proxy-debug.apk version.txt \
               --repo "${{ github.repository }}" \
               --clobber
             gh release edit latest-apk \
@@ -106,7 +108,7 @@ jobs:
               --notes "${NOTES}" \
               --latest=false
           else
-            gh release create latest-apk tg-ws-proxy-debug.apk \
+            gh release create latest-apk tg-ws-proxy-debug.apk version.txt \
               --repo "${{ github.repository }}" \
               --title "Приложение для Android (APK)" \
               --notes "${NOTES}" \

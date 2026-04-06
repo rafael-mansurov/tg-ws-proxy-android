@@ -18,6 +18,11 @@ LOG_FILENAME = "tgws_proxy.log"
 LOG_TAIL_LINES = 120
 READY_NOTIFICATION_ID = 88302
 
+try:
+    from version import APP_VERSION
+except ImportError:
+    APP_VERSION = "1.0.0"
+
 
 def _is_ignoring_battery_optimizations() -> bool:
     """True — приложение исключено из оптимизации (сервис не убивается)."""
@@ -368,6 +373,9 @@ class Handler(BaseHTTPRequestHandler):
             except OSError:
                 self.send_response(404)
                 self.end_headers()
+
+        elif self.path == "/api/version":
+            self._send_json({"version": APP_VERSION})
 
         elif self.path == "/api/battery":
             self._send_json({"optimized": not _is_ignoring_battery_optimizations()})
