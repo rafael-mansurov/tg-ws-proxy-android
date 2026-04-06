@@ -730,15 +730,15 @@
       const settingsSub = document.getElementById('battery-settings-sub');
       const settingsBtn = document.getElementById('battery-settings-btn');
       if (mainBanner) mainBanner.style.display = d.optimized ? 'block' : 'none';
-      if (settingsTitle && settingsSub && settingsBtn) {
+      const settingsBanner = document.getElementById('battery-banner-settings');
+      if (settingsBanner) {
         if (d.optimized) {
-          settingsTitle.textContent = 'Оптимизация батареи включена';
-          settingsSub.textContent = 'Чтобы прокси не выключался в фоне, отключите оптимизацию для этого приложения.';
-          settingsBtn.textContent = 'Открыть настройки батареи';
+          settingsBanner.style.display = 'block';
+          if (settingsTitle) settingsTitle.textContent = 'Оптимизация батареи включена';
+          if (settingsSub) settingsSub.textContent = 'Прокси будет останавливаться в фоне. Отключите оптимизацию чтобы он работал стабильно.';
+          if (settingsBtn) settingsBtn.style.display = 'block';
         } else {
-          settingsTitle.textContent = 'Оптимизация батареи выключена';
-          settingsSub.textContent = 'Все хорошо: приложение не ограничено системой, прокси может работать в фоне стабильно.';
-          settingsBtn.textContent = 'Проверить настройки батареи';
+          settingsBanner.style.display = 'none';
         }
       }
     } catch(e) {}

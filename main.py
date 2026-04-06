@@ -431,6 +431,7 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     _webview_open_tg_and_https_externally()
+    _request_permissions()  # early request so permission is granted before proxy starts
     # Init in background so WebView gets HTML as soon as the server is up (splash hides on first paint of this URL).
     threading.Thread(target=_init_app_state, daemon=True).start()
     server = HTTPServer(("127.0.0.1", SERVE_PORT), Handler)
