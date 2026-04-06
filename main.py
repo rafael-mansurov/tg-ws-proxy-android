@@ -15,8 +15,14 @@ from typing import Optional, Tuple
 HOST_PROXY = "127.0.0.1"
 PORT_PROXY = 1443
 LOG_FILENAME = "tgws_proxy.log"
+START_TS_FILENAME = "tgws_proxy_started_at.txt"
+METRICS_FILENAME = "tgws_proxy_metrics.json"
 LOG_TAIL_LINES = 120
 READY_NOTIFICATION_ID = 88302
+PREFS_NAME = "tgws_proxy_prefs"
+PREF_AUTOSTART_ON_BOOT = "autostart_on_boot"
+PREF_RESTART_INTERVAL_SECONDS = "restart_interval_seconds"
+DEFAULT_RESTART_INTERVAL_SECONDS = 3600
 
 try:
     from version import APP_VERSION
@@ -98,6 +104,61 @@ def _secret_storage_path() -> Path:
     return Path(__file__).resolve().parent / ".tgws_proxy_secret.hex"
 
 
+def _service_start_ts_path() -> Path:
+    return _secret_storage_path().parent / START_TS_FILENAME
+
+
+def _read_service_start_ts() -> Optional[int]:
+    p = _service_start_ts_path()
+    try:
+        raw = p.read_text(encoding="utf-8").strip()
+        ts = int(raw)
+        if ts > 0:
+            return ts
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def _write_service_start_ts_now() -> None:
+    p = _service_start_ts_path()
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(str(int(time.time())), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _clear_service_start_ts() -> None:
+    p = _service_start_ts_path()
+    try:
+        p.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def _proxy_uptime_seconds() -> Optional[int]:
+    ts = _read_service_start_ts()
+    if not ts:
+        return None
+    delta = int(time.time()) - ts
+    return delta if delta >= 0 else 0
+
+
+def _read_live_metrics() -> dict:
+    p = _secret_storage_path().parent / METRICS_FILENAME
+    try:
+        raw = json.loads(p.read_text(encoding="utf-8"))
+        rx = float(raw.get("rx_bps", 0.0))
+        tx = float(raw.get("tx_bps", 0.0))
+        return {
+            "rx_bps": max(0.0, rx),
+            "tx_bps": max(0.0, tx),
+        }
+    except Exception:
+        return {"rx_bps": 0.0, "tx_bps": 0.0}
+
+
 def _load_persisted_secret() -> Optional[str]:
     p = _secret_storage_path()
     try:
@@ -165,6 +226,98 @@ def _request_permissions() -> None:
             request_permissions([Permission.POST_NOTIFICATIONS])
     except Exception:
         pass
+
+
+def _get_autostart_enabled() -> bool:
+    try:
+        from jnius import autoclass
+
+        Context = autoclass("android.content.Context")
+        PyAct = autoclass("org.kivy.android.PythonActivity")
+        activity = PyAct.mActivity
+        if activity is None:
+            return False
+        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return bool(prefs.getBoolean(PREF_AUTOSTART_ON_BOOT, False))
+    except Exception:
+        return False
+
+
+def _set_autostart_enabled(enabled: bool) -> bool:
+    try:
+        from jnius import autoclass
+
+        Context = autoclass("android.content.Context")
+        PyAct = autoclass("org.kivy.android.PythonActivity")
+        activity = PyAct.mActivity
+        if activity is None:
+            return False
+        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        editor = prefs.edit()
+        editor.putBoolean(PREF_AUTOSTART_ON_BOOT, bool(enabled))
+        return bool(editor.commit())
+    except Exception:
+        return False
+
+
+def _get_restart_interval_seconds() -> int:
+    try:
+        from jnius import autoclass
+
+        Context = autoclass("android.content.Context")
+        PyAct = autoclass("org.kivy.android.PythonActivity")
+        activity = PyAct.mActivity
+        if activity is None:
+            return DEFAULT_RESTART_INTERVAL_SECONDS
+        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val = int(prefs.getInt(PREF_RESTART_INTERVAL_SECONDS, DEFAULT_RESTART_INTERVAL_SECONDS))
+        return max(0, val)
+    except Exception:
+        return DEFAULT_RESTART_INTERVAL_SECONDS
+
+
+def _set_restart_interval_seconds(seconds: int) -> bool:
+    sec = max(0, int(seconds))
+    try:
+        from jnius import autoclass
+
+        Context = autoclass("android.content.Context")
+        PyAct = autoclass("org.kivy.android.PythonActivity")
+        activity = PyAct.mActivity
+        if activity is None:
+            return False
+        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        editor = prefs.edit()
+        editor.putInt(PREF_RESTART_INTERVAL_SECONDS, sec)
+        return bool(editor.commit())
+    except Exception:
+        return False
+
+
+def _read_json_body(handler: BaseHTTPRequestHandler) -> dict:
+    try:
+        n = int(handler.headers.get("Content-Length", "0") or "0")
+    except ValueError:
+        n = 0
+    if n <= 0:
+        return {}
+    raw = handler.rfile.read(n)
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw.decode("utf-8", errors="replace"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _wait_proxy_stopped(timeout_s: float = 6.0) -> bool:
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        if not _probe_proxy_port_open():
+            return True
+        time.sleep(0.1)
+    return False
 
 
 def _wait_proxy_listen(timeout_s: float = 25.0) -> bool:
@@ -278,13 +431,9 @@ def _clear_proxy_ready_notification() -> None:
 
 
 def _start_service() -> Tuple[bool, Optional[str]]:
-    """Start foreground service; wait until TCP accepts (avoids Telegram 'connecting' to dead port)."""
+    """Start foreground service from a clean state."""
     global _running
     from jnius import autoclass
-
-    if _probe_proxy_port_open():
-        _running = True
-        return True, None
 
     if len(SECRET) != 32:
         return False, "Секрет не готов. Закрой приложение и открой снова."
@@ -294,6 +443,13 @@ def _start_service() -> Tuple[bool, Optional[str]]:
 
     Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
+    try:
+        Service.stop(PythonActivity.mActivity)
+    except Exception:
+        pass
+    if not _wait_proxy_stopped():
+        return False, "Не удалось остановить прошлый инстанс прокси. Попробуйте ещё раз."
+
     link_host = _proxy_link_host()
     fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
     # 5-arg start: notification contentTitle/contentText (Android 8+), see p4a Service.tmpl.java
@@ -310,6 +466,8 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         except Exception:
             pass
         return False, "Прокси не поднялся за 25 с. Проверь разрешения и попробуй снова."
+    if _read_service_start_ts() is None:
+        _write_service_start_ts_now()
     # Короткая пауза: прокси теперь обрабатывает клиентов параллельно с warmup, но первому
     # коннекту иногда нужен крошечный буфер после accept.
     time.sleep(1.2)
@@ -326,6 +484,7 @@ def _stop_service() -> None:
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     Service.stop(PythonActivity.mActivity)
     _running = False
+    _clear_service_start_ts()
     _clear_proxy_ready_notification()
 
 
@@ -380,6 +539,12 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/battery":
             self._send_json({"optimized": not _is_ignoring_battery_optimizations()})
 
+        elif self.path == "/api/autostart":
+            self._send_json({"enabled": _get_autostart_enabled()})
+
+        elif self.path == "/api/restart-interval":
+            self._send_json({"seconds": _get_restart_interval_seconds()})
+
         elif self.path == "/api/logs":
             try:
                 log_path = Path(_secret_storage_path().parent / LOG_FILENAME)
@@ -407,6 +572,8 @@ class Handler(BaseHTTPRequestHandler):
                 "port": PORT_PROXY,
                 "secret": SECRET if alive else None,
                 "link_host": _proxy_link_host() if alive else None,
+                "uptime_seconds": _proxy_uptime_seconds() if alive else None,
+                **(_read_live_metrics() if alive else {"rx_bps": 0.0, "tx_bps": 0.0}),
             })
 
         else:
@@ -418,13 +585,38 @@ class Handler(BaseHTTPRequestHandler):
             _request_permissions()
             ok, err = _start_service()
             if ok:
-                self._send_json({"ok": True, "running": _running, "secret": SECRET})
+                self._send_json({
+                    "ok": True,
+                    "running": _running,
+                    "secret": SECRET,
+                    "link_host": _proxy_link_host(),
+                    "uptime_seconds": _proxy_uptime_seconds(),
+                    **_read_live_metrics(),
+                })
             else:
                 self._send_json({"ok": False, "running": False, "error": err})
 
         elif self.path == "/api/battery":
             _open_battery_optimization_settings()
             self._send_json({"ok": True})
+
+        elif self.path == "/api/autostart":
+            body = _read_json_body(self)
+            enabled = bool(body.get("enabled", False))
+            ok = _set_autostart_enabled(enabled)
+            self._send_json({"ok": ok, "enabled": enabled if ok else _get_autostart_enabled()})
+
+        elif self.path == "/api/restart-interval":
+            body = _read_json_body(self)
+            try:
+                requested = int(body.get("seconds", DEFAULT_RESTART_INTERVAL_SECONDS))
+            except (TypeError, ValueError):
+                requested = DEFAULT_RESTART_INTERVAL_SECONDS
+            ok = _set_restart_interval_seconds(requested)
+            self._send_json({
+                "ok": ok,
+                "seconds": requested if ok else _get_restart_interval_seconds(),
+            })
 
         elif self.path == "/api/stop":
             _stop_service()

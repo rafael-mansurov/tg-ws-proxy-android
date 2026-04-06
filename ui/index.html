@@ -162,6 +162,8 @@
     }
     #page-settings > .content {
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── Status ── */
@@ -257,13 +259,15 @@
       display: none;
       align-items: flex-start;
       gap: 14px;
-      padding: 16px 18px;
+      padding: 14px 16px;
       margin-bottom: 4px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.90);
-      color: rgba(12,12,14,0.88);
-      border: 1px solid rgba(34,158,217,0.25);
-      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      border-radius: 16px;
+      background: rgba(18,18,22,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: none;
+      color: rgba(255,255,255,0.92);
     }
     .starting-panel.is-on { display: flex; }
     .starting-spinner {
@@ -275,8 +279,8 @@
     }
     @keyframes starting-spin { to { transform: rotate(360deg); } }
     .starting-texts { min-width: 0; flex: 1; }
-    .starting-title { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; color: rgba(12,12,14,0.9); }
-    .starting-sub { font-size: 12px; font-weight: 500; line-height: 1.5; color: rgba(55,65,81,0.75); }
+    .starting-title { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; color: rgba(255,255,255,0.95); }
+    .starting-sub { font-size: 12px; font-weight: 500; line-height: 1.5; color: rgba(255,255,255,0.62); }
 
     /* ── Cards ── */
     .row { display: flex; gap: 12px; }
@@ -383,16 +387,29 @@
     }
 
     .settings-logs-block {
-      flex: 1;
+      flex: 0 0 auto;
       display: flex;
       flex-direction: column;
       min-height: 0;
       overflow: hidden;
     }
+    #log-section {
+      max-height: min(40dvh, 300px);
+    }
+    #log-box {
+      max-height: min(40dvh, 300px);
+    }
     .settings-logs-block .log-btn-row {
       display: flex;
       gap: 8px;
       margin-top: 10px;
+      flex-shrink: 0;
+    }
+    .settings-support {
+      margin-top: auto;
+      padding-top: 16px;
+      padding-bottom: 4px;
+      text-align: center;
       flex-shrink: 0;
     }
 
@@ -479,7 +496,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
     </button>
     <div class="hicon header-app-icon" id="header-app-icon">
-      <img src="/icon.png" alt="" width="40" height="40" decoding="async" fetchpriority="high" />
+      <img id="header-icon-img" src="/icon.png" alt="" width="40" height="40" decoding="async" fetchpriority="high" />
     </div>
     <div class="htitles">
       <div class="htitle" id="header-title">TG WS Proxy</div>
@@ -560,6 +577,37 @@
         <div id="battery-settings-sub" style="font-size:12px;font-weight:500;color:rgba(205,216,236,0.72);margin-bottom:10px;line-height:1.45">Сейчас уточним состояние для этого устройства.</div>
         <button id="battery-settings-btn" onclick="openBatterySettings()" style="width:100%;background:rgba(124,150,201,0.2);color:rgba(235,243,255,0.95);border:1px solid rgba(145,170,219,0.38);border-radius:14px;padding:10px 12px;font-size:13px;font-weight:650;cursor:pointer">Открыть настройки батареи</button>
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(165deg,rgba(34,38,46,0.88) 0%,rgba(20,24,32,0.92) 100%);border:1px solid rgba(150,170,210,0.24);border-radius:20px;padding:12px 14px;margin-bottom:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:700;color:rgba(235,242,255,0.95)">Автозапуск после перезагрузки</div>
+          <div style="font-size:11px;font-weight:500;color:rgba(205,216,236,0.72);margin-top:4px;line-height:1.35">Запускает прокси автоматически после включения телефона.</div>
+        </div>
+        <label class="toggle-wrap" style="cursor:pointer">
+          <input id="autostart-toggle" type="checkbox" style="display:none" onchange="toggleAutostart(this.checked)">
+          <span class="toggle-track" id="autostart-toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;background:linear-gradient(165deg,rgba(34,38,46,0.88) 0%,rgba(20,24,32,0.92) 100%);border:1px solid rgba(150,170,210,0.24);border-radius:20px;padding:12px 14px;margin-bottom:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
+        <div style="min-width:0;flex:1">
+          <div style="font-size:13px;font-weight:700;color:rgba(235,242,255,0.95)">Автоперезапуск прокси</div>
+          <div style="font-size:11px;font-weight:500;color:rgba(205,216,236,0.72);margin-top:4px;line-height:1.35">Чтобы прокси не деградировал со временем, можно перезапускать его по таймеру.</div>
+          <div style="position:relative;margin-top:10px">
+            <select id="restart-interval-select" onchange="saveRestartInterval()" style="width:100%;background-color:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:9px 36px 9px 10px;font-size:13px;font-weight:600;-webkit-appearance:none;appearance:none">
+              <option value="0">Выключено</option>
+              <option value="900">Каждые 15 минут</option>
+              <option value="1800">Каждые 30 минут</option>
+              <option value="3600">Каждый час</option>
+              <option value="7200">Каждые 2 часа</option>
+              <option value="10800">Каждые 3 часа</option>
+            </select>
+            <span aria-hidden="true" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;display:inline-flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.82)">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
       <div class="settings-logs-block">
         <div id="log-section" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden">
           <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Лог сервиса</div>
@@ -570,27 +618,25 @@
           <button type="button" id="copy-log-btn" onclick="copyLogs()" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px;font-size:13px;font-weight:600;color:#fff;cursor:pointer">Копировать</button>
         </div>
       </div>
-    </div>
-
-    <!-- Поддержка -->
-    <div style="margin-top:16px;padding-bottom:4px;text-align:center">
-      <a href="https://t.me/mansurov_rafael" target="_blank" style="
-               display:inline-flex;
-               align-items:center;
-               gap:7px;
-               text-decoration:none;
-               color: rgb(255 255 255);
-               font-size:12px;
-               font-weight:500;
-               padding:8px 16px;
-               border-radius:20px;
-               border:1px solid rgba(0,0,0,0.08);
-               background: rgb(255 255 255 / 6%);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        Поддержка
-      </a>
+      <div class="settings-support">
+        <a href="https://t.me/mansurov_rafael" target="_blank" style="
+                 display:inline-flex;
+                 align-items:center;
+                 gap:7px;
+                 text-decoration:none;
+                 color: rgb(255 255 255);
+                 font-size:12px;
+                 font-weight:500;
+                 padding:8px 16px;
+                 border-radius:20px;
+                 border:1px solid rgba(0,0,0,0.08);
+                 background: rgb(255 255 255 / 6%);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Поддержка
+        </a>
+      </div>
     </div>
   </div>
 
@@ -616,6 +662,8 @@
   let running = false;
   let secret = null;
   let linkHost = null;
+  let autostartEnabled = false;
+  let restartIntervalSeconds = 3600;
   let uiBusy = false;
   let currentPage = 'main';
   const HEADER_TITLE_MAIN = 'TG WS Proxy';
@@ -635,6 +683,18 @@
   const DESIGN_DEMO = DEMO_MODE === 1;  // только режим 1 имеет живой тумблер
   const DEMO_SECRET = 'a1b2c3d4e5f6789012345678901234abcd5678901234567890abcdefaa';
   const DEMO_HOST = '192.168.1.42';
+
+  function initHeaderIcon() {
+    const img = document.getElementById('header-icon-img');
+    if (!img) return;
+    if (location.protocol === 'file:') {
+      img.src = '../icon.png';
+      img.onerror = () => { img.onerror = null; img.src = '/icon.png'; };
+    } else {
+      img.src = '/icon.png';
+      img.onerror = () => { img.onerror = null; img.src = '../icon.png'; };
+    }
+  }
 
   function setStartBusy(on) {
     uiBusy = on;
@@ -665,7 +725,32 @@
     return `tg://proxy?server=${host}&port=1443&secret=dd${secret}`;
   }
 
-  function updateUI(isRunning, sec, lh) {
+  function formatUptime(sec) {
+    const v = Number(sec);
+    if (!Number.isFinite(v) || v < 0) return null;
+    const n = Math.floor(v);
+    const h = Math.floor(n / 3600);
+    const m = Math.floor((n % 3600) / 60);
+    const s = n % 60;
+    const pad = (x) => String(x).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+
+  function formatRate(bps) {
+    const n = Number(bps);
+    if (!Number.isFinite(n) || n <= 0) return '0 B/s';
+    const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    let v = n;
+    let i = 0;
+    while (v >= 1024 && i < units.length - 1) {
+      v /= 1024;
+      i += 1;
+    }
+    const prec = v >= 100 ? 0 : v >= 10 ? 1 : 2;
+    return `${v.toFixed(prec)} ${units[i]}`;
+  }
+
+  function updateUI(isRunning, sec, lh, uptimeSec, rxBps, txBps) {
     running = isRunning;
     secret = sec || secret;
     if (lh) {
@@ -681,7 +766,9 @@
     const statusDot = statusEl.querySelector('.dot');
     if (statusDot) statusDot.classList.remove('wait');
     document.getElementById('status-title').textContent = running ? 'Прокси запущен' : 'Остановлен';
-    document.getElementById('status-sub').textContent  = running ? 'Работает в фоне' : 'Включите тумблер для запуска';
+    const up = formatUptime(uptimeSec);
+    const sp = `↓ ${formatRate(rxBps)}  ↑ ${formatRate(txBps)}`;
+    document.getElementById('status-sub').textContent  = running ? (up ? `В работе ${up} · ${sp}` : sp) : 'Включите тумблер для запуска';
     const sv = document.getElementById('secret-val');
     sv.textContent = running && secret ? secret : '––––––––––––––––';
     sv.classList.toggle('dim', !running);
@@ -720,10 +807,80 @@
     }
   }
 
+  function renderAutostart(enabled) {
+    autostartEnabled = !!enabled;
+    const input = document.getElementById('autostart-toggle');
+    const track = document.getElementById('autostart-toggle-track');
+    if (input) input.checked = autostartEnabled;
+    if (track) track.classList.toggle('on', autostartEnabled);
+  }
+
+  async function fetchAutostart() {
+    try {
+      const r = await fetch('/api/autostart');
+      if (!r.ok) return;
+      const d = await r.json();
+      renderAutostart(!!d.enabled);
+    } catch(e) {}
+  }
+
+  async function toggleAutostart(enabled) {
+    const want = !!enabled;
+    renderAutostart(want);
+    try {
+      const r = await fetch('/api/autostart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: want }),
+      });
+      const d = await r.json();
+      renderAutostart(!!d.enabled);
+    } catch(e) {
+      renderAutostart(!want);
+    }
+  }
+
+  function renderRestartInterval(seconds) {
+    const val = Math.max(0, Number(seconds) || 0);
+    restartIntervalSeconds = val;
+    const sel = document.getElementById('restart-interval-select');
+    if (!sel) return;
+    const exists = Array.from(sel.options).some(o => Number(o.value) === val);
+    sel.value = String(exists ? val : 3600);
+  }
+
+  async function fetchRestartInterval() {
+    try {
+      const r = await fetch('/api/restart-interval');
+      if (!r.ok) return;
+      const d = await r.json();
+      renderRestartInterval(d.seconds);
+    } catch(e) {}
+  }
+
+  async function saveRestartInterval() {
+    const sel = document.getElementById('restart-interval-select');
+    if (!sel) return;
+    const wanted = Number(sel.value) || 0;
+    const prev = restartIntervalSeconds;
+    renderRestartInterval(wanted);
+    try {
+      const r = await fetch('/api/restart-interval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seconds: wanted }),
+      });
+      const d = await r.json();
+      renderRestartInterval(d.seconds);
+    } catch(e) {
+      renderRestartInterval(prev);
+    }
+  }
+
   async function onToggle() {
     if (DESIGN_DEMO) {
-      if (running) updateUI(false, null, DEMO_HOST);
-      else updateUI(true, DEMO_SECRET, DEMO_HOST);
+      if (running) updateUI(false, null, DEMO_HOST, null, 0, 0);
+      else updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
       return;
     }
     const endpoint = running ? '/api/stop' : '/api/start';
@@ -733,14 +890,14 @@
       const r = await fetch(endpoint, { method: 'POST' });
       const d = await r.json();
       if (!d.ok) {
-        updateUI(false, null);
+        updateUI(false, null, null, null, 0, 0);
         if (d.error) alert(d.error);
         return;
       }
-      updateUI(d.running, d.secret, d.link_host);
+      updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps);
     } catch(e) {
       console.error(e);
-      if (turningOn) updateUI(false, null);
+      if (turningOn) updateUI(false, null, null, null, 0, 0);
     } finally {
       if (turningOn) setStartBusy(false);
     }
@@ -777,6 +934,21 @@
   }
 
   let logsVisible = false;
+  function buildDemoLog() {
+    const out = [];
+    const now = Date.now();
+    const rows = 220;
+    for (let i = 0; i < rows; i++) {
+      const t = new Date(now - (rows - i) * 1700);
+      const hh = String(t.getHours()).padStart(2, '0');
+      const mm = String(t.getMinutes()).padStart(2, '0');
+      const ss = String(t.getSeconds()).padStart(2, '0');
+      const lvl = (i % 11 === 0) ? 'WARN ' : (i % 17 === 0) ? 'ERROR' : 'INFO ';
+      out.push(`${hh}:${mm}:${ss}  ${lvl}  [demo] proxy event #${String(i + 1).padStart(3, '0')} dc=${i % 2 ? 2 : 4} latency=${30 + (i % 90)}ms`);
+    }
+    return out.join('\n');
+  }
+
   async function toggleLogs() {
     const section = document.getElementById('log-section');
     const btn = document.getElementById('log-btn');
@@ -790,6 +962,12 @@
     section.style.display = 'flex';
     btn.textContent = 'Скрыть логи';
     document.getElementById('copy-log-btn').style.display = 'inline-block';
+    if (DEMO_MODE > 0) {
+      const box = document.getElementById('log-box');
+      box.textContent = buildDemoLog();
+      box.scrollTop = box.scrollHeight;
+      return;
+    }
     try {
       const r = await fetch('/api/logs');
       const d = await r.json();
@@ -884,7 +1062,7 @@
       const r = await fetch('/api/status');
       const d = await r.json();
       if (d.booting) return;
-      updateUI(d.running, d.secret, d.link_host);
+      updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps);
     } catch(e) {}
   }
 
@@ -929,23 +1107,30 @@
   }
 
   if (DEMO_MODE === 1) {
-    updateUI(true, DEMO_SECRET, DEMO_HOST);
+    initHeaderIcon();
+    updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
   } else if (DEMO_MODE === 2) {
-    updateUI(false, null, null);
+    initHeaderIcon();
+    updateUI(false, null, null, null, 0, 0);
     setStartBusy(true);
   } else if (DEMO_MODE === 3) {
-    updateUI(true, DEMO_SECRET, DEMO_HOST);
+    initHeaderIcon();
+    updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
     document.getElementById('battery-banner').style.display = 'block';
     document.getElementById('battery-banner-settings').style.display = 'block';
   } else if (DEMO_MODE === 4) {
-    updateUI(true, DEMO_SECRET, DEMO_HOST);
+    initHeaderIcon();
+    updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
     document.getElementById('update-version-label').textContent = 'v1.0.99';
     document.getElementById('update-download-link').href = '#';
     document.getElementById('update-banner').style.display = 'block';
   } else {
+    initHeaderIcon();
     pollStatus();
     const _fastPoll = setInterval(pollStatus, 600);
     setTimeout(() => { clearInterval(_fastPoll); setInterval(pollStatus, 3000); }, 5000);
+    fetchAutostart();
+    fetchRestartInterval();
     checkBatteryOpt();
     setInterval(checkBatteryOpt, 10000);
     setTimeout(checkForUpdate, 4000);
