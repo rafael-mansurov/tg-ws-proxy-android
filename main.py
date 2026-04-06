@@ -561,11 +561,14 @@ class Handler(BaseHTTPRequestHandler):
             if not _app_ready:
                 self._send_json({"booting": True, "running": False})
                 return
-            alive = _running or _probe_proxy_port_open()
+            alive = _probe_proxy_port_open()
+            _running = alive
             if alive:
-                _running = True
                 if not _ready_notification_shown:
                     _notify_proxy_ready()
+            else:
+                if _ready_notification_shown:
+                    _clear_proxy_ready_notification()
             self._send_json({
                 "running": alive,
                 "host": HOST_PROXY,

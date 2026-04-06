@@ -46,7 +46,7 @@ class ProxyConfig:
     dc_redirects: Dict[int, str] = field(default_factory=lambda: {2: '149.154.167.220', 4: '149.154.167.220'})
     dc_overrides: Dict[int, int] = field(default_factory=lambda: {203: 2})
     buffer_size: int = 256 * 1024
-    pool_size: int = 4
+    pool_size: int = 8
 
 
 proxy_config = ProxyConfig()
@@ -1161,8 +1161,8 @@ def main():
                     help='Number of rotated log files to keep (default 0)')
     ap.add_argument('--buf-kb', type=int, default=256, metavar='KB',
                     help='Socket send/recv buffer size in KB (default 256)')
-    ap.add_argument('--pool-size', type=int, default=4, metavar='N',
-                    help='WS connection pool size per DC (default 4, min 0)')
+    ap.add_argument('--pool-size', type=int, default=8, metavar='N',
+                    help='WS connection pool size per DC (default 8, min 0)')
     args = ap.parse_args()
 
     if not args.dc_ip:

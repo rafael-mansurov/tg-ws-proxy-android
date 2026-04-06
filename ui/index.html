@@ -413,6 +413,165 @@
       flex-shrink: 0;
     }
 
+    .onb-coach {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 11000;
+      pointer-events: none;
+    }
+    .onb-coach.is-open { display: block; }
+    .onb-shade {
+      position: absolute;
+      background: rgba(4, 7, 14, 0.56);
+      z-index: 1;
+    }
+    .onb-spot {
+      position: absolute;
+      border-radius: 16px;
+      border: 1px solid rgba(240, 244, 252, 0.92);
+      box-shadow: none;
+      transition: all .25s ease;
+      z-index: 2;
+    }
+    .onb-arrow {
+      position: absolute;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(236,241,250,0.95) 0%, rgba(236,241,250,0.24) 100%);
+      border-radius: 99px;
+      transition: top .28s ease, height .28s ease, left .28s ease, opacity .2s ease;
+      z-index: 3;
+    }
+    .onb-arrow::before {
+      content: "";
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      border-top: 2px solid rgba(236,241,250,0.95);
+      border-left: 2px solid rgba(236,241,250,0.95);
+      transform: translateX(-50%) rotate(45deg);
+    }
+    .onb-arrow.down::before {
+      top: auto;
+      bottom: -8px;
+      transform: translateX(-50%) rotate(-135deg);
+    }
+    .onb-card {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+      max-width: 390px;
+      margin: 0 auto;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background:
+        linear-gradient(160deg, rgba(20,22,28,0.98) 0%, rgba(11,12,16,0.99) 100%);
+      box-shadow:
+        0 28px 72px rgba(0,0,0,0.62),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+      padding: 24px 22px 20px;
+      pointer-events: auto;
+      z-index: 4;
+      transform: translateY(0);
+      transition: transform .30s ease;
+    }
+    .onb-card.is-top {
+      transform: translateY(0);
+    }
+    .onb-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.82);
+      margin-bottom: 14px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      width: fit-content;
+    }
+    .onb-title {
+      color: #f7fbff;
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.25;
+      text-wrap: balance;
+    }
+    .onb-sub {
+      margin-top: 14px;
+      color: rgba(218, 231, 255, 0.90);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.58;
+      min-height: 74px;
+    }
+    .onb-points {
+      margin-top: 12px;
+    }
+    .onb-point {
+      color: rgba(210, 220, 236, 0.56);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.5;
+      letter-spacing: 0.003em;
+    }
+    .onb-foot {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .onb-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .onb-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.30);
+      transition: all .2s;
+    }
+    .onb-dot.is-on {
+      width: 22px;
+      background: rgba(244,248,255,0.92);
+      box-shadow: 0 0 10px rgba(255,255,255,0.35);
+    }
+    .onb-actions {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .onb-btn {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.05);
+      color: rgba(230, 240, 255, 0.94);
+      padding: 11px 14px;
+      font-size: 13px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    .onb-btn.primary {
+      border-color: rgba(255,255,255,0.26);
+      background: linear-gradient(180deg, #f5f7fb 0%, #e0e6f1 100%);
+      color: #111522;
+      box-shadow:
+        0 10px 24px rgba(0,0,0,0.24),
+        inset 0 1px 0 rgba(255,255,255,0.78);
+    }
+    .onb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
     .qr-modal {
       display: none;
       position: fixed; inset: 0; z-index: 10000;
@@ -618,6 +777,7 @@
           <button type="button" id="copy-log-btn" onclick="copyLogs()" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px;font-size:13px;font-weight:600;color:#fff;cursor:pointer">Копировать</button>
         </div>
       </div>
+      <button type="button" onclick="showOnboardingAgain()" style="margin-top:12px;width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:11px 12px;font-size:13px;font-weight:650;color:rgba(245,249,255,0.94);cursor:pointer">Показать обучение снова</button>
       <div class="settings-support">
         <a href="https://t.me/mansurov_rafael" target="_blank" style="
                  display:inline-flex;
@@ -657,6 +817,32 @@
   </div>
 </div>
 
+<div id="onboarding-coach" class="onb-coach" aria-hidden="true">
+  <div id="onb-shade-top" class="onb-shade"></div>
+  <div id="onb-shade-left" class="onb-shade"></div>
+  <div id="onb-shade-right" class="onb-shade"></div>
+  <div id="onb-shade-bottom" class="onb-shade"></div>
+  <div id="onb-spot" class="onb-spot"></div>
+  <div id="onb-arrow" class="onb-arrow"></div>
+  <div class="onb-card" role="dialog" aria-modal="true" aria-labelledby="onb-title">
+    <div class="onb-kicker" id="onb-kicker">Шаг 1 из 3</div>
+    <div class="onb-title" id="onb-title">Разогреваем прокси</div>
+    <div class="onb-sub" id="onb-sub">Сейчас покажу куда нажимать — и ты заведешь всё за 10 секунд.</div>
+    <div class="onb-points" id="onb-points"></div>
+    <div class="onb-foot">
+      <div class="onb-dots">
+        <span class="onb-dot is-on" id="onb-dot-0"></span>
+        <span class="onb-dot" id="onb-dot-1"></span>
+        <span class="onb-dot" id="onb-dot-2"></span>
+      </div>
+      <div class="onb-actions">
+        <button type="button" class="onb-btn" id="onb-prev" onclick="onboardingPrev()">Назад</button>
+        <button type="button" class="onb-btn primary" id="onb-next" onclick="onboardingNext()">Дальше</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
 <script>
   let running = false;
@@ -675,6 +861,7 @@
      ?demo=2 — процесс запуска (стартовая панель)
      ?demo=3 — баннер оптимизации батареи
      ?demo=4 — баннер доступного обновления
+     ?demo=6 — интерактивный анбординг с подсветкой элементов
      ?demo=0 — отключить демо (чтобы открыть файл напрямую без демо) */
   const _demoQ = new URLSearchParams(location.search);
   const DEMO_MODE = _demoQ.has('demo')
@@ -683,6 +870,195 @@
   const DESIGN_DEMO = DEMO_MODE === 1;  // только режим 1 имеет живой тумблер
   const DEMO_SECRET = 'a1b2c3d4e5f6789012345678901234abcd5678901234567890abcdefaa';
   const DEMO_HOST = '192.168.1.42';
+  const ONBOARDING_SEEN_KEY = 'tgws_onboarding_seen_v1';
+  const ONBOARDING_STEPS = [
+    {
+      target: '#header-toggle-wrap',
+      title: 'Включаем прокси',
+      sub: 'Привет! Это приложение поднимает локальный MTProto WS-прокси для Telegram. Стартуем отсюда: один тап по тумблеру в шапке запускает прокси.',
+      points: [
+        'Тапни по тумблеру прямо сейчас.',
+        'Если запуск долгий — это нормально, идет прогрев соединений.',
+      ],
+    },
+    {
+      target: '#status',
+      title: 'Проверяем запуск',
+      sub: 'Смотри на этот статус-блок: он сразу показывает, поднялся прокси или нет.',
+      points: [
+        'Нужно состояние: “Прокси запущен”.',
+        'Если долго «Остановлен», проверь батарею и попробуй еще раз.',
+      ],
+    },
+    {
+      target: '#tg-btn',
+      title: 'Подключаем Telegram',
+      sub: 'Теперь жми кнопку: приложение откроет proxy-link прямо в Telegram.',
+      points: [
+        'Если кнопка серая — дождись запуска прокси.',
+        'Для другого устройства можно использовать QR-код.',
+      ],
+    },
+  ];
+  let onboardingStep = 0;
+  let onboardingResizeBound = false;
+
+  function onboardingLayout() {
+    const step = ONBOARDING_STEPS[onboardingStep];
+    if (!step) return;
+    const target = document.querySelector(step.target);
+    const spot = document.getElementById('onb-spot');
+    const arrow = document.getElementById('onb-arrow');
+    const card = document.querySelector('#onboarding-coach .onb-card');
+    const shadeTop = document.getElementById('onb-shade-top');
+    const shadeLeft = document.getElementById('onb-shade-left');
+    const shadeRight = document.getElementById('onb-shade-right');
+    const shadeBottom = document.getElementById('onb-shade-bottom');
+    if (!target || !spot || !arrow || !card || !shadeTop || !shadeLeft || !shadeRight || !shadeBottom) return;
+    const r = target.getBoundingClientRect();
+    const pad = 8;
+    const left = Math.max(8, r.left - pad);
+    const top = Math.max(8, r.top - pad);
+    const width = Math.min(window.innerWidth - left - 8, r.width + pad * 2);
+    const height = r.height + pad * 2;
+    const right = left + width;
+    const bottom = top + height;
+    spot.style.left = `${left}px`;
+    spot.style.top = `${top}px`;
+    spot.style.width = `${width}px`;
+    spot.style.height = `${height}px`;
+
+    shadeTop.style.left = '0px';
+    shadeTop.style.top = '0px';
+    shadeTop.style.width = '100%';
+    shadeTop.style.height = `${Math.max(0, top)}px`;
+
+    shadeLeft.style.left = '0px';
+    shadeLeft.style.top = `${Math.max(0, top)}px`;
+    shadeLeft.style.width = `${Math.max(0, left)}px`;
+    shadeLeft.style.height = `${Math.max(0, height)}px`;
+
+    shadeRight.style.left = `${Math.max(0, right)}px`;
+    shadeRight.style.top = `${Math.max(0, top)}px`;
+    shadeRight.style.width = `${Math.max(0, window.innerWidth - right)}px`;
+    shadeRight.style.height = `${Math.max(0, height)}px`;
+
+    shadeBottom.style.left = '0px';
+    shadeBottom.style.top = `${Math.max(0, bottom)}px`;
+    shadeBottom.style.width = '100%';
+    shadeBottom.style.height = `${Math.max(0, window.innerHeight - bottom)}px`;
+
+    const placeCardTop = (top + height / 2) > (window.innerHeight * 0.58);
+    card.classList.toggle('is-top', placeCardTop);
+    card.style.transform = 'translateY(0px)';
+    const baseCardRect = card.getBoundingClientRect();
+    const spotCenterX = left + width / 2;
+    let cardShiftY = 0;
+    arrow.style.left = `${spotCenterX}px`;
+    if (placeCardTop) {
+      cardShiftY = 16 - baseCardRect.top;
+      const cardBottom = baseCardRect.bottom + cardShiftY;
+      const aTop = cardBottom + 10;
+      const aBottom = top - 14;
+      const aHeight = Math.max(24, aBottom - aTop);
+      arrow.style.top = `${aTop}px`;
+      arrow.style.height = `${aHeight}px`;
+      arrow.classList.add('down');
+    } else {
+      cardShiftY = 0;
+      const cardTop = baseCardRect.top;
+      const aTop = top + height + 22;
+      const aBottom = cardTop - 10;
+      const aHeight = Math.max(24, aBottom - aTop);
+      arrow.style.top = `${aTop}px`;
+      arrow.style.height = `${aHeight}px`;
+      arrow.classList.remove('down');
+    }
+    card.style.transform = `translateY(${cardShiftY}px)`;
+  }
+
+  function onboardingRender() {
+    const step = ONBOARDING_STEPS[onboardingStep];
+    const kicker = document.getElementById('onb-kicker');
+    const title = document.getElementById('onb-title');
+    const sub = document.getElementById('onb-sub');
+    const points = document.getElementById('onb-points');
+    const prev = document.getElementById('onb-prev');
+    const next = document.getElementById('onb-next');
+    if (!kicker || !title || !sub || !points || !prev || !next || !step) return;
+    kicker.textContent = `Шаг ${onboardingStep + 1} из ${ONBOARDING_STEPS.length}`;
+    title.textContent = step.title;
+    sub.textContent = step.sub;
+    const secondary = Array.isArray(step.points) && step.points.length > 1 ? step.points[1] : '';
+    points.innerHTML = secondary ? `<div class="onb-point">${secondary}</div>` : '';
+    prev.style.display = onboardingStep === 0 ? 'none' : '';
+    prev.disabled = onboardingStep === 0;
+    next.textContent = onboardingStep === ONBOARDING_STEPS.length - 1 ? 'Поехали' : 'Дальше';
+    for (let i = 0; i < ONBOARDING_STEPS.length; i++) {
+      const dot = document.getElementById(`onb-dot-${i}`);
+      if (dot) dot.classList.toggle('is-on', i === onboardingStep);
+    }
+    requestAnimationFrame(onboardingLayout);
+  }
+
+  function onboardingPrev() {
+    if (onboardingStep <= 0) return;
+    onboardingStep -= 1;
+    onboardingRender();
+  }
+
+  function onboardingClose() {
+    const modal = document.getElementById('onboarding-coach');
+    if (!modal) return;
+    if (DEMO_MODE !== 6) {
+      try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch (e) {}
+    }
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    if (onboardingResizeBound) {
+      window.removeEventListener('resize', onboardingLayout);
+      onboardingResizeBound = false;
+    }
+  }
+
+  function onboardingNext() {
+    if (onboardingStep >= ONBOARDING_STEPS.length - 1) {
+      onboardingClose();
+      return;
+    }
+    onboardingStep += 1;
+    onboardingRender();
+  }
+
+  function onboardingOpen() {
+    const modal = document.getElementById('onboarding-coach');
+    if (!modal) return;
+    onboardingStep = 0;
+    onboardingRender();
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    if (!onboardingResizeBound) {
+      window.addEventListener('resize', onboardingLayout);
+      onboardingResizeBound = true;
+    }
+  }
+
+  function shouldShowOnboardingInProd() {
+    if (DEMO_MODE > 0) return false;
+    try {
+      return localStorage.getItem(ONBOARDING_SEEN_KEY) !== '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function showOnboardingAgain() {
+    try { localStorage.removeItem(ONBOARDING_SEEN_KEY); } catch (e) {}
+    if (currentPage === 'settings') {
+      closeSettings();
+    }
+    setTimeout(onboardingOpen, 120);
+  }
 
   function initHeaderIcon() {
     const img = document.getElementById('header-icon-img');
@@ -736,20 +1112,6 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  function formatRate(bps) {
-    const n = Number(bps);
-    if (!Number.isFinite(n) || n <= 0) return '0 B/s';
-    const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
-    let v = n;
-    let i = 0;
-    while (v >= 1024 && i < units.length - 1) {
-      v /= 1024;
-      i += 1;
-    }
-    const prec = v >= 100 ? 0 : v >= 10 ? 1 : 2;
-    return `${v.toFixed(prec)} ${units[i]}`;
-  }
-
   function updateUI(isRunning, sec, lh, uptimeSec, rxBps, txBps) {
     running = isRunning;
     secret = sec || secret;
@@ -767,8 +1129,7 @@
     if (statusDot) statusDot.classList.remove('wait');
     document.getElementById('status-title').textContent = running ? 'Прокси запущен' : 'Остановлен';
     const up = formatUptime(uptimeSec);
-    const sp = `↓ ${formatRate(rxBps)}  ↑ ${formatRate(txBps)}`;
-    document.getElementById('status-sub').textContent  = running ? (up ? `В работе ${up} · ${sp}` : sp) : 'Включите тумблер для запуска';
+    document.getElementById('status-sub').textContent  = running ? (up ? `В работе ${up}` : 'В работе') : 'Включите тумблер для запуска';
     const sv = document.getElementById('secret-val');
     sv.textContent = running && secret ? secret : '––––––––––––––––';
     sv.classList.toggle('dim', !running);
@@ -1124,6 +1485,10 @@
     document.getElementById('update-version-label').textContent = 'v1.0.99';
     document.getElementById('update-download-link').href = '#';
     document.getElementById('update-banner').style.display = 'block';
+  } else if (DEMO_MODE === 6) {
+    initHeaderIcon();
+    updateUI(false, null, null, null, 0, 0);
+    onboardingOpen();
   } else {
     initHeaderIcon();
     pollStatus();
@@ -1134,6 +1499,9 @@
     checkBatteryOpt();
     setInterval(checkBatteryOpt, 10000);
     setTimeout(checkForUpdate, 4000);
+    if (shouldShowOnboardingInProd()) {
+      setTimeout(onboardingOpen, 280);
+    }
   }
 </script>
 </body>

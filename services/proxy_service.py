@@ -68,6 +68,7 @@ METRICS_FILENAME = "tgws_proxy_metrics.json"
 PREFS_NAME = "tgws_proxy_prefs"
 PREF_RESTART_INTERVAL_SECONDS = "restart_interval_seconds"
 DEFAULT_RESTART_INTERVAL_SECONDS = 3600
+IDLE_SHUTDOWN_SECONDS = 15 * 60
 
 
 def _app_base_path() -> Optional[Path]:
@@ -160,6 +161,37 @@ def _start_metrics_monitor(base: Optional[Path], tg_mod) -> None:
     t.start()
 
 
+def _start_idle_shutdown_watcher(
+    stop_event: asyncio.Event,
+    stop_reason: dict,
+    finish_event: threading.Event,
+    tg_mod,
+    idle_seconds: int = IDLE_SHUTDOWN_SECONDS,
+) -> threading.Thread:
+    def _loop() -> None:
+        stats = getattr(tg_mod, "_stats", None)
+        last_up = float(getattr(stats, "bytes_up", 0) or 0)
+        last_down = float(getattr(stats, "bytes_down", 0) or 0)
+        last_activity = time.monotonic()
+        while not finish_event.is_set():
+            time.sleep(1.0)
+            stats = getattr(tg_mod, "_stats", None)
+            up = float(getattr(stats, "bytes_up", last_up) or last_up)
+            down = float(getattr(stats, "bytes_down", last_down) or last_down)
+            if up != last_up or down != last_down:
+                last_activity = time.monotonic()
+            last_up = up
+            last_down = down
+            if (time.monotonic() - last_activity) >= idle_seconds:
+                stop_reason["reason"] = "idle"
+                stop_event.set()
+                return
+
+    t = threading.Thread(target=_loop, name="tgws-idle-stop", daemon=True)
+    t.start()
+    return t
+
+
 def _run_proxy() -> None:
     global _started
     if _started:
@@ -214,20 +246,33 @@ def _run_proxy() -> None:
             return
 
         stop_event = asyncio.Event()
+        finish_event = threading.Event()
+        stop_reason = {"reason": "timer"}
         timer = threading.Timer(float(restart_every), stop_event.set)
         timer.daemon = True
         timer.start()
+        idle_watcher = _start_idle_shutdown_watcher(
+            stop_event=stop_event,
+            stop_reason=stop_reason,
+            finish_event=finish_event,
+            tg_mod=tg_mod,
+            idle_seconds=IDLE_SHUTDOWN_SECONDS,
+        )
         try:
             run_proxy(stop_event)
         finally:
+            finish_event.set()
             timer.cancel()
+            idle_watcher.join(timeout=0.2)
 
         # если остановились не по таймеру (ошибка/внешняя остановка), небольшой backoff
         if not stop_event.is_set():
             time.sleep(1.0)
             continue
 
-        # циклический мягкий рестарт
+        if stop_reason.get("reason") == "idle":
+            return
+        # циклический мягкий рестарт по таймеру
 
 
 _run_proxy()

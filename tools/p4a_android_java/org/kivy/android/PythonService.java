@@ -166,6 +166,7 @@ public class PythonService extends Service implements Runnable {
             Notification.Builder builder = new Notification.Builder(context, NOTIFICATION_CHANNEL_ID);
             builder.setContentTitle(contentTitle);
             builder.setContentText(contentText);
+            builder.setStyle(new Notification.BigTextStyle().bigText(contentText));
             builder.setContentIntent(pIntent);
             builder.setSmallIcon(smallIconId);
             builder.setOngoing(true);
