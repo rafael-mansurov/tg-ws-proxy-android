@@ -604,17 +604,28 @@
 
     /* ── External proxy modal ── */
     .ext-proxy-modal {
-      display: none;
       position: fixed; inset: 0; z-index: 10500;
       align-items: flex-end;
+      display: flex;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .24s ease, visibility .24s ease;
     }
-    .ext-proxy-modal.is-open { display: flex; }
+    .ext-proxy-modal.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
     .ext-proxy-backdrop {
       position: absolute; inset: 0;
       background: rgba(0,0,0,0.72);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      transition: opacity .24s ease;
     }
+    .ext-proxy-modal.is-open .ext-proxy-backdrop { opacity: 1; }
     .ext-proxy-panel {
       position: relative; z-index: 1;
       width: 100%;
@@ -624,9 +635,10 @@
       border-radius: 24px 24px 0 0;
       display: flex; flex-direction: column;
       transform: translateY(100%);
-      transition: transform .32s cubic-bezier(0.32,0.72,0,1);
+      opacity: 0.96;
+      transition: transform .32s cubic-bezier(0.32,0.72,0,1), opacity .24s ease;
     }
-    .ext-proxy-modal.is-open .ext-proxy-panel { transform: translateY(0); }
+    .ext-proxy-modal.is-open .ext-proxy-panel { transform: translateY(0); opacity: 1; }
     .ext-proxy-handle {
       width: 36px; height: 4px; border-radius: 2px;
       background: rgba(255,255,255,0.18);
@@ -643,13 +655,15 @@
       font-size: 16px; font-weight: 700; color: #fff;
     }
     .ext-proxy-head-btn {
-      width: 34px; height: 34px;
+      min-width: 34px; height: 34px;
       border-radius: 10px;
       background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.10);
       color: rgba(255,255,255,0.7);
-      font-size: 18px; line-height: 1;
+      font-size: 13px; line-height: 1;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
+      padding: 0 12px;
+      font-weight: 700;
     }
     .ext-proxy-head-btn:active { opacity: 0.7; }
     .ext-proxy-sub {
@@ -671,11 +685,19 @@
       border-radius: 14px;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.07);
-      cursor: pointer;
       transition: background .15s;
-      text-decoration: none;
     }
-    .ext-proxy-item:active { background: rgba(255,255,255,0.09); }
+    .ext-proxy-item.is-favorite {
+      border-color: rgba(255,214,102,0.32);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(255,214,102,0.06);
+    }
+    .ext-proxy-main {
+      display: flex; align-items: center; gap: 12px;
+      flex: 1; min-width: 0;
+      background: none; border: none; padding: 0; margin: 0;
+      color: inherit; text-align: left; cursor: pointer;
+    }
+    .ext-proxy-main:active { opacity: 0.82; }
     .ext-proxy-flag { font-size: 22px; flex-shrink: 0; line-height: 1; }
     .ext-proxy-info { flex: 1; min-width: 0; }
     .ext-proxy-server {
@@ -689,6 +711,30 @@
     .ext-proxy-arrow {
       font-size: 16px; color: rgba(255,255,255,0.25); flex-shrink: 0;
     }
+    .ext-proxy-actions {
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .ext-proxy-icon-btn {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.66);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; cursor: pointer;
+      transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    .ext-proxy-icon-btn:active { transform: scale(0.97); }
+    .ext-proxy-icon-btn.is-favorite {
+      color: #ffd166;
+      border-color: rgba(255,209,102,0.32);
+      background: rgba(255,209,102,0.10);
+    }
+    .ext-proxy-icon-btn svg {
+      width: 16px; height: 16px;
+      stroke: currentColor; fill: none;
+    }
+    .ext-proxy-icon-btn.is-favorite svg { fill: currentColor; }
     .ext-proxy-ping {
       font-size: 11px; font-weight: 700; flex-shrink: 0;
       min-width: 44px; text-align: right;
@@ -715,18 +761,29 @@
     .ext-proxy-open-btn.is-on { display: block; }
 
     .qr-modal {
-      display: none;
-      position: fixed; inset: 0; z-index: 10000;
+      position: fixed; inset: 0; z-index: 11000;
+      display: flex;
       align-items: center; justify-content: center;
       padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .22s ease, visibility .22s ease;
     }
-    .qr-modal.is-open { display: flex; }
+    .qr-modal.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
     .qr-modal-backdrop {
       position: absolute; inset: 0;
       background: rgba(0,0,0,0.78);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      transition: opacity .22s ease;
     }
+    .qr-modal.is-open .qr-modal-backdrop { opacity: 1; }
     .qr-modal-panel {
       position: relative; z-index: 1;
       width: 100%; max-width: 320px;
@@ -742,7 +799,11 @@
       display: flex;
       flex-direction: column;
       align-items: stretch;
+      transform: translateY(16px) scale(0.98);
+      transition: transform .22s ease, opacity .22s ease;
+      opacity: 0.96;
     }
+    .qr-modal.is-open .qr-modal-panel { transform: translateY(0) scale(1); opacity: 1; }
     .qr-modal-header {
       display: flex;
       align-items: center;
@@ -970,7 +1031,7 @@
     <div class="ext-proxy-handle"></div>
     <div class="ext-proxy-head">
       <div class="ext-proxy-head-title">Внешние прокси</div>
-      <button class="ext-proxy-head-btn" id="ext-refresh-btn" onclick="loadExtProxies()" title="Обновить">↻</button>
+      <button class="ext-proxy-head-btn" id="ext-refresh-btn" onclick="loadExtProxies()" title="Обновить">Обновить</button>
       <button class="ext-proxy-head-btn" onclick="closeExtProxies()" aria-label="Закрыть">✕</button>
     </div>
     <div class="ext-proxy-sub">Публичные MTProto-прокси — работают на мобильном интернете и Wi-Fi. Выбери любой, Telegram применит автоматически.</div>
@@ -1356,7 +1417,11 @@
     sv.classList.toggle('dim', !running);
     document.getElementById('tg-btn').className = 'btn ' + (running ? 'on' : 'off');
     const qrBtn = document.getElementById('qr-show-btn');
-    if (qrBtn) qrBtn.disabled = !(running && secret);
+    if (qrBtn) {
+      const showQr = !!(running && secret);
+      qrBtn.disabled = !showQr;
+      qrBtn.style.display = showQr ? '' : 'none';
+    }
   }
 
   function openSettings() {
@@ -1593,7 +1658,8 @@
     const host = document.getElementById('qr-modal-svg-host');
     const ph = document.getElementById('qr-modal-placeholder');
     if (!host || !ph) return;
-    if (!running || !secret) return;
+    const qrLink = _qrModalLink || (running && secret ? proxyUrl() : null);
+    if (!qrLink) return;
     if (typeof QRCode === 'undefined') {
       ph.textContent = 'QR недоступен';
       ph.classList.remove('hidden');
@@ -1605,9 +1671,9 @@
     ph.classList.remove('hidden');
     host.classList.remove('visible');
     host.innerHTML = '';
-    QRCode.toString(proxyUrl(), { type:'svg', width:176, margin:2, color:{dark:'#0f172a',light:'#f8fafc'} },
+    QRCode.toString(qrLink, { type:'svg', width:176, margin:2, color:{dark:'#0f172a',light:'#f8fafc'} },
       (err, svg) => {
-        if (err || !running || !secret) return;
+        if (err) return;
         ph.classList.add('hidden');
         host.innerHTML = svg;
         host.classList.add('visible');
@@ -1615,10 +1681,14 @@
     );
   }
 
-  function openQrModal() {
-    if (!running || !secret) return;
+  function openQrModal(link = null, title = 'QR для Telegram') {
+    if (!link && (!running || !secret)) return;
     const modal = document.getElementById('qr-modal');
     if (!modal) return;
+    _qrModalLink = link || proxyUrl();
+    _qrModalTitle = title;
+    const titleEl = document.getElementById('qr-modal-title');
+    if (titleEl) titleEl.textContent = _qrModalTitle;
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
     refreshQr();
@@ -1632,6 +1702,10 @@
     if (!modal) return;
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden', 'true');
+    _qrModalLink = null;
+    _qrModalTitle = 'QR для Telegram';
+    const titleEl = document.getElementById('qr-modal-title');
+    if (titleEl) titleEl.textContent = _qrModalTitle;
     if (modal._qrEsc) {
       document.removeEventListener('keydown', modal._qrEsc);
       modal._qrEsc = null;
@@ -1652,6 +1726,10 @@
 
   const GH_REPO = 'rafael-mansurov/tg-ws-proxy-android';
   const APK_URL = `https://github.com/${GH_REPO}/releases/download/latest-apk/tg-ws-proxy-debug.apk`;
+  const EXT_PROXY_FAVORITES_KEY = 'tgws_ext_proxy_favorites_v1';
+  let _extProxyFavorites = new Set();
+  let _qrModalLink = null;
+  let _qrModalTitle = 'QR для Telegram';
 
   function _parseVersion(s) {
     return (s || '').trim().split('.').map(Number);
@@ -1692,6 +1770,9 @@
 
   // ── External proxy list ─────────────────────────────────────────────────────
   const EXT_PROXY_SOURCES = [
+    // Live monitored list with EE/DD mask metadata and measured last_ping
+    { url: 'https://mtprobe.cyou/search?ee_mask=true&max_ping=350&limit=120&offset=0&search=&no_mask=false&dd_mask=false',
+      type: 'json_mtprobe' },
     // JSON {host,port,secret,country,addTime} — обновляется каждые ~5 мин
     { url: 'https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json', type: 'json' },
     // JSON {host,port,secret,link,ping,region,method} — 494+ проверенных, несколько раз в день
@@ -1706,6 +1787,22 @@
     { url: 'https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt', type: 'text' },
     { url: 'https://raw.githubusercontent.com/Telegram-FZ-LLC/Telegram-Proxy/main/proxies.txt', type: 'text' },
   ];
+
+  function _loadExtProxyFavorites() {
+    try {
+      const raw = localStorage.getItem(EXT_PROXY_FAVORITES_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      _extProxyFavorites = new Set(Array.isArray(list) ? list : []);
+    } catch (_) {
+      _extProxyFavorites = new Set();
+    }
+  }
+
+  function _saveExtProxyFavorites() {
+    try {
+      localStorage.setItem(EXT_PROXY_FAVORITES_KEY, JSON.stringify([..._extProxyFavorites]));
+    } catch (_) {}
+  }
 
   function _parseProxyLine(line) {
     try {
@@ -1749,8 +1846,92 @@
     return ms + 'мс';
   }
 
+  function _displayPing(p) {
+    if (Number.isFinite(p?.sourcePing)) return Math.round(p.sourcePing);
+    return p?._ping ?? null;
+  }
+
+  function _isLikelyEeProxy(p) {
+    if (p?.maskType === 'ee_mask') return true;
+    return typeof p?.secret === 'string' && p.secret.toLowerCase().startsWith('ee');
+  }
+
+  function _isDomainHost(host) {
+    return typeof host === 'string' && /[a-z]/i.test(host);
+  }
+
+  function _proxyRank(p) {
+    const displayPing = _displayPing(p);
+    return [
+      _extProxyFavorites.has(_proxyKey(p)) ? 0 : 1,
+      _isLikelyEeProxy(p) ? 0 : 1,
+      p?.port === 443 ? 0 : 1,
+      _isDomainHost(p?.host) ? 0 : 1,
+      Number.isFinite(displayPing) ? displayPing : 999999,
+      p?.host || '',
+      p?.port || 0
+    ];
+  }
+
+  function _compareProxyRank(a, b) {
+    const ra = _proxyRank(a);
+    const rb = _proxyRank(b);
+    for (let i = 0; i < ra.length; i += 1) {
+      if (ra[i] < rb[i]) return -1;
+      if (ra[i] > rb[i]) return 1;
+    }
+    return 0;
+  }
+
   function _proxyId(p) {
     return `ep-${p.host.replace(/\./g, '-')}-${p.port}`;
+  }
+
+  function _proxyKey(p) {
+    return `${p.host}:${p.port}:${p.secret}`;
+  }
+
+  function _proxyLink(p) {
+    return `tg://proxy?server=${encodeURIComponent(p.host)}&port=${p.port}&secret=${p.secret}`;
+  }
+
+  function _findExtProxyById(id) {
+    return _extProxyList.find(p => _proxyId(p) === id) || null;
+  }
+
+  function _restoreExtProxyPingLabels(list) {
+    list.forEach(p => {
+      const el = document.getElementById(_proxyId(p) + '-ping');
+      if (el) {
+        const shownMs = p._ping === null ? null : _displayPing(p);
+        el.textContent = _pingLabel(shownMs) || (_extProxyFavorites.has(_proxyKey(p)) ? '★' : '');
+        el.className = 'ext-proxy-ping ' + _pingClass(shownMs);
+      }
+    });
+  }
+
+  function openExtProxy(id) {
+    const p = _findExtProxyById(id);
+    if (!p) return;
+    window.location.href = _proxyLink(p);
+  }
+
+  function toggleExtProxyFavorite(id) {
+    const p = _findExtProxyById(id);
+    if (!p) return;
+    const key = _proxyKey(p);
+    if (_extProxyFavorites.has(key)) _extProxyFavorites.delete(key);
+    else _extProxyFavorites.add(key);
+    _saveExtProxyFavorites();
+    _extProxyList = [..._extProxyList].sort(_compareProxyRank);
+    _renderExtProxies(_extProxyList);
+    _restoreExtProxyPingLabels(_extProxyList);
+  }
+
+  function showExtProxyQr(id) {
+    const p = _findExtProxyById(id);
+    if (!p) return;
+    openQrModal(_proxyLink(p), `QR для ${p.host}:${p.port}`);
   }
 
   function _renderExtProxies(list) {
@@ -1761,20 +1942,31 @@
       return;
     }
     container.innerHTML = list.map(p => {
-      const url = `tg://proxy?server=${encodeURIComponent(p.host)}&port=${p.port}&secret=${p.secret}`;
+      const url = _proxyLink(p);
       const flag = _countryFlag(p.country);
       const when = _timeAgo(p.addTime);
       const server = `${p.host}:${p.port}`;
       const id = _proxyId(p);
-      return `<a class="ext-proxy-item" href="${url}" target="_blank" id="${id}">
-        <div class="ext-proxy-flag">${flag}</div>
-        <div class="ext-proxy-info">
-          <div class="ext-proxy-server">${server}</div>
-          <div class="ext-proxy-meta">${[p.country || '??', when ? `добавлен ${when}` : ''].filter(Boolean).join(' · ')}</div>
+      const favorite = _extProxyFavorites.has(_proxyKey(p));
+      return `<div class="ext-proxy-item${favorite ? ' is-favorite' : ''}" id="${id}">
+        <button type="button" class="ext-proxy-main" onclick="openExtProxy('${id}')">
+          <div class="ext-proxy-flag">${flag}</div>
+          <div class="ext-proxy-info">
+            <div class="ext-proxy-server">${server}</div>
+            <div class="ext-proxy-meta">${[p.country || '??', when ? `добавлен ${when}` : ''].filter(Boolean).join(' · ')}</div>
+          </div>
+        </button>
+        <div class="ext-proxy-actions">
+          <button type="button" class="ext-proxy-icon-btn${favorite ? ' is-favorite' : ''}" onclick="toggleExtProxyFavorite('${id}')" aria-label="В избранное" title="В избранное">
+            <svg viewBox="0 0 24 24"><path d="M12 3.5l2.75 5.57 6.15.89-4.45 4.34 1.05 6.12L12 17.52 6.5 20.42l1.05-6.12L3.1 9.96l6.15-.89L12 3.5z"/></svg>
+          </button>
+          <button type="button" class="ext-proxy-icon-btn" onclick="showExtProxyQr('${id}')" aria-label="Показать QR" title="Показать QR">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM17 17h4M14 20h3M20 14v3"/></svg>
+          </button>
+          <div class="ext-proxy-ping" id="${id}-ping">${_pingLabel(_displayPing(p)) || (favorite ? '★' : 'проверка…')}</div>
+          <div class="ext-proxy-arrow">›</div>
         </div>
-        <div class="ext-proxy-ping" id="${id}-ping">проверка…</div>
-        <div class="ext-proxy-arrow">›</div>
-      </a>`;
+      </div>`;
     }).join('');
   }
 
@@ -1807,30 +1999,26 @@
       await Promise.all(batch.map(async p => {
         const ms = await _pingOne(p.host, p.port);
         const el = document.getElementById(_proxyId(p) + '-ping');
+        const shownMs = ms === null ? null : _displayPing(p);
         if (el) {
-          el.textContent = _pingLabel(ms);
-          el.className = 'ext-proxy-ping ' + _pingClass(ms);
+          el.textContent = _pingLabel(shownMs);
+          el.className = 'ext-proxy-ping ' + _pingClass(shownMs);
         }
         p._ping = ms;
       }));
     }
-    // re-render: only reachable, sorted by speed
+    // re-render: reachable plus favorites, sorted by rank
     const container = document.getElementById('ext-proxy-list');
     if (!container) return;
-    const reachable = list.filter(p => p._ping !== null).sort((a, b) => a._ping - b._ping);
+    const reachable = list
+      .filter(p => p._ping !== null || _extProxyFavorites.has(_proxyKey(p)))
+      .sort(_compareProxyRank);
     if (reachable.length === 0) {
       container.innerHTML = '<div class="ext-proxy-status">Ни один прокси не ответил. Проверь интернет.</div>';
       return;
     }
     _renderExtProxies(reachable);
-    // restore ping labels after re-render
-    reachable.forEach(p => {
-      const el = document.getElementById(_proxyId(p) + '-ping');
-      if (el) {
-        el.textContent = _pingLabel(p._ping);
-        el.className = 'ext-proxy-ping ' + _pingClass(p._ping);
-      }
-    });
+    _restoreExtProxyPingLabels(reachable);
   }
 
   let _extProxiesLoaded = false;
@@ -1839,24 +2027,69 @@
     try {
       const r = await fetch(src.url, { cache: 'no-store' });
       if (!r.ok) return [];
-      if (src.type === 'json') {
+      if (src.type === 'json_mtprobe') {
         const data = await r.json();
-        return data.filter(p => p.host && p.port && p.secret);
+        const servers = Array.isArray(data?.servers) ? data.servers : [];
+        return servers
+          .filter(p => p.ip && p.port && p.secret)
+          .map(p => ({
+            host: p.ip,
+            port: p.port,
+            secret: p.secret,
+            country: p.country || null,
+            addTime: p.created_at ? Math.floor(new Date(p.created_at).getTime() / 1000) : 0,
+            sourcePing: Number.isFinite(Number(p.last_ping)) ? Number(p.last_ping) : null,
+            maskType: p.mask_type || null,
+            sni: p.sni || null,
+          }));
+      } else if (src.type === 'json') {
+        const data = await r.json();
+        return data
+          .filter(p => p.host && p.port && p.secret)
+          .map(p => ({
+            host: p.host,
+            port: p.port,
+            secret: p.secret,
+            country: p.country || null,
+            addTime: p.addTime || 0,
+            sourcePing: Number.isFinite(Number(p.ping)) ? Number(p.ping) : null,
+            maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
+          }));
       } else if (src.type === 'json_therealwh') {
         // {host, port, secret, link, ping, region, method}
         const data = await r.json();
         return data
           .filter(p => p.host && p.port && p.secret)
-          .map(p => ({ host: p.host, port: p.port, secret: p.secret, country: p.region || null, addTime: 0 }));
+          .map(p => ({
+            host: p.host,
+            port: p.port,
+            secret: p.secret,
+            country: p.region || null,
+            addTime: 0,
+            sourcePing: Number.isFinite(Number(p.ping)) ? Number(p.ping) * 1000 : null,
+            maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
+          }));
       } else if (src.type === 'json_player') {
         // {ip, port, secret, ping, country, flag}
         const data = await r.json();
-        return data
+        const proxies = Array.isArray(data?.proxies) ? data.proxies : (Array.isArray(data) ? data : []);
+        return proxies
           .filter(p => p.ip && p.port && p.secret)
-          .map(p => ({ host: p.ip, port: p.port, secret: p.secret, country: p.country || null, addTime: 0 }));
+          .map(p => ({
+            host: p.ip,
+            port: p.port,
+            secret: p.secret,
+            country: p.country || null,
+            addTime: 0,
+            sourcePing: Number.isFinite(Number(p.ping)) ? Number(p.ping) : null,
+            maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
+          }));
       } else {
         const text = await r.text();
-        return text.split('\n').map(_parseProxyLine).filter(Boolean);
+        return text.split('\n').map(_parseProxyLine).filter(Boolean).map(p => ({
+          ...p,
+          maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
+        }));
       }
     } catch { return []; }
   }
@@ -1864,7 +2097,7 @@
   async function loadExtProxies() {
     const container = document.getElementById('ext-proxy-list');
     const btn = document.getElementById('ext-refresh-btn');
-    if (container) container.innerHTML = '<div class="ext-proxy-status">Загрузка из 4 источников…</div>';
+    if (container) container.innerHTML = '<div class="ext-proxy-status">Загрузка и фильтрация EE/Fake-TLS прокси…</div>';
     if (btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
     try {
       const results = await Promise.allSettled(EXT_PROXY_SOURCES.map(_fetchSource));
@@ -1872,7 +2105,7 @@
 
       const seen = new Set();
       const unique = all.filter(p => {
-        const key = `${p.host}:${p.port}`;
+        const key = _proxyKey(p);
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -1883,7 +2116,20 @@
         return;
       }
 
-      const sorted = unique.sort((a, b) => b.addTime - a.addTime).slice(0, 80);
+      const prioritized = unique
+        .filter(p => _isLikelyEeProxy(p) && p.port === 443)
+        .sort(_compareProxyRank);
+      const fallback = unique
+        .filter(p => !(_isLikelyEeProxy(p) && p.port === 443))
+        .sort(_compareProxyRank);
+      const preferred = prioritized.concat(fallback);
+      const sorted = preferred.slice(0, 80);
+      preferred.forEach(p => {
+        if (_extProxyFavorites.has(_proxyKey(p)) && !sorted.some(x => _proxyKey(x) === _proxyKey(p))) {
+          sorted.push(p);
+        }
+      });
+      sorted.sort(_compareProxyRank);
       _extProxyList = sorted;
       _renderExtProxies(sorted);
       _extProxiesLoaded = true;
@@ -1898,8 +2144,8 @@
   function openExtProxies() {
     const modal = document.getElementById('ext-proxy-modal');
     if (!modal) return;
-    modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => modal.classList.add('is-open'));
     history.pushState({ page: 'ext-proxies' }, '');
     if (!_extProxiesLoaded) loadExtProxies();
   }
@@ -1918,6 +2164,8 @@
       closeSettings();
     }
   });
+
+  _loadExtProxyFavorites();
 
   if (DEMO_MODE === 1) {
     initHeaderIcon();
