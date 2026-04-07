@@ -925,9 +925,17 @@
 
     <div class="spacer"></div>
 
+    <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;color:rgba(255,255,255,0.28)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>
+      Только Wi-Fi — на мобильном интернете не работает
+    </div>
+
+    <div id="no-traffic-hint" style="display:none;margin-bottom:10px;padding:11px 14px;border-radius:14px;background:rgba(255,180,40,0.08);border:1px solid rgba(255,180,40,0.22);font-size:12px;font-weight:600;color:rgba(255,210,100,0.9);line-height:1.45;text-align:center">
+      Telegram ещё не подключился к прокси.<br>Нажми «Открыть в Telegram» чтобы применить настройки.
+    </div>
+
     <div class="cta-row">
     <button type="button" class="btn off" id="tg-btn" onclick="openTelegram()">Открыть в Telegram</button>
-    <button type="button" class="btn-text" id="qr-show-btn" disabled onclick="openQrModal()">Показать QR-код</button>
     </div>
 
     <button type="button" onclick="openExtProxies()" style="margin-top:10px;width:100%;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
@@ -1394,7 +1402,7 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  function updateUI(isRunning, sec, lh, uptimeSec, rxBps, txBps) {
+  function updateUI(isRunning, sec, lh, uptimeSec, rxBps, txBps, lastSessionOkTs) {
     running = isRunning;
     secret = sec || secret;
     if (lh) {
@@ -1416,11 +1424,15 @@
     sv.textContent = running && secret ? secret : '––––––––––––––––';
     sv.classList.toggle('dim', !running);
     document.getElementById('tg-btn').className = 'btn ' + (running ? 'on' : 'off');
-    const qrBtn = document.getElementById('qr-show-btn');
-    if (qrBtn) {
-      const showQr = !!(running && secret);
-      qrBtn.disabled = !showQr;
-      qrBtn.style.display = showQr ? '' : 'none';
+
+    // Подсказка: прокси работает, но Telegram ещё не подключался (нет сессий с трафиком)
+    const hintEl = document.getElementById('no-traffic-hint');
+    if (hintEl) {
+      const noTraffic = running
+        && (uptimeSec > 60)
+        && !(rxBps > 0 || txBps > 0)
+        && !(lastSessionOkTs > 0);
+      hintEl.style.display = noTraffic ? 'block' : 'none';
     }
   }
 
@@ -1543,7 +1555,7 @@
         if (d.error) alert(d.error);
         return;
       }
-      updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps);
+      updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps, d.last_session_ok_ts);
     } catch(e) {
       console.error(e);
       if (turningOn) updateUI(false, null, null, null, 0, 0);
@@ -1720,7 +1732,7 @@
       const r = await fetch('/api/status');
       const d = await r.json();
       if (d.booting) return;
-      updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps);
+      updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps, d.last_session_ok_ts);
     } catch(e) {}
   }
 
@@ -2148,6 +2160,7 @@
     requestAnimationFrame(() => modal.classList.add('is-open'));
     history.pushState({ page: 'ext-proxies' }, '');
     if (!_extProxiesLoaded) loadExtProxies();
+    _initExtPanelSwipe();
   }
 
   function closeExtProxies() {
@@ -2155,6 +2168,50 @@
     if (!modal) return;
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden', 'true');
+    // сбрасываем inline transform который мог остаться от свайпа
+    const panel = modal.querySelector('.ext-proxy-panel');
+    if (panel) panel.style.transform = '';
+  }
+
+  function _initExtPanelSwipe() {
+    const panel = document.querySelector('.ext-proxy-panel');
+    if (!panel || panel._swipeInited) return;
+    panel._swipeInited = true;
+
+    let startY = 0;
+    let curY = 0;
+    let dragging = false;
+
+    panel.addEventListener('touchstart', (e) => {
+      // только если тянем за верхнюю зону (полоска + шапка, ~60px)
+      const touch = e.touches[0];
+      const rect = panel.getBoundingClientRect();
+      if (touch.clientY - rect.top > 64) return;
+      startY = touch.clientY;
+      curY = 0;
+      dragging = true;
+      panel.style.transition = 'none';
+    }, { passive: true });
+
+    panel.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy < 0) return; // вверх не тянем
+      curY = dy;
+      panel.style.transform = `translateY(${dy}px)`;
+    }, { passive: true });
+
+    panel.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      panel.style.transition = '';
+      if (curY > 80) {
+        closeExtProxies();
+        history.back();
+      } else {
+        panel.style.transform = 'translateY(0)';
+      }
+    });
   }
 
   window.addEventListener('popstate', (e) => {

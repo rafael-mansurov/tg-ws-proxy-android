@@ -117,13 +117,14 @@ def _mark_service_start(base: Optional[Path]) -> None:
         pass
 
 
-def _write_metrics(base: Optional[Path], rx_bps: float, tx_bps: float) -> None:
+def _write_metrics(base: Optional[Path], rx_bps: float, tx_bps: float, last_ok_ts: float = 0.0) -> None:
     if not base:
         return
     payload = {
         "ts": int(time.time()),
         "rx_bps": max(0.0, float(rx_bps)),
         "tx_bps": max(0.0, float(tx_bps)),
+        "last_session_ok_ts": float(last_ok_ts),
     }
     try:
         (base / METRICS_FILENAME).write_text(
@@ -142,7 +143,7 @@ def _start_metrics_monitor(base: Optional[Path], tg_mod) -> None:
         last_t = time.monotonic()
         last_up = float(getattr(getattr(tg_mod, "_stats", None), "bytes_up", 0) or 0)
         last_down = float(getattr(getattr(tg_mod, "_stats", None), "bytes_down", 0) or 0)
-        _write_metrics(base, 0.0, 0.0)
+        _write_metrics(base, 0.0, 0.0, 0.0)
         while True:
             time.sleep(1.0)
             now = time.monotonic()
@@ -155,7 +156,8 @@ def _start_metrics_monitor(base: Optional[Path], tg_mod) -> None:
             last_t = now
             last_up = up
             last_down = down
-            _write_metrics(base, rx_bps, tx_bps)
+            last_ok_ts = float(getattr(stats, "last_session_ok_ts", 0.0) or 0.0)
+            _write_metrics(base, rx_bps, tx_bps, last_ok_ts)
 
     t = threading.Thread(target=_loop, name="tgws-metrics", daemon=True)
     t.start()

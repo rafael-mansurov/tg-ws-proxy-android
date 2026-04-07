@@ -506,6 +506,7 @@ class Stats:
         self.bytes_down = 0
         self.pool_hits = 0
         self.pool_misses = 0
+        self.last_session_ok_ts: float = 0.0  # unix-time последней сессии с реальным трафиком
 
     def summary(self) -> str:
         pool_total = self.pool_hits + self.pool_misses
@@ -522,6 +523,7 @@ class Stats:
                 f"down={_human_bytes(self.bytes_down)}")
 
 _stats = Stats()
+_logging_configured = False  # guard: set up file/console handlers only once
 
 
 class _WsPool:
@@ -708,6 +710,7 @@ async def _bridge_ws_reencrypt(reader, writer, ws: RawWebSocket, label,
         else:
             if down_bytes > 0:
                 verdict = "✓ ОК — данные прошли"
+                _stats.last_session_ok_ts = time.time()
             else:
                 verdict = "✗ Telegram не ответил — возможно заблокирован провайдером"
             log.info("[%s] %s WS сессия закрыта [%s]: "
@@ -805,24 +808,24 @@ def _fallback_ip(dc: int) -> Optional[str]:
     return DC_DEFAULT_IPS.get(dc)
 
 
-async def _handle_client(reader, writer, secret: bytes):
+async def _handle_client(reader, writer, secret: bytes, peer_label: str = "?"):
     _stats.connections_total += 1
     _stats.connections_active += 1
-    peer = writer.get_extra_info('peername')
-    label = f"{peer[0]}:{peer[1]}" if peer else "?"
 
     _set_sock_opts(writer.transport)
-    # Диагностика входящего локального сокета: помогает понять, дошёл ли Telegram до прокси.
-    log.info("[%s] → новое подключение от Telegram", label)
+    label = peer_label
 
     try:
         try:
-            log.debug("[%s] waiting for %d-byte MTProto handshake", label, HANDSHAKE_LEN)
             handshake = await asyncio.wait_for(
                 reader.readexactly(HANDSHAKE_LEN), timeout=10)
         except asyncio.IncompleteReadError as exc:
-            log.debug("[%s] client disconnected before handshake (got %d bytes: %s)",
-                      label, len(exc.partial), exc.partial[:16].hex() if exc.partial else "none")
+            # Telegram делает probe-соединения (TCP connect → сразу close) перед реальным
+            # подключением — это нормально, не ошибка.
+            if len(exc.partial) == 0:
+                log.debug("[%s] probe-соединение (Telegram проверяет доступность порта)", label)
+            else:
+                log.debug("[%s] неполный хендшейк (%d байт)", label, len(exc.partial))
             return
 
         result = _try_handshake(handshake, secret)
@@ -848,8 +851,9 @@ async def _handle_client(reader, writer, secret: bytes):
 
         dc_idx = -dc if is_media else dc
 
-        log.debug("[%s] handshake ok: DC%d%s proto=0x%08X",
-                  label, dc, ' media' if is_media else '', proto_int)
+        log.info("[%s] → подключение Telegram · DC%d%s",
+                 label, dc, ' media' if is_media else '')
+        log.debug("[%s] proto=0x%08X", label, proto_int)
 
         relay_init = _generate_relay_init(proto_tag, dc_idx)
 
@@ -1045,9 +1049,13 @@ async def _run(stop_event: Optional[asyncio.Event] = None):
 
     def client_cb(r, w):
         peer = w.get_extra_info('peername')
-        label = f"{peer[0]}:{peer[1]}" if peer else "?"
-        log.info("[%s] accept callback on %s:%d", label, proxy_config.host, proxy_config.port)
-        asyncio.create_task(_handle_client(r, w, secret_bytes))
+        if peer:
+            ip, port = peer[0], peer[1]
+            # Telegram на том же устройстве всегда виден как loopback — это нормально
+            peer_label = "Telegram" if ip.startswith("127.") else f"{ip}:{port}"
+        else:
+            peer_label = "?"
+        asyncio.create_task(_handle_client(r, w, secret_bytes, peer_label))
 
     server = await asyncio.start_server(client_cb, proxy_config.host, proxy_config.port)
     _server_instance = server
@@ -1215,29 +1223,19 @@ def _configure_from_argv() -> None:
         pool_size=max(0, args.pool_size)
     )
 
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-    log_fmt = logging.Formatter('%(asctime)s  %(levelname)-5s  %(message)s',
-                                datefmt='%H:%M:%S')
-    root = logging.getLogger()
-    root.setLevel(log_level)
-
-    # Avoid adding duplicate handlers when the module is re-used across restarts
-    if not root.handlers:
+    global _logging_configured
+    if not _logging_configured:
+        _logging_configured = True
+        log_level = logging.DEBUG if args.verbose else logging.INFO
+        log_fmt = logging.Formatter('%(asctime)s  %(levelname)-5s  %(message)s',
+                                    datefmt='%H:%M:%S')
+        root = logging.getLogger()
+        root.setLevel(log_level)
+        root.handlers.clear()  # чистим всё что могло накопиться до нас
         console = logging.StreamHandler()
         console.setFormatter(log_fmt)
         root.addHandler(console)
-    else:
-        for h in root.handlers:
-            h.setFormatter(log_fmt)
-
-    if args.log_file:
-        # Only add a new file handler if none already points at the same path
-        existing_paths = {
-            getattr(h, 'baseFilename', None)
-            for h in root.handlers
-            if isinstance(h, logging.handlers.RotatingFileHandler)
-        }
-        if args.log_file not in existing_paths:
+        if args.log_file:
             fh = logging.handlers.RotatingFileHandler(
                 args.log_file,
                 maxBytes=max(32 * 1024, int(args.log_max_mb * 1024 * 1024)),

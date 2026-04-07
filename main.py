@@ -153,12 +153,14 @@ def _read_live_metrics() -> dict:
         raw = json.loads(p.read_text(encoding="utf-8"))
         rx = float(raw.get("rx_bps", 0.0))
         tx = float(raw.get("tx_bps", 0.0))
+        last_ok = float(raw.get("last_session_ok_ts", 0.0))
         return {
             "rx_bps": max(0.0, rx),
             "tx_bps": max(0.0, tx),
+            "last_session_ok_ts": max(0.0, last_ok),
         }
     except Exception:
-        return {"rx_bps": 0.0, "tx_bps": 0.0}
+        return {"rx_bps": 0.0, "tx_bps": 0.0, "last_session_ok_ts": 0.0}
 
 
 def _load_persisted_secret() -> Optional[str]:
@@ -642,7 +644,7 @@ class Handler(BaseHTTPRequestHandler):
                 "secret": SECRET if alive else None,
                 "link_host": _proxy_link_host() if alive else None,
                 "uptime_seconds": _proxy_uptime_seconds() if alive else None,
-                **(_read_live_metrics() if alive else {"rx_bps": 0.0, "tx_bps": 0.0}),
+                **(_read_live_metrics() if alive else {"rx_bps": 0.0, "tx_bps": 0.0, "last_session_ok_ts": 0.0}),
             })
 
         else:
