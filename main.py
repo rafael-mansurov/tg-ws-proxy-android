@@ -4,6 +4,7 @@ Serves the UI and provides a REST API to control the proxy service.
 """
 import json
 import os
+import re
 import secrets
 import socket
 import threading
@@ -18,6 +19,7 @@ LOG_FILENAME = "tgws_proxy.log"
 START_TS_FILENAME = "tgws_proxy_started_at.txt"
 METRICS_FILENAME = "tgws_proxy_metrics.json"
 LOG_TAIL_LINES = 120
+LOG_MAX_AGE_SECONDS = 3600
 READY_NOTIFICATION_ID = 88302
 PREFS_NAME = "tgws_proxy_prefs"
 PREF_AUTOSTART_ON_BOOT = "autostart_on_boot"
@@ -334,6 +336,33 @@ def _wait_proxy_listen(timeout_s: float = 25.0) -> bool:
     return False
 
 
+_LOG_TS_RE = re.compile(r"^(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2})\b")
+
+
+def _filter_recent_log_lines(lines: list[str], max_age_seconds: int = LOG_MAX_AGE_SECONDS) -> list[str]:
+    if not lines:
+        return []
+    now = time.time()
+    now_local = time.localtime(now)
+    recent: list[str] = []
+    for line in lines:
+        m = _LOG_TS_RE.match(line)
+        if not m:
+            continue
+        hh = int(m.group("h"))
+        mm = int(m.group("m"))
+        ss = int(m.group("s"))
+        line_ts = time.mktime((
+            now_local.tm_year, now_local.tm_mon, now_local.tm_mday,
+            hh, mm, ss, now_local.tm_wday, now_local.tm_yday, now_local.tm_isdst
+        ))
+        if line_ts - now > 60:
+            line_ts -= 86400
+        if now - line_ts <= max_age_seconds:
+            recent.append(line)
+    return recent
+
+
 def _toast(msg: str) -> None:
     """Toast только с UI-потока активности — иначе на Android часто не видно."""
     try:
@@ -448,6 +477,9 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     except Exception:
         pass
     if not _wait_proxy_stopped():
+        if _probe_proxy_port_open():
+            _running = True
+            return True, None
         return False, "Не удалось остановить прошлый инстанс прокси. Попробуйте ещё раз."
 
     link_host = _proxy_link_host()
@@ -459,6 +491,10 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         fg_text,
     )
     if not _wait_proxy_listen():
+        if _probe_proxy_port_open():
+            _running = True
+            _notify_proxy_ready()
+            return True, None
         try:
             Service.stop(PythonActivity.mActivity)
         except Exception:
@@ -548,7 +584,8 @@ class Handler(BaseHTTPRequestHandler):
                 log_path = Path(_secret_storage_path().parent / LOG_FILENAME)
                 if log_path.exists():
                     lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
-                    tail = "\n".join(lines[-LOG_TAIL_LINES:])
+                    recent = _filter_recent_log_lines(lines)
+                    tail = "\n".join((recent or lines)[-LOG_TAIL_LINES:])
                 else:
                     tail = "(лог-файл ещё не создан — запустите прокси)"
             except Exception as e:
