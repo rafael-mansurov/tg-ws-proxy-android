@@ -452,13 +452,11 @@ def _start_service() -> Tuple[bool, Optional[str]]:
 
     link_host = _proxy_link_host()
     fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
-    # 5-arg start: notification contentTitle/contentText (Android 8+), see p4a Service.tmpl.java
     Service.start(
         PythonActivity.mActivity,
         "",
         "TG WS Proxy",
         fg_text,
-        json.dumps({"secret": SECRET}),
     )
     if not _wait_proxy_listen():
         try:
