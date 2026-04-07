@@ -804,9 +804,11 @@ async def _handle_client(reader, writer, secret: bytes):
     label = f"{peer[0]}:{peer[1]}" if peer else "?"
 
     _set_sock_opts(writer.transport)
+    log.info("[%s] accepted local client", label)
 
     try:
         try:
+            log.debug("[%s] waiting for %d-byte MTProto handshake", label, HANDSHAKE_LEN)
             handshake = await asyncio.wait_for(
                 reader.readexactly(HANDSHAKE_LEN), timeout=10)
         except asyncio.IncompleteReadError as exc:
@@ -817,7 +819,8 @@ async def _handle_client(reader, writer, secret: bytes):
         result = _try_handshake(handshake, secret)
         if result is None:
             _stats.connections_bad += 1
-            log.debug("[%s] bad handshake (wrong secret or proto)", label)
+            log.warning("[%s] bad handshake (wrong secret or proto), first16=%s",
+                        label, handshake[:16].hex())
             try:
                 while await reader.read(4096):
                     pass
@@ -1032,6 +1035,9 @@ async def _run(stop_event: Optional[asyncio.Event] = None):
     secret_bytes = bytes.fromhex(proxy_config.secret)
 
     def client_cb(r, w):
+        peer = w.get_extra_info('peername')
+        label = f"{peer[0]}:{peer[1]}" if peer else "?"
+        log.info("[%s] accept callback on %s:%d", label, proxy_config.host, proxy_config.port)
         asyncio.create_task(_handle_client(r, w, secret_bytes))
 
     server = await asyncio.start_server(client_cb, proxy_config.host, proxy_config.port)
