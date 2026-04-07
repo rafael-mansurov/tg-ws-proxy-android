@@ -63,16 +63,7 @@ def _open_battery_optimization_settings() -> None:
 
 
 def _proxy_link_host() -> str:
-    """Return the device's LAN IP so Telegram can reach the proxy on the same phone."""
-    try:
-        import socket
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.connect(("8.8.8.8", 80))
-            ip = s.getsockname()[0]
-        if ip and not ip.startswith("127."):
-            return ip
-    except OSError:
-        pass
+    """Local Telegram on the same Android device should connect via loopback."""
     return HOST_PROXY
 # Заполняется в _init_app_state(): должен совпадать с секретом в уже запущенном сервисе
 # после перезапуска процесса WebView (иначе Telegram открывают с новым secret, прокси — со старым).
@@ -363,6 +354,24 @@ def _filter_recent_log_lines(lines: list[str], max_age_seconds: int = LOG_MAX_AG
     return recent
 
 
+def _proxy_log_path() -> Path:
+    return _secret_storage_path().parent / LOG_FILENAME
+
+
+def _write_start_log(message: str, reset: bool = False) -> None:
+    p = _proxy_log_path()
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        mode = "w" if reset else "a"
+        with p.open(mode, encoding="utf-8") as f:
+            f.write(time.strftime("%H:%M:%S"))
+            f.write("  INFO   ")
+            f.write(message)
+            f.write("\n")
+    except OSError:
+        pass
+
+
 def _toast(msg: str) -> None:
     """Toast только с UI-потока активности — иначе на Android часто не видно."""
     try:
@@ -469,18 +478,22 @@ def _start_service() -> Tuple[bool, Optional[str]]:
 
     # Сервис читает этот же файл, если PYTHON_SERVICE_ARGUMENT не доехал (типичная проблема p4a).
     _save_secret(SECRET)
+    _write_start_log("UI: start requested", reset=True)
 
     ProxyControl = autoclass("unofficial.tgws.tgwsproxy.ProxyControl")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     activity = PythonActivity.mActivity
     try:
         ProxyControl.stopProxy(activity)
+        _write_start_log("UI: stop previous proxy")
     except Exception:
         pass
     if not _wait_proxy_stopped():
         if _probe_proxy_port_open():
             _running = True
+            _write_start_log("UI: proxy already listening on 127.0.0.1:1443")
             return True, None
+        _write_start_log("UI: previous proxy did not stop cleanly")
         return False, "Не удалось остановить прошлый инстанс прокси. Попробуйте ещё раз."
 
     started = False
@@ -489,16 +502,19 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     except Exception:
         started = False
     if not started and not _probe_proxy_port_open():
+        _write_start_log("UI: ProxyControl.startProxy returned false")
         return False, "Не удалось отправить команду запуска сервиса."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
             _running = True
             _notify_proxy_ready()
+            _write_start_log("UI: proxy port opened after delayed start")
             return True, None
         try:
             ProxyControl.stopProxy(activity)
         except Exception:
             pass
+        _write_start_log("UI: proxy failed to listen on 127.0.0.1:1443")
         return False, "Прокси не поднялся за 25 с. Проверь разрешения и попробуй снова."
     if _read_service_start_ts() is None:
         _write_service_start_ts_now()
@@ -507,6 +523,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     time.sleep(1.2)
     _running = True
     _notify_proxy_ready()
+    _write_start_log("UI: proxy is ready on 127.0.0.1:1443")
     return True, None
 
 
