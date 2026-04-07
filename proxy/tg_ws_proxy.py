@@ -1150,15 +1150,17 @@ def parse_dc_ip_list(dc_ip_list: List[str]) -> Dict[int, str]:
     return dc_redirects
 
 
-def run_proxy(stop_event: Optional[asyncio.Event] = None):
-    asyncio.run(_run(stop_event,))
+def _configure_from_argv() -> None:
+    """Parse sys.argv, update proxy_config and configure logging.
 
-
-def main():
+    Called by both run_proxy() (service path) and main() (CLI path) so that
+    the --host / --secret / --log-file arguments set by proxy_service.py are
+    always honoured regardless of which entry-point is used.
+    """
     ap = argparse.ArgumentParser(
         description='Telegram MTProto WebSocket Bridge Proxy')
     ap.add_argument('--port', type=int, default=1443,
-                    help=f'Listen port (default 1443)')
+                    help='Listen port (default 1443)')
     ap.add_argument('--host', type=str, default='127.0.0.1',
                     help='Listen host (default 127.0.0.1)')
     ap.add_argument('--secret', type=str, default=None,
@@ -1219,20 +1221,40 @@ def main():
     root = logging.getLogger()
     root.setLevel(log_level)
 
-    console = logging.StreamHandler()
-    console.setFormatter(log_fmt)
-    root.addHandler(console)
+    # Avoid adding duplicate handlers when the module is re-used across restarts
+    if not root.handlers:
+        console = logging.StreamHandler()
+        console.setFormatter(log_fmt)
+        root.addHandler(console)
+    else:
+        for h in root.handlers:
+            h.setFormatter(log_fmt)
 
     if args.log_file:
-        fh = logging.handlers.RotatingFileHandler(
-            args.log_file,
-            maxBytes=max(32 * 1024, int(args.log_max_mb * 1024 * 1024)),
-            backupCount=max(0, args.log_backups),
-            encoding='utf-8',
-        )
-        fh.setFormatter(log_fmt)
-        root.addHandler(fh)
+        # Only add a new file handler if none already points at the same path
+        existing_paths = {
+            getattr(h, 'baseFilename', None)
+            for h in root.handlers
+            if isinstance(h, logging.handlers.RotatingFileHandler)
+        }
+        if args.log_file not in existing_paths:
+            fh = logging.handlers.RotatingFileHandler(
+                args.log_file,
+                maxBytes=max(32 * 1024, int(args.log_max_mb * 1024 * 1024)),
+                backupCount=max(0, args.log_backups),
+                encoding='utf-8',
+            )
+            fh.setFormatter(log_fmt)
+            root.addHandler(fh)
 
+
+def run_proxy(stop_event: Optional[asyncio.Event] = None):
+    _configure_from_argv()
+    asyncio.run(_run(stop_event,))
+
+
+def main():
+    _configure_from_argv()
     try:
         asyncio.run(_run())
     except KeyboardInterrupt:
