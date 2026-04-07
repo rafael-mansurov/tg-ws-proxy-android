@@ -470,10 +470,11 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     # Сервис читает этот же файл, если PYTHON_SERVICE_ARGUMENT не доехал (типичная проблема p4a).
     _save_secret(SECRET)
 
-    Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
+    ProxyControl = autoclass("unofficial.tgws.tgwsproxy.ProxyControl")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
+    activity = PythonActivity.mActivity
     try:
-        Service.stop(PythonActivity.mActivity)
+        ProxyControl.stopProxy(activity)
     except Exception:
         pass
     if not _wait_proxy_stopped():
@@ -482,21 +483,20 @@ def _start_service() -> Tuple[bool, Optional[str]]:
             return True, None
         return False, "Не удалось остановить прошлый инстанс прокси. Попробуйте ещё раз."
 
-    link_host = _proxy_link_host()
-    fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
-    Service.start(
-        PythonActivity.mActivity,
-        "",
-        "TG WS Proxy",
-        fg_text,
-    )
+    started = False
+    try:
+        started = bool(ProxyControl.startProxy(activity))
+    except Exception:
+        started = False
+    if not started and not _probe_proxy_port_open():
+        return False, "Не удалось отправить команду запуска сервиса."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
             _running = True
             _notify_proxy_ready()
             return True, None
         try:
-            Service.stop(PythonActivity.mActivity)
+            ProxyControl.stopProxy(activity)
         except Exception:
             pass
         return False, "Прокси не поднялся за 25 с. Проверь разрешения и попробуй снова."
@@ -514,9 +514,9 @@ def _stop_service() -> None:
     global _running
     from jnius import autoclass
 
-    Service = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
+    ProxyControl = autoclass("unofficial.tgws.tgwsproxy.ProxyControl")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
-    Service.stop(PythonActivity.mActivity)
+    ProxyControl.stopProxy(PythonActivity.mActivity)
     _running = False
     _clear_service_start_ts()
     _clear_proxy_ready_notification()
@@ -585,7 +585,10 @@ class Handler(BaseHTTPRequestHandler):
                 if log_path.exists():
                     lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
                     recent = _filter_recent_log_lines(lines)
-                    tail = "\n".join((recent or lines)[-LOG_TAIL_LINES:])
+                    if recent:
+                        tail = "\n".join(recent[-LOG_TAIL_LINES:])
+                    else:
+                        tail = "(за последний час логов нет)"
                 else:
                     tail = "(лог-файл ещё не создан — запустите прокси)"
             except Exception as e:
