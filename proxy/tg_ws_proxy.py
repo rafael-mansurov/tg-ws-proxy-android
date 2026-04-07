@@ -702,12 +702,20 @@ async def _bridge_ws_reencrypt(reader, writer, ws: RawWebSocket, label,
             except BaseException:
                 pass
         elapsed = asyncio.get_running_loop().time() - start_time
-        log.info("[%s] %s WS session closed: "
-                 "^%s (%d pkts) v%s (%d pkts) in %.1fs",
-                 label, dc_tag,
-                 _human_bytes(up_bytes), up_packets,
-                 _human_bytes(down_bytes), down_packets,
-                 elapsed)
+        # pool warmup connections (no client, no data) → debug only
+        if up_bytes == 0 and down_bytes == 0:
+            log.debug("[%s] %s WS pool warmup closed in %.1fs", label, dc_tag, elapsed)
+        else:
+            if down_bytes > 0:
+                verdict = "✓ ОК — данные прошли"
+            else:
+                verdict = "✗ Telegram не ответил — возможно заблокирован провайдером"
+            log.info("[%s] %s WS сессия закрыта [%s]: "
+                     "↑%s (%d пакетов) ↓%s (%d пакетов) за %.1fс",
+                     label, dc_tag, verdict,
+                     _human_bytes(up_bytes), up_packets,
+                     _human_bytes(down_bytes), down_packets,
+                     elapsed)
         try:
             await ws.close()
         except BaseException:
@@ -804,7 +812,8 @@ async def _handle_client(reader, writer, secret: bytes):
     label = f"{peer[0]}:{peer[1]}" if peer else "?"
 
     _set_sock_opts(writer.transport)
-    log.info("[%s] accepted local client", label)
+    # Диагностика входящего локального сокета: помогает понять, дошёл ли Telegram до прокси.
+    log.info("[%s] → новое подключение от Telegram", label)
 
     try:
         try:
@@ -819,7 +828,7 @@ async def _handle_client(reader, writer, secret: bytes):
         result = _try_handshake(handshake, secret)
         if result is None:
             _stats.connections_bad += 1
-            log.warning("[%s] bad handshake (wrong secret or proto), first16=%s",
+            log.warning("[%s] ✗ Неверный секрет — Telegram настроен на другой прокси. Нажми 'Открыть в Telegram' заново. first16=%s",
                         label, handshake[:16].hex())
             try:
                 while await reader.read(4096):
@@ -949,8 +958,8 @@ async def _handle_client(reader, writer, secret: bytes):
                 except Exception as exc:
                     _stats.ws_errors += 1
                     all_redirects = False
-                    log.warning("[%s] DC%d%s WS connect failed: %s",
-                                label, dc, media_tag, exc)
+                    log.warning("[%s] DC%d%s ✗ WS недоступен (%s): %s",
+                                label, dc, media_tag, domain, exc)
 
         # WS failed -> fallback
         if ws is None:
