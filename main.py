@@ -485,6 +485,8 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     if len(SECRET) != 32:
         return False, "Секрет не готов. Закрой приложение и открой снова."
 
+    link_host = _proxy_link_host()
+
     # Сервис читает этот же файл, если PYTHON_SERVICE_ARGUMENT не доехал (типичная проблема p4a).
     _save_secret(SECRET)
     _write_start_log("UI: start requested", reset=True)
@@ -500,7 +502,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     if not _wait_proxy_stopped():
         if _probe_proxy_port_open():
             _running = True
-            _write_start_log("UI: proxy already listening on 127.0.0.1:1443")
+            _write_start_log(f"UI: proxy already listening for Telegram on {link_host}:{PORT_PROXY}")
             return True, None
         _write_start_log("UI: previous proxy did not stop cleanly")
         return False, "Не удалось остановить прошлый инстанс прокси. Попробуйте ещё раз."
@@ -523,7 +525,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
             ProxyControl.stopProxy(activity)
         except Exception:
             pass
-        _write_start_log("UI: proxy failed to listen on 127.0.0.1:1443")
+        _write_start_log(f"UI: proxy failed to listen for Telegram on {link_host}:{PORT_PROXY}")
         return False, "Прокси не поднялся за 25 с. Проверь разрешения и попробуй снова."
     if _read_service_start_ts() is None:
         _write_service_start_ts_now()
@@ -532,7 +534,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     time.sleep(1.2)
     _running = True
     _notify_proxy_ready()
-    _write_start_log("UI: proxy is ready on 127.0.0.1:1443")
+    _write_start_log(f"UI: proxy is ready for Telegram on {link_host}:{PORT_PROXY}")
     return True, None
 
 

@@ -10,6 +10,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.Locale;
 
 public final class ProxyControl {
@@ -78,7 +80,7 @@ public final class ProxyControl {
 
         stopProxy(context);
 
-        String fgText = "Прокси 127.0.0.1:" + PROXY_PORT + " · нажми, чтобы открыть приложение";
+        String fgText = "Прокси " + detectLinkHost() + ":" + PROXY_PORT + " · нажми, чтобы открыть приложение";
         try {
             JSONObject payload = new JSONObject();
             payload.put("secret", secret);
@@ -87,5 +89,17 @@ public final class ProxyControl {
         } catch (Exception ignored) {
             return false;
         }
+    }
+
+    private static String detectLinkHost() {
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.connect(InetAddress.getByName("8.8.8.8"), 80);
+            String ip = socket.getLocalAddress().getHostAddress();
+            if (ip != null && !ip.startsWith("127.")) {
+                return ip;
+            }
+        } catch (Exception ignored) {
+        }
+        return "127.0.0.1";
     }
 }
