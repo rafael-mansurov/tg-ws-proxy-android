@@ -63,7 +63,16 @@ def _open_battery_optimization_settings() -> None:
 
 
 def _proxy_link_host() -> str:
-    """Local Telegram on the same Android device should connect via loopback."""
+    """Return the device IP Telegram can actually reach on this phone."""
+    try:
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        if ip and not ip.startswith("127."):
+            return ip
+    except OSError:
+        pass
     return HOST_PROXY
 # Заполняется в _init_app_state(): должен совпадать с секретом в уже запущенном сервисе
 # после перезапуска процесса WebView (иначе Telegram открывают с новым secret, прокси — со старым).
