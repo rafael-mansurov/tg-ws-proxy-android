@@ -62,6 +62,58 @@ def _open_battery_optimization_settings() -> None:
         pass
 
 
+_SHARE_TEXT = (
+    "TG WS Proxy — прокси для Telegram\n"
+    "Работает локально на телефоне, без серверов и регистрации.\n\n"
+    "https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/"
+    "download/latest-apk/tg-ws-proxy-debug.apk"
+)
+
+
+def _share_app() -> bool:
+    """Открывает Android share sheet с обложкой и ссылкой. Возвращает True если удалось."""
+    try:
+        from jnius import autoclass
+        Intent = autoclass("android.content.Intent")
+        PythonActivity = autoclass("org.kivy.android.PythonActivity")
+        activity = PythonActivity.mActivity
+
+        intent = Intent(Intent.ACTION_SEND)
+        shared_with_image = False
+
+        cover_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cover.jpg")
+        if os.path.exists(cover_path):
+            try:
+                File = autoclass("java.io.File")
+                FileProvider = autoclass("androidx.core.content.FileProvider")
+                pkg = activity.getPackageName()
+                # p4a webview bootstrap registers FileProvider under these authorities
+                for authority in (pkg + ".fileprovider", pkg + ".provider"):
+                    try:
+                        uri = FileProvider.getUriForFile(activity, authority, File(cover_path))
+                        intent.setType("image/jpeg")
+                        intent.putExtra(Intent.EXTRA_STREAM, uri)
+                        intent.putExtra(Intent.EXTRA_TEXT, _SHARE_TEXT)
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        shared_with_image = True
+                        break
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+
+        if not shared_with_image:
+            intent.setType("text/plain")
+            intent.putExtra(Intent.EXTRA_TEXT, _SHARE_TEXT)
+
+        activity.startActivity(Intent.createChooser(intent, "Поделиться"))
+        return True
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("_share_app failed: %s", exc)
+        return False
+
+
 def _proxy_link_host() -> str:
     """Return the device IP Telegram can actually reach on this phone."""
     try:
@@ -692,6 +744,10 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/stop":
             _stop_service()
             self._send_json({"ok": True, "running": _running, "secret": None})
+
+        elif self.path == "/api/share":
+            ok = _share_app()
+            self._send_json({"ok": ok})
 
         else:
             self.send_response(404)
