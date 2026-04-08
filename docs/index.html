@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>TG WS Proxy</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100dvh;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color-scheme: dark;
+      background-color: #0f0f11;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 110% 70% at 50% 108%, rgba(255,80,40,0.22) 0%, rgba(180,30,60,0.12) 28%, transparent 58%),
+        radial-gradient(ellipse 90% 65% at 8% 22%, rgba(0,200,255,0.14) 0%, transparent 52%),
+        radial-gradient(ellipse 75% 60% at 92% 18%, rgba(200,80,255,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse 55% 45% at 72% 88%, rgba(255,40,120,0.1) 0%, transparent 48%),
+        linear-gradient(180deg, #0a0a0c 0%, #0f0f11 45%, #080809 100%);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      pointer-events: none;
+      opacity: 0.045;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    body > * { position: relative; z-index: 1; }
+
+    /* ── Header ── */
+    .header {
+      padding: 14px 18px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(10,10,12,0.55);
+      backdrop-filter: blur(20px) saturate(1.2);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+
+    .hicon img {
+      width: 40px;
+      height: 40px;
+      display: block;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+
+    .htitle { color: #ffffff; font-size: 16px; font-weight: 700; letter-spacing: -0.03em; }
+    .hsub { color: rgba(255,255,255,0.45); font-size: 11px; font-weight: 500; margin-top: 3px; }
+
+    /* ── Content ── */
+    .content {
+      flex: 1;
+      padding: 28px 18px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 480px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34,158,217,0.15);
+      border: 1px solid rgba(34,158,217,0.3);
+      border-radius: 100px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #4fc3f7;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .hero-badge svg { opacity: 0.9; }
+
+    .hero-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, #229ED9 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.52);
+      line-height: 1.55;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    /* ── Features ── */
+    .features {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feature-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .feature-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    .feature-text { flex: 1; min-width: 0; }
+    .feature-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+    .feature-sub { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.45); line-height: 1.4; }
+
+    /* ── Download button ── */
+    .download-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px;
+      border-radius: 18px;
+      border: none;
+      background: linear-gradient(180deg, #229ED9 0%, #1565c0 100%);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 0 32px rgba(34,158,217,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+      transition: opacity 0.15s;
+    }
+
+    .btn-download:active { opacity: 0.85; }
+
+    .btn-download svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .download-hint {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.25);
+    }
+
+    /* ── WiFi note ── */
+    .wifi-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.28);
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+    }
+
+    .wifi-note svg { opacity: 0.7; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="hicon">
+      <img src="https://raw.githubusercontent.com/rafael-mansurov/tg-ws-proxy-android/main/icon.png" alt="icon" />
+    </div>
+    <div class="htitles">
+      <div class="htitle">TG WS Proxy</div>
+      <div class="hsub">MTProto-прокси для Android</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="hero">
+      <div class="hero-badge">
+        <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor"><path d="M224,56v56c0,52.72-25.52,84.67-46.93,102.19-23.06,18.86-46,25.27-47,25.53a8,8,0,0,1-4.2,0c-1-.26-23.91-6.67-47-25.53C57.52,196.67,32,164.72,32,112V56A16,16,0,0,1,48,40H208A16,16,0,0,1,224,56Z"/></svg>
+        Без серверов и регистрации
+      </div>
+      <div class="hero-title">Telegram без<br><span>блокировок</span></div>
+      <div class="hero-sub">Прокси работает прямо на&nbsp;твоём телефоне — никаких сторонних серверов</div>
+    </div>
+
+    <div class="features">
+
+      <div class="feature-row">
+        <div class="feature-icon" style="background:rgba(34,158,217,0.15);color:#4fc3f7">
+          <svg viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm-80,84a12,12,0,1,1,12-12A12,12,0,0,1,128,164Zm32-84H96V56a32,32,0,0,1,64,0Z"/></svg>
+        </div>
+        <div class="feature-text">
+          <div class="feature-title">Локально на устройстве</div>
+          <div class="feature-sub">Твои данные не покидают телефон. Никаких внешних серверов.</div>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-icon" style="background:rgba(168,85,247,0.15);color:#c084fc">
+          <svg viewBox="0 0 256 256"><path d="M208,40H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40ZM180,92a12,12,0,1,1,12-12A12,12,0,0,1,180,92Z"/><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm-28,52a12,12,0,1,1,12-12A12,12,0,0,1,180,188Z"/></svg>
+        </div>
+        <div class="feature-text">
+          <div class="feature-title">MTProto-прокси</div>
+          <div class="feature-sub">Официальный протокол Telegram. Быстро и стабильно.</div>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-icon" style="background:rgba(34,197,94,0.15);color:#4ade80">
+          <svg viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+        </div>
+        <div class="feature-text">
+          <div class="feature-title">Один тап — готово</div>
+          <div class="feature-sub">Включи тумблер, открой Telegram — он подключится сам.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="download-wrap">
+      <a class="btn-download" href="https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Скачать APK
+      </a>
+      <div class="download-hint">Android 8.0+  ·  ~25 MB  ·  бесплатно</div>
+    </div>
+
+    <div class="wifi-note">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+        <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <circle cx="12" cy="20" r="1" fill="currentColor"/>
+      </svg>
+      Работает только через Wi-Fi
+    </div>
+
+  </div>
+
+  <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+    }
+  </script>
+
+</body>
+</html>
