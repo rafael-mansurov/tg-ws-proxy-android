@@ -386,6 +386,59 @@
       opacity: 1;
     }
 
+    /* ── Settings grouped layout ── */
+    .sett-section { margin-bottom: 28px; }
+    .sett-section-title {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      color: rgba(255,255,255,0.38); margin-bottom: 8px; padding: 0 6px;
+    }
+    .sett-card {
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 20px; overflow: hidden;
+    }
+    .sett-row {
+      display: flex; align-items: center; gap: 13px;
+      padding: 0 16px; min-height: 54px; position: relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sett-row[onclick], .sett-row label { cursor: pointer; }
+    .sett-row + .sett-row::before {
+      content: ''; position: absolute; top: 0; left: 57px; right: 0;
+      height: 1px; background: rgba(255,255,255,0.07);
+    }
+    .sett-row-icon {
+      width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sett-row-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sett-row-body { flex: 1; min-width: 0; padding: 14px 0; }
+    .sett-row-label { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.92); line-height: 1.3; }
+    .sett-row-sub { font-size: 12px; color: rgba(255,255,255,0.42); margin-top: 3px; line-height: 1.4; }
+    .sett-row-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .sett-row-value { font-size: 13px; color: rgba(255,255,255,0.38); }
+    .sett-chevron { color: rgba(255,255,255,0.25); display: flex; align-items: center; }
+    .sett-chevron svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .sett-select-wrap { position: relative; }
+    .sett-select-wrap select {
+      appearance: none; -webkit-appearance: none;
+      background: transparent; border: none; outline: none;
+      color: rgba(255,255,255,0.38); font-size: 13px; font-weight: 500;
+      padding: 0 20px 0 0; cursor: pointer; max-width: 140px;
+      text-align: right;
+    }
+    .sett-select-wrap select option { background: #1a1a22; color: #fff; }
+    .sett-select-arrow { position: absolute; right: 0; top: 50%; transform: translateY(-50%); pointer-events: none; color: rgba(255,255,255,0.25); display: flex; }
+    .sett-select-arrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .sett-log-box {
+      background: #050508; color: rgba(255,255,255,0.72); font-size: 10px;
+      line-height: 1.55; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.07);
+      white-space: pre-wrap; word-break: break-all;
+      overflow-y: auto; max-height: min(38dvh, 280px); margin: 0;
+      display: none; font-family: monospace;
+    }
+    .sett-log-box.is-open { display: block; }
+
     .settings-logs-block {
       flex: 0 0 auto;
       display: flex;
@@ -466,8 +519,8 @@
       position: relative;
       top: -2px;
       margin: 0 3px;
-      stroke: currentColor;
-      fill: none;
+      fill: currentColor;
+      stroke: none;
       flex-shrink: 0;
     }
 
@@ -825,7 +878,7 @@
 
     <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;color:rgba(255,255,255,0.28)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>
-      Только Wi-Fi — на мобильном интернете не работает
+      Работает только через Wi-Fi
     </div>
 
     <div id="no-traffic-hint" style="display:none;margin-bottom:10px;padding:11px 14px;border-radius:14px;background:rgba(255,180,40,0.08);border:1px solid rgba(255,180,40,0.22);font-size:12px;font-weight:600;color:rgba(255,210,100,0.9);line-height:1.45;text-align:center">
@@ -838,83 +891,133 @@
 
     <button type="button" onclick="openExtProxies()" style="margin-top:10px;width:100%;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      Внешние прокси (в бета-тесте)
+      Внешние прокси
     </button>
   </div>
   </div>
 
   <div id="page-settings" class="page">
     <div class="content">
-      <div id="battery-banner-settings" style="display:block;background:linear-gradient(165deg,rgba(34,38,46,0.88) 0%,rgba(20,24,32,0.92) 100%);border:1px solid rgba(150,170,210,0.24);border-radius:20px;padding:14px 14px;margin-bottom:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
-        <div id="battery-settings-title" style="font-size:13px;font-weight:700;color:rgba(235,242,255,0.95);margin-bottom:6px">Проверка оптимизации батареи…</div>
-        <div id="battery-settings-sub" style="font-size:12px;font-weight:500;color:rgba(205,216,236,0.72);margin-bottom:10px;line-height:1.45">Сейчас уточним состояние для этого устройства.</div>
-        <button id="battery-settings-btn" onclick="openBatterySettings()" style="width:100%;background:rgba(124,150,201,0.2);color:rgba(235,243,255,0.95);border:1px solid rgba(145,170,219,0.38);border-radius:14px;padding:10px 12px;font-size:13px;font-weight:650;cursor:pointer">Открыть настройки батареи</button>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(165deg,rgba(34,38,46,0.88) 0%,rgba(20,24,32,0.92) 100%);border:1px solid rgba(150,170,210,0.24);border-radius:20px;padding:12px 14px;margin-bottom:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
-        <div style="min-width:0">
-          <div style="font-size:13px;font-weight:700;color:rgba(235,242,255,0.95)">Автозапуск после перезагрузки</div>
-          <div style="font-size:11px;font-weight:500;color:rgba(205,216,236,0.72);margin-top:4px;line-height:1.35">Запускает прокси автоматически после включения телефона.</div>
-        </div>
-        <label class="toggle-wrap" style="cursor:pointer">
-          <input id="autostart-toggle" type="checkbox" style="display:none" onchange="toggleAutostart(this.checked)">
-          <span class="toggle-track" id="autostart-toggle-track"><span class="toggle-thumb"></span></span>
-        </label>
-      </div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;background:linear-gradient(165deg,rgba(34,38,46,0.88) 0%,rgba(20,24,32,0.92) 100%);border:1px solid rgba(150,170,210,0.24);border-radius:20px;padding:12px 14px;margin-bottom:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
-        <div style="min-width:0;flex:1">
-          <div style="font-size:13px;font-weight:700;color:rgba(235,242,255,0.95)">Автоперезапуск прокси</div>
-          <div style="font-size:11px;font-weight:500;color:rgba(205,216,236,0.72);margin-top:4px;line-height:1.35">Чтобы прокси не деградировал со временем, можно перезапускать его по таймеру.</div>
-          <div style="position:relative;margin-top:10px">
-            <select id="restart-interval-select" onchange="saveRestartInterval()" style="width:100%;background-color:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:9px 36px 9px 10px;font-size:13px;font-weight:600;-webkit-appearance:none;appearance:none">
-              <option value="0">Выключено</option>
-              <option value="900">Каждые 15 минут</option>
-              <option value="1800">Каждые 30 минут</option>
-              <option value="3600">Каждый час</option>
-              <option value="7200">Каждые 2 часа</option>
-              <option value="10800">Каждые 3 часа</option>
-            </select>
-            <span aria-hidden="true" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;display:inline-flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.82)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m6 9 6 6 6-6"/>
-              </svg>
-            </span>
+
+      <!-- Батарея (показывается только когда нужно) -->
+      <div id="battery-banner-settings" class="sett-section" style="display:none">
+        <div class="sett-card" style="border-color:rgba(150,170,210,0.22);background:rgba(30,40,70,0.5)">
+          <div class="sett-row">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 24 24"><rect x="2" y="6" width="16" height="12" rx="2"/><path d="M22 14v-4"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label" id="battery-settings-title">Оптимизация батареи</div>
+              <div class="sett-row-sub" id="battery-settings-sub">Проверяем…</div>
+            </div>
+            <div class="sett-row-right">
+              <button id="battery-settings-btn" onclick="openBatterySettings()" style="background:rgba(124,150,201,0.2);color:rgba(200,220,255,0.9);border:1px solid rgba(145,170,219,0.3);border-radius:12px;padding:7px 12px;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap">Открыть</button>
+            </div>
           </div>
         </div>
       </div>
-      <div class="settings-logs-block">
-        <div id="log-section" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden">
-          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Лог сервиса</div>
-          <pre id="log-box" style="background:#050508;color:rgba(255,255,255,0.75);font-size:10px;line-height:1.5;padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,0.08);box-shadow:inset 0 0 40px rgba(0,100,200,0.06);overflow-x:auto;white-space:pre-wrap;word-break:break-all;overflow-y:auto;margin:0;flex:1;min-height:0"></pre>
-        </div>
-        <div class="log-btn-row">
-          <button type="button" id="log-btn" onclick="toggleLogs()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px;font-size:13px;font-weight:600;color:#fff;cursor:pointer">Показать логи</button>
-          <button type="button" id="copy-log-btn" onclick="copyLogs()" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px;font-size:13px;font-weight:600;color:#fff;cursor:pointer">Копировать</button>
+
+      <!-- Прокси -->
+      <div class="sett-section">
+        <div class="sett-section-title">Прокси</div>
+        <div class="sett-card">
+          <div class="sett-row">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" x2="12" y1="2" y2="12"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Автозапуск при загрузке</div>
+              <div class="sett-row-sub">Включать прокси после перезагрузки телефона</div>
+            </div>
+            <div class="sett-row-right">
+              <label class="toggle-wrap" style="cursor:pointer">
+                <input id="autostart-toggle" type="checkbox" style="display:none" onchange="toggleAutostart(this.checked)">
+                <span class="toggle-track" id="autostart-toggle-track"><span class="toggle-thumb"></span></span>
+              </label>
+            </div>
+          </div>
+          <div class="sett-row">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Автоперезапуск</div>
+              <div class="sett-row-sub">Периодически перезапускать для стабильности</div>
+            </div>
+            <div class="sett-row-right">
+              <div class="sett-select-wrap">
+                <select id="restart-interval-select" onchange="saveRestartInterval()">
+                  <option value="0">Выкл.</option>
+                  <option value="900">15 мин</option>
+                  <option value="1800">30 мин</option>
+                  <option value="3600">1 час</option>
+                  <option value="7200">2 часа</option>
+                  <option value="10800">3 часа</option>
+                </select>
+                <span class="sett-select-arrow"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <button type="button" onclick="showOnboardingAgain()" style="margin-top:12px;width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:11px 12px;font-size:13px;font-weight:650;color:rgba(245,249,255,0.94);cursor:pointer">Показать обучение снова</button>
-      <button type="button" onclick="openShareAppModal()" style="margin-top:8px;width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:11px 12px;font-size:13px;font-weight:650;color:rgba(245,249,255,0.94);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
-        Поделиться приложением
-      </button>
-      <div class="settings-support">
-        <a href="https://t.me/mansurov_rafael" target="_blank" style="
-                 display:inline-flex;
-                 align-items:center;
-                 gap:7px;
-                 text-decoration:none;
-                 color: rgb(255 255 255);
-                 font-size:12px;
-                 font-weight:500;
-                 padding:8px 16px;
-                 border-radius:20px;
-                 border:1px solid rgba(0,0,0,0.08);
-                 background: rgb(255 255 255 / 6%);">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-          Поддержка
-        </a>
+
+      <!-- Диагностика -->
+      <div class="sett-section">
+        <div class="sett-section-title">Диагностика</div>
+        <div class="sett-card">
+          <div class="sett-row" onclick="toggleLogs()" style="cursor:pointer">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Логи сервиса</div>
+            </div>
+            <div class="sett-row-right">
+              <button type="button" id="copy-log-btn" onclick="event.stopPropagation();copyLogs()" style="display:none;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:5px 10px;font-size:12px;font-weight:600;color:#fff;cursor:pointer">Копировать</button>
+              <span class="sett-chevron" id="log-chevron"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+            </div>
+          </div>
+          <pre id="log-box" class="sett-log-box"></pre>
+        </div>
       </div>
+
+      <!-- О приложении -->
+      <div class="sett-section">
+        <div class="sett-section-title">О приложении</div>
+        <div class="sett-card">
+          <div class="sett-row" onclick="showOnboardingAgain()" style="cursor:pointer">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Как это работает</div>
+              <div class="sett-row-sub">Показать обучение снова</div>
+            </div>
+            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+          </div>
+          <div class="sett-row" onclick="openShareAppModal()" style="cursor:pointer">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Поделиться приложением</div>
+              <div class="sett-row-sub">Отправить ссылку другу</div>
+            </div>
+            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+          </div>
+          <div class="sett-row" onclick="window.open('https://t.me/mansurov_rafael','_blank')" style="cursor:pointer">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 24 24"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Поддержка</div>
+              <div class="sett-row-sub">Написать в Telegram</div>
+            </div>
+            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1020,10 +1123,10 @@
   const ONBOARDING_SEEN_KEY = 'tgws_onboarding_seen_v1';
 
   const _ONB_ICON = {
-    lock:   `<svg class="onb-inline-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
-    server: `<svg class="onb-inline-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>`,
-    check:  `<svg class="onb-inline-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`,
-    shield: `<svg class="onb-inline-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>`,
+    lock:   `<svg class="onb-inline-icon" viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm-80,84a12,12,0,1,1,12-12A12,12,0,0,1,128,164Zm32-84H96V56a32,32,0,0,1,64,0Z"/></svg>`,
+    server: `<svg class="onb-inline-icon" viewBox="0 0 256 256"><path d="M208,40H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40ZM180,92a12,12,0,1,1,12-12A12,12,0,0,1,180,92Z"/><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm-28,52a12,12,0,1,1,12-12A12,12,0,0,1,180,188Z"/></svg>`,
+    check:  `<svg class="onb-inline-icon" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>`,
+    shield: `<svg class="onb-inline-icon" viewBox="0 0 256 256"><path d="M224,56v56c0,52.72-25.52,84.67-46.93,102.19-23.06,18.86-46,25.27-47,25.53a8,8,0,0,1-4.2,0c-1-.26-23.91-6.67-47-25.53C57.52,196.67,32,164.72,32,112V56A16,16,0,0,1,48,40H208A16,16,0,0,1,224,56Z"/></svg>`,
     start:  `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`,
   };
 
@@ -1502,18 +1605,19 @@
   }
 
   async function toggleLogs() {
-    const section = document.getElementById('log-section');
-    const btn = document.getElementById('log-btn');
     logsVisible = !logsVisible;
+    const box = document.getElementById('log-box');
+    const chevron = document.getElementById('log-chevron');
+    const copyBtn = document.getElementById('copy-log-btn');
     if (!logsVisible) {
-      section.style.display = 'none';
-      btn.textContent = 'Показать логи';
-      document.getElementById('copy-log-btn').style.display = 'none';
+      box.classList.remove('is-open');
+      if (chevron) chevron.style.transform = '';
+      if (copyBtn) copyBtn.style.display = 'none';
       return;
     }
-    section.style.display = 'flex';
-    btn.textContent = 'Скрыть логи';
-    document.getElementById('copy-log-btn').style.display = 'inline-block';
+    box.classList.add('is-open');
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+    if (copyBtn) copyBtn.style.display = 'inline-block';
     if (DEMO_MODE > 0) {
       const box = document.getElementById('log-box');
       box.textContent = buildDemoLog();
