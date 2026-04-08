@@ -128,15 +128,13 @@ jobs:
           fi
           BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-apk"
           DL_APK="${BASE}/tg-ws-proxy-debug.apk"
-          MSG=$(printf '%s\n\n%s\n\n%s' \
-            "✅ <b>Для телефона (Android)</b>" \
-            "Установочный файл — в сообщении ниже." \
-            "Режим сборки: ${BUILD_MODE}, версия: ${APP_VERSION}. Ссылка: <a href=\"${DL_APK}\">скачать APK</a>")
-          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
-            '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
-          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "$BODY"
+          CAPTION=$(printf '✅ <b>Новая сборка Android</b>\n\nВерсия: %s · режим: %s\n<a href="%s">Скачать APK</a>' \
+            "${APP_VERSION}" "${BUILD_MODE}" "${DL_APK}")
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
+            -F chat_id="$TELEGRAM_CHAT_ID" \
+            -F photo=@"cover.webp" \
+            -F caption="$CAPTION" \
+            -F parse_mode="HTML"
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             -F chat_id="$TELEGRAM_CHAT_ID" \
             -F document=@"tg-ws-proxy-debug.apk" \
