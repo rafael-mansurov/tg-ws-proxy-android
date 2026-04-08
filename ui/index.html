@@ -890,6 +890,10 @@
         </div>
       </div>
       <button type="button" onclick="showOnboardingAgain()" style="margin-top:12px;width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:11px 12px;font-size:13px;font-weight:650;color:rgba(245,249,255,0.94);cursor:pointer">Показать обучение снова</button>
+      <button type="button" onclick="openShareAppModal()" style="margin-top:8px;width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:11px 12px;font-size:13px;font-weight:650;color:rgba(245,249,255,0.94);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+        Поделиться приложением
+      </button>
       <div class="settings-support">
         <a href="https://t.me/mansurov_rafael" target="_blank" style="
                  display:inline-flex;
@@ -955,6 +959,32 @@
   </div>
   <div id="onb-footer">
     <button type="button" id="onb-next-btn" onclick="onboardingNext()">Далее</button>
+  </div>
+</div>
+
+<div id="share-app-modal" class="qr-modal" aria-hidden="true">
+  <div class="qr-modal-backdrop" onclick="closeShareAppModal()"></div>
+  <div class="qr-modal-panel" role="dialog" aria-modal="true" aria-labelledby="share-app-modal-title">
+    <div class="qr-modal-header">
+      <span class="qr-modal-header-spacer" aria-hidden="true"></span>
+      <h2 class="qr-modal-title" id="share-app-modal-title">Поделиться приложением</h2>
+      <button type="button" class="qr-modal-close" onclick="closeShareAppModal()" aria-label="Закрыть">×</button>
+    </div>
+    <div class="qr-modal-body">
+      <div class="qr-frame">
+        <div id="share-app-qr-host" class="qr-svg-host"></div>
+        <div class="qr-placeholder" id="share-app-qr-ph">Загрузка QR…</div>
+      </div>
+    </div>
+    <p style="padding:4px 24px 0;text-align:center;font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5">
+      Отсканируй чтобы скачать APK
+    </p>
+    <div style="padding:16px 20px calc(env(safe-area-inset-bottom,0px) + 24px)">
+      <button type="button" id="share-app-btn" onclick="shareApp()" style="width:100%;padding:15px 20px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.1);color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;-webkit-tap-highlight-color:transparent">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+        Поделиться ссылкой
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1117,6 +1147,74 @@
       return localStorage.getItem(ONBOARDING_SEEN_KEY) !== '1';
     } catch (e) {
       return false;
+    }
+  }
+
+  const _SHARE_URL = 'https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk';
+  const _SHARE_TEXT = 'TG WS Proxy — прокси для Telegram\nРаботает локально на телефоне, без серверов и регистрации.\n\n';
+
+  function openShareAppModal() {
+    const modal = document.getElementById('share-app-modal');
+    if (!modal) return;
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    const host = document.getElementById('share-app-qr-host');
+    const ph = document.getElementById('share-app-qr-ph');
+    if (!host || !ph) return;
+    host.classList.remove('visible');
+    host.innerHTML = '';
+    ph.textContent = 'Загрузка QR…';
+    ph.classList.remove('hidden');
+    if (typeof QRCode === 'undefined') {
+      ph.textContent = 'QR недоступен';
+      return;
+    }
+    QRCode.toString(_SHARE_URL, { type: 'svg', width: 176, margin: 2, color: { dark: '#0f172a', light: '#f8fafc' } }, (err, svg) => {
+      if (err) { ph.textContent = 'Ошибка QR'; return; }
+      host.innerHTML = svg;
+      host.classList.add('visible');
+      ph.classList.add('hidden');
+    });
+  }
+
+  function closeShareAppModal() {
+    const modal = document.getElementById('share-app-modal');
+    if (!modal) return;
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  async function shareApp() {
+    const btn = document.getElementById('share-app-btn');
+    const originalHTML = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.55'; }
+    try {
+      if (!navigator.share) throw new Error('no-share-api');
+      let files = [];
+      try {
+        const r = await fetch('/cover.jpg');
+        if (r.ok) {
+          const blob = await r.blob();
+          const f = new File([blob], 'tg-ws-proxy.jpg', { type: 'image/jpeg' });
+          if (navigator.canShare && navigator.canShare({ files: [f] })) files = [f];
+        }
+      } catch (_) {}
+      // Include URL in text so it appears in Telegram when files are shared
+      // (some Android apps drop the url field when files are present)
+      const text = _SHARE_TEXT + _SHARE_URL;
+      const data = { title: 'TG WS Proxy', text, url: _SHARE_URL };
+      if (files.length) data.files = files;
+      await navigator.share(data);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(_SHARE_URL);
+        if (btn) btn.innerHTML = '✓ Ссылка скопирована';
+        setTimeout(() => { if (btn) { btn.innerHTML = originalHTML; btn.disabled = false; btn.style.opacity = ''; } }, 2200);
+        return;
+      } catch (_) {}
+    } finally {
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
     }
   }
 

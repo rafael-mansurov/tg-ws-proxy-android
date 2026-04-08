@@ -132,7 +132,7 @@ jobs:
             "${APP_VERSION}" "${BUILD_MODE}" "${DL_APK}")
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
             -F chat_id="$TELEGRAM_CHAT_ID" \
-            -F photo=@"cover.webp" \
+            -F photo=@"cover.jpg" \
             -F caption="$CAPTION" \
             -F parse_mode="HTML"
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
