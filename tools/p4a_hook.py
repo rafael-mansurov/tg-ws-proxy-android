@@ -59,6 +59,44 @@ def _ensure_tile_service(app: ET.Element) -> None:
     )
 
 
+def _ensure_file_provider(app: ET.Element) -> None:
+    cls = "androidx.core.content.FileProvider"
+    authority = "unofficial.tgws.tgwsproxy.fileprovider"
+    if _has_component(app, "provider", cls):
+        return
+    provider = ET.SubElement(
+        app,
+        "provider",
+        {
+            _an("name"): cls,
+            _an("authorities"): authority,
+            _an("exported"): "false",
+            _an("grantUriPermissions"): "true",
+        },
+    )
+    ET.SubElement(
+        provider,
+        "meta-data",
+        {
+            _an("name"): "android.support.FILE_PROVIDER_PATHS",
+            _an("resource"): "@xml/file_paths",
+        },
+    )
+
+
+def _write_file_provider_paths() -> None:
+    res_xml = Path("src/main/res/xml")
+    res_xml.mkdir(parents=True, exist_ok=True)
+    (res_xml / "file_paths.xml").write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        "<paths>\n"
+        '    <files-path name="app_files" path="app/" />\n'
+        '    <files-path name="files_root" path="." />\n'
+        "</paths>\n",
+        encoding="utf-8",
+    )
+
+
 def _patch_manifest_components() -> None:
     manifest = Path("src/main/AndroidManifest.xml")
     if not manifest.is_file():
@@ -70,6 +108,8 @@ def _patch_manifest_components() -> None:
         return
     _ensure_boot_receiver(app)
     _ensure_tile_service(app)
+    _ensure_file_provider(app)
+    _write_file_provider_paths()
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
 
 
