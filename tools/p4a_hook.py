@@ -59,6 +59,31 @@ def _ensure_tile_service(app: ET.Element) -> None:
     )
 
 
+def _ensure_file_provider(app: ET.Element) -> None:
+    cls = "androidx.core.content.FileProvider"
+    authority = "unofficial.tgws.tgwsproxy.fileprovider"
+    if _has_component(app, "provider", cls):
+        return
+    provider = ET.SubElement(
+        app,
+        "provider",
+        {
+            _an("name"): cls,
+            _an("authorities"): authority,
+            _an("exported"): "false",
+            _an("grantUriPermissions"): "true",
+        },
+    )
+    ET.SubElement(
+        provider,
+        "meta-data",
+        {
+            _an("name"): "android.support.FILE_PROVIDER_PATHS",
+            _an("resource"): "@xml/file_paths",
+        },
+    )
+
+
 def _patch_manifest_components() -> None:
     manifest = Path("src/main/AndroidManifest.xml")
     if not manifest.is_file():
@@ -70,6 +95,7 @@ def _patch_manifest_components() -> None:
         return
     _ensure_boot_receiver(app)
     _ensure_tile_service(app)
+    _ensure_file_provider(app)
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
 
 
@@ -98,5 +124,14 @@ def after_apk_build(toolchain):
             dest = Path("src/main/java") / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
+
+    extra_res = root / "p4a_android_res"
+    if extra_res.is_dir():
+        for src in extra_res.rglob("*"):
+            if src.is_file():
+                rel = src.relative_to(extra_res)
+                dest = Path("src/main/res") / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
 
     _patch_manifest_components()
