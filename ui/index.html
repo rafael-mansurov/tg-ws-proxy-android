@@ -413,194 +413,90 @@
       flex-shrink: 0;
     }
 
+    /* ── Onboarding — full-screen narrative style ── */
     .onb-coach {
       display: none;
       position: fixed;
       inset: 0;
       z-index: 11000;
-      pointer-events: none;
+      background: #000;
       opacity: 0;
-      transition: opacity .4s ease;
+      transition: opacity .5s ease;
     }
     .onb-coach.is-open { display: block; }
-    .onb-coach.is-visible { opacity: 1; }
-    .onb-shade {
+    .onb-coach.is-visible { opacity: 1; pointer-events: auto; }
+
+    #onb-gradient-layer {
       position: absolute;
-      background: rgba(4, 7, 14, 0.56);
-      z-index: 1;
+      inset: 0;
+      pointer-events: none;
     }
-    .onb-spot {
+    #onb-grad-a, #onb-grad-b {
       position: absolute;
-      border-radius: 16px;
-      border: 1px solid rgba(240, 244, 252, 0.92);
-      box-shadow: none;
-      transition: all .25s ease;
-      z-index: 2;
+      inset: 0;
+      transition: opacity 0.65s ease;
     }
-    .onb-arrow {
+    #onb-grad-b { opacity: 0; }
+
+    #onb-text-wrap {
       position: absolute;
-      width: 2px;
-      background: linear-gradient(180deg, rgba(236,241,250,0.95) 0%, rgba(236,241,250,0.24) 100%);
-      border-radius: 99px;
-      transition: top .28s ease, height .28s ease, left .28s ease, opacity .2s ease;
-      z-index: 3;
+      left: 0; right: 0;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 108px);
+      padding: 0 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 10px;
     }
-    .onb-arrow::before {
-      content: "";
-      position: absolute;
-      top: -8px;
-      left: 50%;
-      width: 10px;
-      height: 10px;
-      border-top: 2px solid rgba(236,241,250,0.95);
-      border-left: 2px solid rgba(236,241,250,0.95);
-      transform: translateX(-50%) rotate(45deg);
-    }
-    .onb-arrow.down::before {
-      top: auto;
-      bottom: -8px;
-      transform: translateX(-50%) rotate(-135deg);
-    }
-    .onb-card {
-      position: absolute;
-      left: 16px;
-      right: 16px;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
-      max-width: 390px;
-      margin: 0 auto;
-      border-radius: 24px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background:
-        linear-gradient(160deg, rgba(20,22,28,0.98) 0%, rgba(11,12,16,0.99) 100%);
-      box-shadow:
-        0 28px 72px rgba(0,0,0,0.62),
-        inset 0 1px 0 rgba(255,255,255,0.08);
-      padding: 24px 22px 20px;
-      pointer-events: auto;
-      z-index: 4;
-      transform: translateY(0);
-      transition: transform .30s ease;
-    }
-    .onb-card.is-top {
-      transform: translateY(0);
-    }
-    .onb-kicker {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 10px;
+
+    #onb-curr-text {
+      font-size: 36px;
       font-weight: 800;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.82);
-      margin-bottom: 14px;
-      padding: 5px 8px;
+      letter-spacing: -0.03em;
+      line-height: 1.18;
+      color: #fff;
+      transition: opacity 0.25s ease;
+    }
+
+    .onb-inline-icon {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      vertical-align: middle;
+      position: relative;
+      top: -2px;
+      margin: 0 3px;
+      stroke: currentColor;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    #onb-footer {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+      left: 28px;
+      right: 28px;
+    }
+
+    #onb-next-btn {
+      width: 100%;
+      padding: 18px 24px;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      width: fit-content;
-    }
-    .onb-title {
-      color: #f7fbff;
-      font-size: 23px;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1.25;
-      text-wrap: balance;
-    }
-    .onb-sub {
-      margin-top: 14px;
-      color: rgba(218, 231, 255, 0.90);
-      font-size: 14px;
-      font-weight: 500;
-      line-height: 1.58;
-      min-height: 74px;
-    }
-    .onb-points {
-      margin-top: 12px;
-    }
-    .onb-point {
-      color: rgba(210, 220, 236, 0.56);
-      font-size: 13px;
-      font-weight: 500;
-      line-height: 1.5;
-      letter-spacing: 0.003em;
-    }
-    .onb-foot {
-      margin-top: 20px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-    }
-    .onb-dots {
-      display: inline-flex;
-      gap: 4px;
-      align-items: center;
-    }
-    .onb-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.30);
-      transition: all .2s;
-    }
-    .onb-dot.is-on {
-      width: 22px;
-      background: rgba(244,248,255,0.92);
-      box-shadow: 0 0 10px rgba(255,255,255,0.35);
-    }
-    .onb-actions {
-      display: inline-flex;
+      justify-content: center;
       gap: 10px;
-      align-items: center;
+      -webkit-tap-highlight-color: transparent;
     }
-    .onb-btn {
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.05);
-      color: rgba(230, 240, 255, 0.94);
-      padding: 11px 14px;
-      font-size: 13px;
-      font-weight: 750;
-      cursor: pointer;
-    }
-    .onb-btn.primary {
-      border-color: rgba(255,255,255,0.26);
-      background: linear-gradient(180deg, #f5f7fb 0%, #e0e6f1 100%);
-      color: #111522;
-      box-shadow:
-        0 10px 24px rgba(0,0,0,0.24),
-        inset 0 1px 0 rgba(255,255,255,0.78);
-    }
-    .onb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .onb-card.is-welcome { bottom: 32px; }
-    .onb-card.is-welcome .onb-sub { min-height: 0; }
-    .onb-welcome-list { margin-top: 16px; display: flex; flex-direction: column; gap: 9px; }
-    .onb-welcome-item {
-      display: flex; align-items: flex-start; gap: 10px;
-      font-size: 13px; font-weight: 500; color: rgba(218,231,255,0.82); line-height: 1.4;
-    }
-    .onb-welcome-item::before {
-      content: '';
-      flex-shrink: 0;
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: rgba(34,158,217,0.9);
-      margin-top: 5px;
-    }
-    .onb-warning {
-      margin-top: 14px;
-      padding: 11px 14px;
-      border-radius: 12px;
-      background: rgba(255, 160, 40, 0.12);
-      border: 1px solid rgba(255, 160, 40, 0.30);
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255, 200, 100, 0.95);
-      line-height: 1.45;
-    }
+    #onb-next-btn:active { background: rgba(255,255,255,0.18); }
+    #onb-next-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ── External proxy modal ── */
     .ext-proxy-modal {
@@ -976,8 +872,8 @@
               <option value="10800">Каждые 3 часа</option>
             </select>
             <span aria-hidden="true" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;display:inline-flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.82)">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6"/>
               </svg>
             </span>
           </div>
@@ -1049,30 +945,16 @@
   </div>
 </div>
 
-<div id="onboarding-coach" class="onb-coach" aria-hidden="true">
-  <div id="onb-shade-top" class="onb-shade"></div>
-  <div id="onb-shade-left" class="onb-shade"></div>
-  <div id="onb-shade-right" class="onb-shade"></div>
-  <div id="onb-shade-bottom" class="onb-shade"></div>
-  <div id="onb-spot" class="onb-spot"></div>
-  <div id="onb-arrow" class="onb-arrow"></div>
-  <div class="onb-card" role="dialog" aria-modal="true" aria-labelledby="onb-title">
-    <div class="onb-kicker" id="onb-kicker">Шаг 1 из 3</div>
-    <div class="onb-title" id="onb-title">Разогреваем прокси</div>
-    <div class="onb-sub" id="onb-sub">Сейчас покажу куда нажимать — и ты заведешь всё за 10 секунд.</div>
-    <div class="onb-points" id="onb-points"></div>
-    <div class="onb-foot">
-      <div class="onb-dots">
-        <span class="onb-dot is-on" id="onb-dot-0"></span>
-        <span class="onb-dot" id="onb-dot-1"></span>
-        <span class="onb-dot" id="onb-dot-2"></span>
-        <span class="onb-dot" id="onb-dot-3"></span>
-      </div>
-      <div class="onb-actions">
-        <button type="button" class="onb-btn" id="onb-prev" onclick="onboardingPrev()">Назад</button>
-        <button type="button" class="onb-btn primary" id="onb-next" onclick="onboardingNext()">Дальше</button>
-      </div>
-    </div>
+<div id="onboarding-coach" class="onb-coach" aria-hidden="true" role="dialog" aria-modal="true">
+  <div id="onb-gradient-layer">
+    <div id="onb-grad-a"></div>
+    <div id="onb-grad-b"></div>
+  </div>
+  <div id="onb-text-wrap">
+    <div id="onb-curr-text"></div>
+  </div>
+  <div id="onb-footer">
+    <button type="button" id="onb-next-btn" onclick="onboardingNext()">Далее</button>
   </div>
 </div>
 
@@ -1104,188 +986,91 @@
   const DEMO_SECRET = 'a1b2c3d4e5f6789012345678901234abcd5678901234567890abcdefaa';
   const DEMO_HOST = '192.168.1.42';
   const ONBOARDING_SEEN_KEY = 'tgws_onboarding_seen_v1';
-  const ONBOARDING_STEPS = [
+
+  const _ONB_ICON = {
+    lock:   `<svg class="onb-inline-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+    server: `<svg class="onb-inline-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>`,
+    check:  `<svg class="onb-inline-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`,
+    shield: `<svg class="onb-inline-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>`,
+    start:  `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`,
+  };
+
+  const _ONB_STEPS = [
     {
-      target: null,
-      welcome: true,
-      title: 'TG WS Proxy',
-      sub: 'Telegram заблокирован провайдером? Это приложение поднимает MTProto-прокси прямо на твоём телефоне — без регистраций.',
-      points: [
-        'Полностью локально — данные не уходят никуда',
-        'Telegram подключается через прокси автоматически',
-        'Работает в фоне — держать приложение открытым не нужно',
-      ],
-      warning: '⚠ Только Wi-Fi. На мобильном интернете не работает — операторы блокируют Telegram на уровне сети.',
+      html: `Провайдеры и&nbsp;государство научились блокировать ${_ONB_ICON.lock} Telegram на&nbsp;уровне сети`,
+      gradient: 'linear-gradient(to top, rgba(120,20,20,1) 0%, rgba(80,10,10,0.8) 35%, rgba(40,5,5,0.4) 60%, transparent 80%)',
+      btnText: 'Далее', btnIcon: null,
     },
     {
-      target: '#header-toggle-wrap',
-      title: 'Включи прокси',
-      sub: 'Тумблер запускает прокси-сервер прямо на телефоне. Первый старт занимает 10–30 секунд — это нормально.',
+      html: `Это приложение поднимает MTProto&#8209;прокси ${_ONB_ICON.server} прямо на твоём телефоне — без серверов, без регистраций`,
+      gradient: 'linear-gradient(to top, rgba(15,40,140,1) 0%, rgba(8,24,100,0.8) 35%, rgba(4,12,60,0.4) 60%, transparent 80%)',
+      btnText: 'Далее', btnIcon: null,
     },
     {
-      target: '#status',
-      title: 'Дождись зелёного',
-      sub: 'Как только прокси поднялся — здесь появится зелёный индикатор и адрес сервера.',
-      note: 'Пока идёт запуск — индикатор может быть скрыт, это нормально.',
+      html: `Включи тумблер, дождись зелёного ${_ONB_ICON.check} и открой Telegram — он подключится сам`,
+      gradient: 'linear-gradient(to top, rgba(15,90,35,1) 0%, rgba(8,60,20,0.8) 35%, rgba(4,30,10,0.4) 60%, transparent 80%)',
+      btnText: 'Далее', btnIcon: null,
     },
     {
-      target: '#tg-btn',
-      title: 'Подключи Telegram',
-      sub: 'Когда прокси запущен — нажми кнопку. Telegram откроется и сам применит настройки. Для другого устройства — покажи QR-код.',
+      html: `Всё работает локально ${_ONB_ICON.shield} — твои данные не покидают телефон`,
+      gradient: 'linear-gradient(to top, rgba(70,15,120,1) 0%, rgba(50,8,90,0.8) 35%, rgba(25,4,50,0.4) 60%, transparent 80%)',
+      btnText: 'Начать', btnIcon: 'start',
     },
   ];
+
   let onboardingStep = 0;
-  let onboardingResizeBound = false;
+  let _onbGradActive = 'a';
 
-  function onboardingLayout() {
-    const step = ONBOARDING_STEPS[onboardingStep];
+  function onboardingLayout() { /* no-op — new design is static */ }
+
+  function onboardingRender(animate) {
+    const step = _ONB_STEPS[onboardingStep];
     if (!step) return;
-    const spot = document.getElementById('onb-spot');
-    const arrow = document.getElementById('onb-arrow');
-    const card = document.querySelector('#onboarding-coach .onb-card');
-    const shadeTop = document.getElementById('onb-shade-top');
-    const shadeLeft = document.getElementById('onb-shade-left');
-    const shadeRight = document.getElementById('onb-shade-right');
-    const shadeBottom = document.getElementById('onb-shade-bottom');
-    if (!spot || !arrow || !card || !shadeTop || !shadeLeft || !shadeRight || !shadeBottom) return;
 
-    if (!step.target) {
-      spot.style.cssText = 'width:0;height:0';
-      arrow.style.display = 'none';
-      shadeTop.style.cssText = 'left:0;top:0;width:100%;height:100%';
-      shadeLeft.style.cssText = 'width:0;height:0';
-      shadeRight.style.cssText = 'width:0;height:0';
-      shadeBottom.style.cssText = 'width:0;height:0';
-      card.classList.remove('is-top');
-      card.style.transform = 'translateY(0)';
-      return;
+    // Crossfade gradient layers
+    const gradA = document.getElementById('onb-grad-a');
+    const gradB = document.getElementById('onb-grad-b');
+    if (gradA && gradB) {
+      const nextLyr = _onbGradActive === 'a' ? 'b' : 'a';
+      const nextEl  = nextLyr === 'a' ? gradA : gradB;
+      const prevEl2 = nextLyr === 'a' ? gradB : gradA;
+      nextEl.style.background = step.gradient;
+      nextEl.style.opacity = '1';
+      prevEl2.style.opacity = '0';
+      _onbGradActive = nextLyr;
     }
-    arrow.style.display = '';
 
-    const target = document.querySelector(step.target);
-    if (!target) return;
-    const r = target.getBoundingClientRect();
-    // Target hidden (e.g. #status during proxy startup) — hide spotlight/arrow gracefully
-    if (r.width === 0 && r.height === 0) {
-      spot.style.cssText = 'width:0;height:0';
-      arrow.style.display = 'none';
-      shadeTop.style.cssText = 'left:0;top:0;width:100%;height:100%';
-      shadeLeft.style.cssText = 'width:0;height:0';
-      shadeRight.style.cssText = 'width:0;height:0';
-      shadeBottom.style.cssText = 'width:0;height:0';
-      return;
+    // Current text — fade out → swap content → fade in
+    const currEl = document.getElementById('onb-curr-text');
+    if (currEl) {
+      if (animate) {
+        currEl.style.opacity = '0';
+        setTimeout(() => {
+          currEl.innerHTML = step.html;
+          currEl.offsetHeight; // force reflow so opacity transition fires
+          currEl.style.opacity = '1';
+        }, 280);
+      } else {
+        currEl.style.opacity = '1';
+        currEl.innerHTML = step.html;
+      }
     }
-    const pad = 8;
-    const left = Math.max(8, r.left - pad);
-    const top = Math.max(8, r.top - pad);
-    const width = Math.min(window.innerWidth - left - 8, r.width + pad * 2);
-    const height = r.height + pad * 2;
-    const right = left + width;
-    const bottom = top + height;
-    spot.style.left = `${left}px`;
-    spot.style.top = `${top}px`;
-    spot.style.width = `${width}px`;
-    spot.style.height = `${height}px`;
 
-    shadeTop.style.left = '0px';
-    shadeTop.style.top = '0px';
-    shadeTop.style.width = '100%';
-    shadeTop.style.height = `${Math.max(0, top)}px`;
-
-    shadeLeft.style.left = '0px';
-    shadeLeft.style.top = `${Math.max(0, top)}px`;
-    shadeLeft.style.width = `${Math.max(0, left)}px`;
-    shadeLeft.style.height = `${Math.max(0, height)}px`;
-
-    shadeRight.style.left = `${Math.max(0, right)}px`;
-    shadeRight.style.top = `${Math.max(0, top)}px`;
-    shadeRight.style.width = `${Math.max(0, window.innerWidth - right)}px`;
-    shadeRight.style.height = `${Math.max(0, height)}px`;
-
-    shadeBottom.style.left = '0px';
-    shadeBottom.style.top = `${Math.max(0, bottom)}px`;
-    shadeBottom.style.width = '100%';
-    shadeBottom.style.height = `${Math.max(0, window.innerHeight - bottom)}px`;
-
-    const placeCardTop = (top + height / 2) > (window.innerHeight * 0.58);
-    card.classList.toggle('is-top', placeCardTop);
-    card.style.transform = 'translateY(0px)';
-    const baseCardRect = card.getBoundingClientRect();
-    const spotCenterX = left + width / 2;
-    let cardShiftY = 0;
-    arrow.style.left = `${spotCenterX}px`;
-    if (placeCardTop) {
-      cardShiftY = 16 - baseCardRect.top;
-      const cardBottom = baseCardRect.bottom + cardShiftY;
-      const aTop = cardBottom + 10;
-      const aBottom = top - 14;
-      const aHeight = Math.max(24, aBottom - aTop);
-      arrow.style.top = `${aTop}px`;
-      arrow.style.height = `${aHeight}px`;
-      arrow.classList.add('down');
-    } else {
-      cardShiftY = 0;
-      const cardTop = baseCardRect.top;
-      const aTop = top + height + 22;
-      const aBottom = cardTop - 10;
-      const aHeight = Math.max(24, aBottom - aTop);
-      arrow.style.top = `${aTop}px`;
-      arrow.style.height = `${aHeight}px`;
-      arrow.classList.remove('down');
+    // Button
+    const btn = document.getElementById('onb-next-btn');
+    if (btn) {
+      const iconHtml = step.btnIcon ? _ONB_ICON[step.btnIcon] : '';
+      btn.innerHTML = iconHtml + step.btnText;
     }
-    card.style.transform = `translateY(${cardShiftY}px)`;
   }
 
-  function onboardingRender() {
-    const step = ONBOARDING_STEPS[onboardingStep];
-    const kicker = document.getElementById('onb-kicker');
-    const title = document.getElementById('onb-title');
-    const sub = document.getElementById('onb-sub');
-    const points = document.getElementById('onb-points');
-    const prev = document.getElementById('onb-prev');
-    const next = document.getElementById('onb-next');
-    const card = document.querySelector('#onboarding-coach .onb-card');
-    if (!kicker || !title || !sub || !points || !prev || !next || !card || !step) return;
-
-    const isWelcome = !!step.welcome;
-    card.classList.toggle('is-welcome', isWelcome);
-
-    if (isWelcome) {
-      kicker.textContent = 'Добро пожаловать';
-      title.textContent = step.title;
-      sub.textContent = step.sub;
-      const listHtml = (step.points || [])
-        .map(p => `<div class="onb-welcome-item">${p}</div>`)
-        .join('');
-      const warnHtml = step.warning
-        ? `<div class="onb-warning">${step.warning}</div>`
-        : '';
-      points.innerHTML = listHtml + warnHtml;
-      points.className = 'onb-welcome-list';
-    } else {
-      const stepNum = onboardingStep; // welcome is step 0, so steps 1-3 show as 1-3
-      const totalSteps = ONBOARDING_STEPS.length - 1;
-      kicker.textContent = `Шаг ${stepNum} из ${totalSteps}`;
-      title.textContent = step.title;
-      sub.textContent = step.sub;
-      points.innerHTML = step.note ? `<div class="onb-point">${step.note}</div>` : '';
-      points.className = 'onb-points';
+  function onboardingNext() {
+    if (onboardingStep >= _ONB_STEPS.length - 1) {
+      onboardingClose();
+      return;
     }
-
-    prev.style.display = onboardingStep === 0 ? 'none' : '';
-    prev.disabled = onboardingStep === 0;
-    next.textContent = onboardingStep === ONBOARDING_STEPS.length - 1 ? 'Готово' : (isWelcome ? 'Начнём →' : 'Дальше');
-    for (let i = 0; i < ONBOARDING_STEPS.length; i++) {
-      const dot = document.getElementById(`onb-dot-${i}`);
-      if (dot) dot.classList.toggle('is-on', i === onboardingStep);
-    }
-    requestAnimationFrame(onboardingLayout);
-  }
-
-  function onboardingPrev() {
-    if (onboardingStep <= 0) return;
-    onboardingStep -= 1;
-    onboardingRender();
+    onboardingStep += 1;
+    onboardingRender(true);
   }
 
   function onboardingClose() {
@@ -1295,37 +1080,35 @@
       try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch (e) {}
     }
     modal.classList.remove('is-visible');
-    if (onboardingResizeBound) {
-      window.removeEventListener('resize', onboardingLayout);
-      onboardingResizeBound = false;
-    }
     setTimeout(() => {
       modal.classList.remove('is-open');
       modal.setAttribute('aria-hidden', 'true');
-    }, 420);
-  }
-
-  function onboardingNext() {
-    if (onboardingStep >= ONBOARDING_STEPS.length - 1) {
-      onboardingClose();
-      return;
-    }
-    onboardingStep += 1;
-    onboardingRender();
+    }, 500);
   }
 
   function onboardingOpen() {
     const modal = document.getElementById('onboarding-coach');
     if (!modal) return;
     onboardingStep = 0;
-    onboardingRender();
+    // Pretend B was active so render() will pick A as "next"
+    _onbGradActive = 'b';
+    // Pre-load A with first gradient instantly (no transition)
+    const gradA = document.getElementById('onb-grad-a');
+    const gradB = document.getElementById('onb-grad-b');
+    if (gradA) {
+      gradA.style.transition = 'none';
+      gradA.style.background = _ONB_STEPS[0].gradient;
+      gradA.style.opacity = '0';
+    }
+    if (gradB) { gradB.style.transition = 'none'; gradB.style.opacity = '0'; }
+    requestAnimationFrame(() => {
+      if (gradA) gradA.style.transition = '';
+      if (gradB) gradB.style.transition = '';
+    });
+    onboardingRender(false);
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add('is-visible')));
-    if (!onboardingResizeBound) {
-      window.addEventListener('resize', onboardingLayout);
-      onboardingResizeBound = true;
-    }
   }
 
   function shouldShowOnboardingInProd() {
@@ -1970,10 +1753,10 @@
         </button>
         <div class="ext-proxy-actions">
           <button type="button" class="ext-proxy-icon-btn${favorite ? ' is-favorite' : ''}" onclick="toggleExtProxyFavorite('${id}')" aria-label="В избранное" title="В избранное">
-            <svg viewBox="0 0 24 24"><path d="M12 3.5l2.75 5.57 6.15.89-4.45 4.34 1.05 6.12L12 17.52 6.5 20.42l1.05-6.12L3.1 9.96l6.15-.89L12 3.5z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
           </button>
           <button type="button" class="ext-proxy-icon-btn" onclick="showExtProxyQr('${id}')" aria-label="Показать QR" title="Показать QR">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM17 17h4M14 20h3M20 14v3"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
           </button>
           <div class="ext-proxy-ping" id="${id}-ping">${_pingLabel(_displayPing(p)) || (favorite ? '★' : 'проверка…')}</div>
           <div class="ext-proxy-arrow">›</div>
