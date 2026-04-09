@@ -6,162 +6,1340 @@
   <title>TG WS Proxy</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+    :root {
+      --bg: #08090c;
+      --panel: rgba(18, 18, 24, 0.82);
+      --panel-strong: rgba(14, 15, 20, 0.94);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.14);
+      --text: rgba(255, 255, 255, 0.96);
+      --muted: rgba(255, 255, 255, 0.58);
+      --soft: rgba(255, 255, 255, 0.3);
+      --blue: #4fc3f7;
+      --blue-deep: #229ed9;
+      --green: #5fffd4;
+      --amber: #ffd166;
+      --purple: #c084fc;
+      --red: #ff7a7a;
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 18px;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+    }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body { min-height: 100%; }
+
     body {
       height: 100dvh;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100dvh;
+      font-family: 'Inter', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       color-scheme: dark;
-      background-color: #0f0f11;
-      color: #fff;
-      display: flex; flex-direction: column;
-      position: relative; overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
     }
 
     body::before {
       content: '';
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
       background:
-        radial-gradient(ellipse 110% 70% at 50% 108%, rgba(255,80,40,0.22) 0%, rgba(180,30,60,0.12) 28%, transparent 58%),
-        radial-gradient(ellipse 90% 65% at 8% 22%, rgba(0,200,255,0.14) 0%, transparent 52%),
-        radial-gradient(ellipse 75% 60% at 92% 18%, rgba(200,80,255,0.12) 0%, transparent 50%),
-        linear-gradient(180deg, #0a0a0c 0%, #0f0f11 45%, #080809 100%);
+        radial-gradient(ellipse 115% 78% at 50% 108%, rgba(255, 80, 40, 0.24) 0%, rgba(180, 30, 60, 0.14) 26%, transparent 58%),
+        radial-gradient(ellipse 88% 62% at 8% 18%, rgba(0, 200, 255, 0.16) 0%, transparent 52%),
+        radial-gradient(ellipse 76% 54% at 92% 14%, rgba(200, 80, 255, 0.13) 0%, transparent 52%),
+        radial-gradient(circle at 72% 82%, rgba(80, 40, 220, 0.12) 0%, transparent 24%),
+        linear-gradient(180deg, #06070a 0%, #0d0f15 44%, #07080a 100%);
     }
+
     body::after {
       content: '';
-      position: fixed; inset: 0; z-index: 9998; pointer-events: none; opacity: 0.045;
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      pointer-events: none;
+      opacity: 0.045;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
+
     body > * { position: relative; z-index: 1; }
 
-    /* ── Header ── */
     .header {
-      padding: 14px 18px 16px;
-      display: flex; align-items: center; gap: 14px;
-      background: rgba(10,10,12,0.6);
+      padding: max(14px, env(safe-area-inset-top)) 18px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(10, 10, 14, 0.56);
       backdrop-filter: blur(20px) saturate(1.2);
       -webkit-backdrop-filter: blur(20px) saturate(1.2);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
       flex-shrink: 0;
     }
-    .hicon img { width: 40px; height: 40px; display: block; object-fit: contain; border-radius: 10px; }
-    .htitle { color: #fff; font-size: 16px; font-weight: 700; letter-spacing: -0.03em; }
-    .hsub { color: rgba(255,255,255,0.45); font-size: 11px; font-weight: 500; margin-top: 3px; }
-    .header-right { margin-left: auto; flex-shrink: 0; }
+
+    .hicon img {
+      width: 42px;
+      height: 42px;
+      display: block;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+
+    .htitle {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .hsub {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.44);
+      margin-top: 3px;
+      letter-spacing: 0.01em;
+    }
+
+    .header-right { margin-left: auto; }
+
     .header-back {
-      display: none; align-items: center; gap: 6px;
-      background: none; border: none; color: rgba(255,255,255,0.55);
-      font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0;
-    }
-    .header-back svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-
-    /* ── Pages ── */
-    .page { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-    .page.active { display: flex; }
-
-    .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    .content { padding: 24px 16px max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 18px; max-width: 480px; margin: 0 auto; }
-
-    /* ── Hero ── */
-    .hero { text-align: center; padding: 6px 0 2px; }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(34,158,217,0.15); border: 1px solid rgba(34,158,217,0.3);
-      border-radius: 100px; padding: 5px 12px;
-      font-size: 11px; font-weight: 700; color: #4fc3f7;
-      letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 16px;
-    }
-    .hero-title {
-      font-size: 32px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 12px;
-    }
-    .hero-title span {
-      background: linear-gradient(135deg, #229ED9 0%, #a855f7 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .hero-sub { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.52); line-height: 1.55; max-width: 300px; margin: 0 auto; }
-
-    /* ── Features ── */
-    .feature-row {
-      display: flex; align-items: center; gap: 14px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px; padding: 14px 16px;
-    }
-    .feature-icon { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-    .feature-icon svg { width: 20px; height: 20px; fill: currentColor; }
-    .feature-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
-    .feature-sub { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.45); line-height: 1.4; }
-
-    /* ── Buttons ── */
-    .btn-download {
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      width: 100%; padding: 15px; border-radius: 18px; border: none;
-      background: linear-gradient(180deg, #229ED9 0%, #1565c0 100%);
-      color: #fff; font-size: 15px; font-weight: 700; letter-spacing: -0.02em;
-      cursor: pointer; text-decoration: none;
-      box-shadow: 0 0 32px rgba(34,158,217,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
-    }
-    .btn-download:active { opacity: 0.85; }
-    .btn-download svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-
-    .btn-secondary {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      width: 100%; padding: 13px; border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.09);
-      background: rgba(255,255,255,0.04);
-      color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.72);
+      border-radius: 14px;
+      padding: 11px 13px;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
     }
-    .btn-secondary:active { opacity: 0.7; }
-    .btn-secondary svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
-    .download-hint { text-align: center; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.22); margin-top: -10px; }
-
-    /* ── Wi-Fi note ── */
-    .wifi-note {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.22);
+    .header-back svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
-    .wifi-note svg { opacity: 0.6; flex-shrink: 0; }
 
-    /* ── Proxy page ── */
-    .proxy-list { display: flex; flex-direction: column; gap: 6px; }
-    .proxy-item {
+    .page {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .page.active { display: flex; }
+
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      min-height: 0;
+    }
+
+    .content {
+      width: min(100%, 560px);
+      margin: 0 auto;
+      padding: 32px 16px max(56px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 84px;
+    }
+
+    .content.content-flow {
+      gap: 36px;
+      padding-top: 24px;
+      padding-bottom: 24px;
+    }
+
+    #page-proxies .content {
+      gap: 28px;
+    }
+
+    .docs-screen {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+    }
+
+    .docs-screen.is-active {
+      display: flex;
+    }
+
+    .docs-onboarding {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      background: #000;
+      overflow: hidden;
+    }
+
+    #screen-start.is-active .docs-onboarding {
+      animation: onb-screen-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes onb-screen-enter {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #onb-gradient-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    #onb-grad-a, #onb-grad-b {
+      position: absolute;
+      inset: 0;
+      transition: opacity 0.65s ease;
+    }
+
+    #onb-grad-b { opacity: 0; }
+
+    #onb-visual {
+      position: absolute;
+      left: 0; right: 0;
+      top: 0;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 260px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 0 24px;
+    }
+
+    .onb-ui { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 300px; }
+    .onb-ui-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px; padding: 14px 16px;
       display: flex; align-items: center; gap: 12px;
-      padding: 12px 14px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 16px; text-decoration: none; color: inherit;
+    }
+    .onb-ui-row {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 13px; padding: 11px 13px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .onb-ui-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+    .onb-ui-toggle {
+      width: 50px; height: 28px; border-radius: 14px; position: relative; flex-shrink: 0; overflow: hidden;
+    }
+    .onb-ui-thumb {
+      position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%;
+      top: 50%; transform: translateY(-50%);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    }
+    .onb-ui-label { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.88); }
+    .onb-ui-sub { font-size: 11px; font-weight: 500; margin-top: 2px; }
+
+    #onb-text-wrap {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 108px);
+      padding: 0 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    #onb-curr-text {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.18;
+      color: #fff;
+      transition: opacity 0.25s ease;
+    }
+
+    .onb-inline-icon {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      vertical-align: middle;
+      position: relative;
+      top: -2px;
+      margin: 0 3px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    #onb-footer {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+      left: 28px;
+      right: 28px;
+    }
+
+    #onb-next-btn {
+      width: 100%;
+      padding: 18px 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       -webkit-tap-highlight-color: transparent;
     }
-    .proxy-item:active { background: rgba(255,255,255,0.08); }
-    .proxy-flag { font-size: 22px; flex-shrink: 0; line-height: 1; }
-    .proxy-info { flex: 1; min-width: 0; }
-    .proxy-server { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .proxy-meta { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.36); margin-top: 2px; }
-    .proxy-ping { font-size: 11px; font-weight: 700; flex-shrink: 0; min-width: 44px; text-align: right; color: rgba(255,255,255,0.28); }
-    .proxy-ping.fast { color: #5fffd4; }
-    .proxy-ping.ok   { color: #ffd166; }
-    .proxy-ping.slow { color: rgba(255,100,80,0.9); }
-    .proxy-arrow { font-size: 18px; color: rgba(255,255,255,0.25); flex-shrink: 0; }
-    .proxy-status { padding: 32px 18px; text-align: center; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.38); }
 
-    .refresh-btn {
-      display: flex; align-items: center; justify-content: center; gap: 7px;
-      width: 100%; padding: 12px; border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04);
-      color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 600; cursor: pointer;
+    #onb-next-btn:active { background: rgba(255,255,255,0.18); }
+    #onb-next-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .glass-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px) saturate(1.12);
+      -webkit-backdrop-filter: blur(20px) saturate(1.12);
     }
-    .refresh-btn:active { opacity: 0.7; }
-    .refresh-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-    .refresh-btn:disabled { opacity: 0.35; pointer-events: none; }
 
-    .proxy-hint { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.32); text-align: center; line-height: 1.5; }
+    .hero-shell {
+      position: relative;
+      padding: 18px 0 10px;
+    }
+
+    .hero-shell::before {
+      content: '';
+      position: absolute;
+      inset: -12% -8% auto;
+      height: 320px;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(79, 195, 247, 0.16) 0%, transparent 28%),
+        radial-gradient(circle at 88% 18%, rgba(109, 165, 255, 0.12) 0%, transparent 24%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 58%);
+      filter: blur(10px);
+    }
+
+    .hero-shell > * { position: relative; z-index: 1; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(79, 195, 247, 0.25);
+      background: rgba(34, 158, 217, 0.12);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    .hero-title {
+      margin-top: 18px;
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-size: clamp(34px, 9vw, 52px);
+      line-height: 0.98;
+      font-weight: 700;
+      letter-spacing: -0.06em;
+      max-width: 9ch;
+    }
+
+    .hero-title span {
+      background: linear-gradient(180deg, #9dd8ff 0%, #6bbcff 48%, #3da3f5 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      margin-top: 14px;
+      max-width: 32ch;
+      font-size: 15px;
+      line-height: 1.58;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .hero-points {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      align-items: start;
+    }
+
+    .hero-point {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      min-height: 46px;
+    }
+
+    .hero-point svg {
+      width: 15px;
+      height: 15px;
+      stroke: rgba(95, 255, 212, 0.92);
+      stroke-width: 2.2;
+      flex-shrink: 0;
+    }
+
+    .device-card {
+      margin-top: 28px;
+      padding: 16px;
+      border-radius: 24px;
+      background:
+        linear-gradient(165deg, rgba(13, 20, 38, 0.96) 0%, rgba(8, 13, 24, 0.96) 100%);
+      border: 1px solid rgba(100, 180, 255, 0.16);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 0 48px rgba(34, 158, 217, 0.12);
+      overflow: hidden;
+    }
+
+    .device-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .device-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .device-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 14px rgba(95, 255, 212, 0.7);
+    }
+
+    .device-ui {
+      display: grid;
+      gap: 10px;
+    }
+
+    .device-status,
+    .device-row {
+      border-radius: 18px;
+      padding: 14px 15px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .device-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(10, 50, 28, 0.56);
+      border-color: rgba(95, 255, 212, 0.2);
+      box-shadow: 0 0 34px rgba(20, 170, 120, 0.08);
+    }
+
+    .status-ring {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 80, 58, 0.8);
+      border: 1px solid rgba(95, 255, 212, 0.22);
+      flex-shrink: 0;
+    }
+
+    .status-ring::before {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 14px rgba(95, 255, 212, 0.75);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.68; transform: scale(0.88); }
+    }
+
+    .device-status strong,
+    .device-row strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .device-status span,
+    .device-row span {
+      display: block;
+      margin-top: 3px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.48);
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .feature-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .feature-section-title {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-size: 28px;
+      line-height: 1.02;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: rgba(255, 255, 255, 0.96);
+      margin-bottom: 8px;
+    }
+
+    .feature-section-sub {
+      max-width: 36ch;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 18px;
+    }
+
+    .glass-card {
+      padding: 18px;
+    }
+
+    .feature-card {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .feature-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.1;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .feature-card h3,
+    .compare-card h3,
+    .cta-panel h2,
+    .proxy-intro h2 {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      letter-spacing: -0.04em;
+    }
+
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    .feature-card p,
+    .compare-card p,
+    .proxy-intro p {
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .compare-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .compare-card {
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .compare-card h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .compare-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 14px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .compare-card > .compare-badge:first-child {
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+
+    .compare-badge.good {
+      background: rgba(95, 255, 212, 0.1);
+      border: 1px solid rgba(95, 255, 212, 0.18);
+      color: var(--green);
+    }
+
+    .compare-badge.warn {
+      background: rgba(255, 209, 102, 0.1);
+      border: 1px solid rgba(255, 209, 102, 0.18);
+      color: var(--amber);
+    }
+
+    .compare-actions {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .compare-download {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      text-decoration: none;
+      background: linear-gradient(180deg, #2db7f2 0%, #1565c0 100%);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      box-shadow: 0 0 24px rgba(34, 158, 217, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .compare-download svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .compare-download:active {
+      opacity: 0.9;
+      transform: scale(0.985);
+    }
+
+    .compare-open {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      cursor: pointer;
+    }
+
+    .compare-open svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .compare-open:active {
+      opacity: 0.9;
+      transform: scale(0.985);
+    }
+
+    .cta-stack {
+      display: grid;
+      gap: 24px;
+    }
+
+    .cta-panel,
+    .alt-panel {
+      position: relative;
+      overflow: hidden;
+      padding: 26px 22px 24px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px) saturate(1.12);
+      -webkit-backdrop-filter: blur(20px) saturate(1.12);
+    }
+
+    .cta-panel {
+      background:
+        linear-gradient(180deg, rgba(14,18,28,0.92) 0%, rgba(10,12,18,0.9) 100%);
+      box-shadow:
+        0 28px 70px rgba(0,0,0,0.36),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .cta-panel::before {
+      content: '';
+      position: absolute;
+      inset: -8% -10% auto;
+      height: 240px;
+      background:
+        radial-gradient(circle at 12% 24%, rgba(80, 220, 255, 0.18) 0%, transparent 34%),
+        radial-gradient(circle at 88% 12%, rgba(110, 80, 255, 0.18) 0%, transparent 28%);
+      pointer-events: none;
+    }
+
+    .cta-panel::after {
+      content: '';
+      position: absolute;
+      inset: auto -14% -34% 18%;
+      height: 220px;
+      background: radial-gradient(circle, rgba(34,158,217,0.22) 0%, transparent 66%);
+      pointer-events: none;
+    }
+
+    .cta-panel > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-kicker,
+    .secondary-access-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 6px 11px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .cta-kicker {
+      color: #7edcff;
+      background: rgba(34,158,217,0.12);
+      border: 1px solid rgba(79,195,247,0.2);
+    }
+
+    .cta-panel h2 {
+      margin-top: 14px;
+      font-size: clamp(32px, 7vw, 44px);
+      line-height: 0.98;
+      font-weight: 700;
+      margin-bottom: 12px;
+      max-width: 9.5ch;
+    }
+
+    .cta-panel p {
+      font-size: 15px;
+      line-height: 1.58;
+      color: var(--muted);
+      font-weight: 500;
+      max-width: 26ch;
+    }
+
+    .cta-actions {
+      margin-top: 24px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .cta-secondary {
+      margin-top: 12px;
+    }
+
+    .alt-panel {
+      display: grid;
+      gap: 22px;
+      padding-top: 30px;
+      background:
+        linear-gradient(180deg, rgba(22,16,22,0.9) 0%, rgba(14,12,18,0.92) 100%);
+      border-color: rgba(255, 214, 102, 0.12);
+      box-shadow:
+        0 24px 56px rgba(0,0,0,0.28),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .alt-panel::before {
+      content: '';
+      position: absolute;
+      inset: auto -20% -26% auto;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(255,120,80,0.14) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .alt-panel > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .secondary-access-head {
+      display: grid;
+      gap: 14px;
+    }
+
+    .secondary-access-kicker {
+      color: #ffd166;
+      background: rgba(255,209,102,0.1);
+      border: 1px solid rgba(255,209,102,0.18);
+    }
+
+    .secondary-access-title {
+      font-size: clamp(24px, 5vw, 32px);
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.94);
+      letter-spacing: -0.04em;
+      line-height: 1.04;
+    }
+
+    .secondary-access-text {
+      font-size: 15px;
+      line-height: 1.58;
+      color: var(--muted);
+      font-weight: 500;
+      max-width: 29ch;
+    }
+
+    .secondary-access-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .secondary-access-tag {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-download,
+    .btn-secondary,
+    .btn-ghost,
+    .refresh-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-download {
+      min-height: 0;
+      padding: 15px 16px;
+      border-radius: 18px;
+      border: none;
+      background:
+        linear-gradient(180deg, #4cc8ff 0%, #2289f0 52%, #1565c0 100%);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      box-shadow:
+        0 0 34px rgba(34, 158, 217, 0.28),
+        0 12px 28px rgba(21, 101, 192, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    }
+
+    .btn-secondary,
+    .btn-ghost,
+    .refresh-btn {
+      padding: 13px 15px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%);
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .btn-download:active,
+    .btn-secondary:active,
+    .btn-ghost:active,
+    .refresh-btn:active {
+      opacity: 0.9;
+      transform: scale(0.985);
+    }
+
+    .btn-download svg,
+    .btn-secondary svg,
+    .btn-ghost svg,
+    .refresh-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .hero-actions {
+      margin-top: 24px;
+      display: block;
+    }
+
+    .btn-ghost {
+      width: 100%;
+      background: linear-gradient(180deg, #2db7f2 0%, #1565c0 100%);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 0 28px rgba(34, 158, 217, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .download-hint,
+    .wifi-note,
+    .proxy-hint {
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.32);
+      font-weight: 600;
+    }
+
+    .download-hint {
+      margin-top: 14px;
+    }
+
+    .wifi-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin-top: 18px;
+      color: rgba(255,255,255,0.42);
+    }
+
+    .wifi-note svg {
+      width: 13px;
+      height: 13px;
+      opacity: 0.65;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .proxy-intro h2 {
+      margin-top: 14px;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 12px;
+      max-width: 14ch;
+    }
+
+    .proxy-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .proxy-list-spacer {
+      width: 100%;
+      flex: 0 0 auto;
+      pointer-events: none;
+    }
+
+    .proxy-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 18px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .proxy-item:active {
+      background: rgba(255, 255, 255, 0.08);
+      transform: scale(0.995);
+    }
+
+    .proxy-flag {
+      font-size: 22px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .proxy-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .proxy-server {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.94);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.02em;
+    }
+
+    .proxy-meta {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.38);
+      margin-top: 3px;
+    }
+
+    .proxy-ping {
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+      min-width: 44px;
+      text-align: right;
+      color: rgba(255, 255, 255, 0.28);
+    }
+
+    .proxy-ping.fast { color: var(--green); }
+    .proxy-ping.ok { color: var(--amber); }
+    .proxy-ping.slow { color: rgba(255, 100, 80, 0.9); }
+    .proxy-ping.dead { color: rgba(255, 255, 255, 0.18); }
+
+    .proxy-qr-btn {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.62);
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .proxy-qr-btn:active {
+      transform: scale(0.97);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .proxy-qr-btn svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .proxy-arrow {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.24);
+      flex-shrink: 0;
+    }
+
+    .proxy-status {
+      padding: 32px 18px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.38);
+    }
+
+    .qr-frame {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      height: fit-content;
+      margin: 0 auto;
+      padding: 16px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #f4f6fa;
+      box-shadow:
+        0 0 40px rgba(0,200,255,0.15),
+        0 12px 40px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,1);
+      overflow: hidden;
+    }
+
+    .qr-svg-host {
+      display: none;
+      width: 176px;
+      height: 176px;
+      line-height: 0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .qr-svg-host.visible { display: block; }
+
+    .qr-svg-host svg {
+      display: block;
+      width: 176px;
+      height: 176px;
+      border-radius: 12px;
+    }
+
+    .qr-placeholder {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(40,45,55,0.65);
+      text-align: center;
+      line-height: 1.35;
+      padding: 0 12px;
+    }
+
+    .qr-placeholder.hidden {
+      display: none !important;
+      visibility: hidden;
+      height: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .qr-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10020;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+
+    .qr-modal.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .qr-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(4, 6, 10, 0.72);
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+
+    .qr-modal.is-open .qr-modal-backdrop { opacity: 1; }
+
+    .qr-modal-panel {
+      position: relative;
+      width: min(100%, 560px);
+      margin: 0 12px 12px;
+      padding: 18px 18px 22px;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(14, 15, 20, 0.96);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+      transform: translateY(24px) scale(0.98);
+      opacity: 0;
+      transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
+    }
+
+    .qr-modal.is-open .qr-modal-panel {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .qr-modal-header {
+      display: grid;
+      grid-template-columns: 40px 1fr 40px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .qr-modal-header-spacer {
+      width: 40px;
+      height: 40px;
+    }
+
+    .qr-modal-title {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      text-align: center;
+      color: rgba(255,255,255,0.95);
+    }
+
+    .qr-modal-close {
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.82);
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .qr-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .qr-modal-copy {
+      width: 100%;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #4cc8ff 0%, #2289f0 52%, #1565c0 100%);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      cursor: pointer;
+      box-shadow:
+        0 0 28px rgba(34, 158, 217, 0.24),
+        0 10px 24px rgba(21, 101, 192, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.24);
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .qr-modal-copy:active {
+      transform: scale(0.985);
+      opacity: 0.92;
+    }
+
+    .qr-modal-link {
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.5;
+      color: rgba(255,255,255,0.48);
+      word-break: break-all;
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    @media (min-width: 640px) {
+      .content { padding-left: 20px; padding-right: 20px; }
+      .feature-grid,
+      .compare-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 420px) {
+      .device-grid { grid-template-columns: 1fr; }
+      .hero-title { max-width: none; }
+      .cta-panel h2,
+      .proxy-intro h2 { max-width: none; }
+    }
   </style>
 </head>
 <body>
-
   <div class="header">
     <div class="hicon">
       <img src="https://raw.githubusercontent.com/rafael-mansurov/tg-ws-proxy-android/main/icon.png" alt="" />
@@ -178,79 +1356,83 @@
     </div>
   </div>
 
-  <!-- Главная страница -->
   <div class="page active" id="page-main">
-    <div class="scroll">
-      <div class="content">
-
-        <div class="hero">
-          <div class="hero-badge">
-            <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor"><path d="M224,56v56c0,52.72-25.52,84.67-46.93,102.19-23.06,18.86-46,25.27-47,25.53a8,8,0,0,1-4.2,0c-1-.26-23.91-6.67-47-25.53C57.52,196.67,32,164.72,32,112V56A16,16,0,0,1,48,40H208A16,16,0,0,1,224,56Z"/></svg>
-            Без серверов и регистрации
-          </div>
-          <div class="hero-title">Telegram без<br><span>блокировок</span></div>
-          <div class="hero-sub">Прокси работает прямо на твоём телефоне — никаких сторонних серверов</div>
+    <div class="docs-screen" id="screen-start">
+      <div class="docs-onboarding">
+        <div id="onb-gradient-layer">
+          <div id="onb-grad-a"></div>
+          <div id="onb-grad-b"></div>
         </div>
-
-        <div class="feature-row">
-          <div class="feature-icon" style="background:rgba(34,158,217,0.15);color:#4fc3f7">
-            <svg viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm-80,84a12,12,0,1,1,12-12A12,12,0,0,1,128,164Zm32-84H96V56a32,32,0,0,1,64,0Z"/></svg>
-          </div>
-          <div>
-            <div class="feature-title">Локально на устройстве</div>
-            <div class="feature-sub">Твои данные не покидают телефон</div>
-          </div>
+        <div id="onb-visual"></div>
+        <div id="onb-text-wrap">
+          <div id="onb-curr-text"></div>
         </div>
-
-        <div class="feature-row">
-          <div class="feature-icon" style="background:rgba(168,85,247,0.15);color:#c084fc">
-            <svg viewBox="0 0 256 256"><path d="M208,40H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40ZM180,92a12,12,0,1,1,12-12A12,12,0,0,1,180,92Z"/><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm-28,52a12,12,0,1,1,12-12A12,12,0,0,1,180,188Z"/></svg>
-          </div>
-          <div>
-            <div class="feature-title">MTProto-прокси</div>
-            <div class="feature-sub">Официальный протокол Telegram — быстро и стабильно</div>
-          </div>
+        <div id="onb-footer">
+          <button type="button" id="onb-next-btn" onclick="onboardingNext()">Далее</button>
         </div>
+      </div>
+    </div>
 
-        <div class="feature-row">
-          <div class="feature-icon" style="background:rgba(34,197,94,0.15);color:#4ade80">
-            <svg viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
-          </div>
-          <div>
-            <div class="feature-title">Один тап — готово</div>
-            <div class="feature-sub">Включи тумблер, открой Telegram — он подключится сам</div>
-          </div>
+    <div class="docs-screen is-active" id="screen-landing">
+      <div class="scroll">
+        <div class="content content-flow">
+          <section class="cta-stack">
+            <div class="cta-panel">
+              <div class="cta-kicker">Быстрый запуск</div>
+              <h2>Скачай APK или открой внешние прокси</h2>
+              <p>Если ставить приложение удобно, скачай APK. Если нет, ниже есть публичные внешние прокси для Telegram.</p>
+
+              <div class="cta-actions">
+                <a class="btn-download" href="https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk" target="_blank">
+                  <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Скачать APK
+                </a>
+              </div>
+
+              <div class="cta-secondary">
+                <button class="btn-secondary" type="button" onclick="openOnboardingScreen()">
+                  Как это работает
+                </button>
+              </div>
+
+              <div class="wifi-note">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/>
+                </svg>
+                Локальный режим работает через Wi-Fi
+              </div>
+            </div>
+
+            <div class="alt-panel">
+              <div class="secondary-access-head">
+                <div class="secondary-access-kicker">Если APK не подходит</div>
+                <div class="secondary-access-title">Внешние прокси для iPhone и тех, кто не хочет ставить приложение</div>
+                <div class="secondary-access-text">Это публичные MTProto-серверы. Они пригодятся на iOS или если хочешь подключить Telegram без установки TG WS Proxy.</div>
+                <div class="secondary-access-tags">
+                  <div class="secondary-access-tag">iPhone / iPad</div>
+                  <div class="secondary-access-tag">Без установки APK</div>
+                </div>
+              </div>
+              <button class="btn-secondary" onclick="showPage('proxies')">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Открыть внешние прокси
+              </button>
+            </div>
+          </section>
         </div>
-
-        <a class="btn-download"
-           href="https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk"
-           target="_blank">
-          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Скачать APK
-        </a>
-        <div class="download-hint">Android 8.0+ · бесплатно</div>
-
-        <button class="btn-secondary" onclick="showPage('proxies')">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          Внешние прокси
-        </button>
-
-        <div class="wifi-note">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/>
-          </svg>
-          Работает только через Wi-Fi
-        </div>
-
       </div>
     </div>
   </div>
 
-  <!-- Страница внешних прокси -->
   <div class="page" id="page-proxies">
     <div class="scroll">
       <div class="content">
+        <section class="proxy-intro">
+          <div class="cta-kicker">Публичные серверы</div>
+          <h2>Внешние MTProto-прокси</h2>
+          <p>Выбери любой вариант из списка, и Telegram применит его автоматически.</p>
+        </section>
 
         <div id="proxy-list" class="proxy-list">
           <div class="proxy-status">Загрузка…</div>
@@ -258,27 +1440,307 @@
 
         <button class="refresh-btn" id="refresh-btn" onclick="loadProxies()">
           <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
-          Обновить
+          Обновить список
         </button>
 
-        <div class="proxy-hint">Нажми на прокси — Telegram применит его автоматически.<br>Работают на Wi-Fi и мобильном интернете.</div>
+        <div class="proxy-hint">Работают на Wi-Fi и мобильном интернете. Выбирай любой вариант и подключай Telegram в один тап.</div>
+      </div>
+    </div>
+</div>
 
+  <div id="qr-modal" class="qr-modal" aria-hidden="true">
+    <div class="qr-modal-backdrop" onclick="closeQrModal()"></div>
+    <div class="qr-modal-panel" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+      <div class="qr-modal-header">
+        <span class="qr-modal-header-spacer" aria-hidden="true"></span>
+        <h2 class="qr-modal-title" id="qr-modal-title">QR для Telegram</h2>
+        <button type="button" class="qr-modal-close" onclick="closeQrModal()" aria-label="Закрыть">×</button>
+      </div>
+      <div class="qr-modal-body">
+        <div class="qr-frame">
+          <div id="qr-modal-svg-host" class="qr-svg-host"></div>
+          <div class="qr-placeholder" id="qr-modal-placeholder">Загрузка QR…</div>
+        </div>
+        <button type="button" class="qr-modal-copy" id="qr-modal-copy-btn" onclick="copyQrLink()">Скопировать ссылку</button>
+        <div class="qr-modal-link" id="qr-modal-link"></div>
       </div>
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
   <script>
     if (window.Telegram?.WebApp) {
       Telegram.WebApp.ready();
       Telegram.WebApp.expand();
     }
 
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+    const _ONB_ICON = {
+      lock:   `<svg class="onb-inline-icon" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+      server: `<svg class="onb-inline-icon" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>`,
+      check:  `<svg class="onb-inline-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+      shield: `<svg class="onb-inline-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+      globe:  `<svg class="onb-inline-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+      start:  `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`,
+    };
+
+    const _ONB_VISUAL = {
+      block: `<div class="onb-ui">
+        <div class="onb-ui-card" style="border-color:rgba(255,60,60,0.2);background:rgba(80,10,10,0.5)">
+          <div class="onb-ui-dot" style="background:rgba(255,60,60,0.85);box-shadow:0 0 8px rgba(255,60,60,0.6)"></div>
+          <div style="flex:1">
+            <div class="onb-ui-label">Остановлен</div>
+            <div class="onb-ui-sub" style="color:rgba(255,120,120,0.6)">Telegram недоступен</div>
+          </div>
+          <div class="onb-ui-toggle" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1)">
+            <div class="onb-ui-thumb" style="left:2px;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>
+          </div>
+        </div>
+        <div class="onb-ui-row" style="border-color:rgba(255,60,60,0.15)">
+          <i data-lucide="ban" style="width:14px;height:14px;color:rgba(255,100,100,0.75);flex-shrink:0"></i>
+          <div class="onb-ui-sub" style="color:rgba(255,140,140,0.7);font-size:12px;font-weight:600">Соединение заблокировано провайдером</div>
+        </div>
+        <div class="onb-ui-row" style="opacity:0.5">
+          <i data-lucide="ban" style="width:14px;height:14px;color:rgba(255,100,100,0.75);flex-shrink:0"></i>
+          <div class="onb-ui-sub" style="color:rgba(255,140,140,0.5);font-size:12px;font-weight:600">Нет доступа к серверам Telegram</div>
+        </div>
+      </div>`,
+      server: `<div class="onb-ui">
+        <div class="onb-ui-card" style="border-color:rgba(255,255,255,0.08);background:rgba(8,24,80,0.4)">
+          <div class="onb-ui-dot" style="background:rgba(255,255,255,0.2)"></div>
+          <div style="flex:1">
+            <div class="onb-ui-label">Остановлен</div>
+            <div class="onb-ui-sub" style="color:rgba(100,180,255,0.5)">Включите тумблер для запуска</div>
+          </div>
+          <div class="onb-ui-toggle" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1)">
+            <div class="onb-ui-thumb" style="left:3px"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="onb-ui-row" style="flex:1;flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.2)">
+            <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Сервер</div>
+            <div class="onb-ui-label" style="font-size:12px;color:rgba(100,180,255,0.85)">127.0.0.1</div>
+          </div>
+          <div class="onb-ui-row" style="flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.15)">
+            <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Порт</div>
+            <div class="onb-ui-label" style="font-size:12px;color:rgba(100,180,255,0.85)">1443</div>
+          </div>
+        </div>
+        <div class="onb-ui-row" style="flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.12)">
+          <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Secret</div>
+          <div class="onb-ui-label" style="font-size:11px;letter-spacing:0.04em;color:rgba(100,180,255,0.5)">ee••••••••••••••••••••••••••••••</div>
+        </div>
+      </div>`,
+      toggle: `<div class="onb-ui">
+        <div class="onb-ui-card" style="border-color:rgba(34,200,80,0.3);background:rgba(8,50,20,0.55);box-shadow:0 0 30px rgba(34,200,80,0.08)">
+          <div class="onb-ui-dot" style="background:rgba(34,220,90,0.9);box-shadow:0 0 10px rgba(34,220,90,0.7)"></div>
+          <div style="flex:1">
+            <div class="onb-ui-label">Работает</div>
+            <div class="onb-ui-sub" style="color:rgba(80,220,110,0.65)">Telegram подключился</div>
+          </div>
+          <div class="onb-ui-toggle" style="background:#229ED9;box-shadow:0 0 14px rgba(34,158,217,0.45)">
+            <div class="onb-ui-thumb" style="left:25px"></div>
+          </div>
+        </div>
+        <div class="onb-ui-row" style="border-color:rgba(34,200,80,0.12);justify-content:space-between">
+          <div class="onb-ui-sub" style="color:rgba(255,255,255,0.4);font-size:11px">Клиентов подключено</div>
+          <div class="onb-ui-label" style="font-size:13px;color:rgba(80,220,110,0.8)">1</div>
+        </div>
+        <div class="onb-ui-row" style="opacity:0.5;justify-content:space-between">
+          <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:11px">Трафик</div>
+          <div class="onb-ui-label" style="font-size:12px;color:rgba(255,255,255,0.5)">2.4 МБ</div>
+        </div>
+      </div>`,
+      proxies: `<div class="onb-ui">
+        <div class="onb-ui-row" style="border-color:rgba(255,200,80,0.18)">
+          <span style="font-size:20px;line-height:1;flex-shrink:0">🇩🇪</span>
+          <div style="flex:1;min-width:0">
+            <div class="onb-ui-label" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">91.108.56.130:443</div>
+            <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">DE · FakeTLS</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:#5fffd4">48мс</span>
+          <span style="color:rgba(255,255,255,0.25);font-size:16px">›</span>
+        </div>
+        <div class="onb-ui-row" style="border-color:rgba(255,200,80,0.1)">
+          <span style="font-size:20px;line-height:1;flex-shrink:0">🇳🇱</span>
+          <div style="flex:1;min-width:0">
+            <div class="onb-ui-label" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">149.154.175.50:443</div>
+            <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">NL · FakeTLS</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:#ffd166">210мс</span>
+          <span style="color:rgba(255,255,255,0.25);font-size:16px">›</span>
+        </div>
+        <div class="onb-ui-row" style="opacity:0.45">
+          <span style="font-size:20px;line-height:1;flex-shrink:0">🇫🇮</span>
+          <div style="flex:1;min-width:0">
+            <div class="onb-ui-label" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">95.161.76.100:443</div>
+            <div class="onb-ui-sub" style="color:rgba(255,255,255,0.3);font-size:10px">FI · FakeTLS</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.25)">—</span>
+          <span style="color:rgba(255,255,255,0.15);font-size:16px">›</span>
+        </div>
+      </div>`,
+      shield: `<div style="position:relative;width:100%;max-width:300px;height:200px">
+        <div style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(95,50,215,0.28) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:7px">
+          <div style="width:68px;height:68px;border-radius:20px;background:rgba(42,18,105,0.8);border:1.5px solid rgba(110,65,225,0.38);box-shadow:0 0 0 10px rgba(80,38,190,0.07),0 12px 36px rgba(80,40,200,0.28);display:flex;align-items:center;justify-content:center">
+            <i data-lucide="lock" style="width:30px;height:30px;color:rgba(178,142,255,0.97)"></i>
+          </div>
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.07em;color:rgba(165,132,255,0.5);text-transform:uppercase">Прокси</div>
+        </div>
+        <div style="position:absolute;left:6%;top:22%;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="width:44px;height:44px;border-radius:13px;background:rgba(38,18,88,0.7);border:1px solid rgba(100,62,200,0.22);box-shadow:0 6px 18px rgba(70,32,170,0.2);display:flex;align-items:center;justify-content:center">
+            <i data-lucide="smartphone" style="width:20px;height:20px;color:rgba(158,126,255,0.82)"></i>
+          </div>
+          <div style="font-size:9px;font-weight:600;color:rgba(168,142,255,0.42)">Вы</div>
+        </div>
+        <div style="position:absolute;right:6%;top:22%;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="width:44px;height:44px;border-radius:13px;background:rgba(14,42,118,0.6);border:1px solid rgba(52,100,225,0.22);box-shadow:0 6px 18px rgba(30,70,200,0.18);display:flex;align-items:center;justify-content:center">
+            <i data-lucide="send" style="width:20px;height:20px;color:rgba(88,155,255,0.88)"></i>
+          </div>
+          <div style="font-size:9px;font-weight:600;color:rgba(130,178,255,0.42)">Telegram</div>
+        </div>
+        <div style="position:absolute;top:2%;right:4%;opacity:0.28;display:flex;flex-direction:column;align-items:center;gap:3px">
+          <i data-lucide="cloud-off" style="width:17px;height:17px;color:rgba(255,85,85,0.9)"></i>
+          <div style="font-size:8px;font-weight:600;color:rgba(255,100,100,0.5);white-space:nowrap">нет серверов</div>
+        </div>
+        <div style="position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(125,85,255,0.35);top:16%;left:40%"></div>
+        <div style="position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(85,125,255,0.25);top:58%;right:22%"></div>
+        <div style="position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(125,85,255,0.2);bottom:22%;left:24%"></div>
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);white-space:nowrap;display:flex;align-items:center;gap:6px;background:rgba(16,100,45,0.18);border:1px solid rgba(34,180,80,0.18);border-radius:20px;padding:6px 14px">
+          <div style="width:5px;height:5px;border-radius:50%;background:#22dc5a;box-shadow:0 0 8px rgba(34,220,90,0.7);flex-shrink:0"></div>
+          <span style="font-size:10px;color:rgba(80,205,112,0.88);font-weight:700;letter-spacing:0.01em">Данные не покидают телефон</span>
+        </div>
+      </div>`,
+    };
+
+    const _ONB_STEPS = [
+      {
+        visual: _ONB_VISUAL.block,
+        html: `Провайдеры и&nbsp;государство научились блокировать ${_ONB_ICON.lock} Telegram на&nbsp;уровне сети`,
+        gradient: 'linear-gradient(to top, rgba(120,20,20,1) 0%, rgba(80,10,10,0.8) 35%, rgba(40,5,5,0.4) 60%, transparent 80%)',
+        btnText: 'Далее', btnIcon: null,
+      },
+      {
+        visual: _ONB_VISUAL.server,
+        html: `Это приложение поднимает MTProto&#8209;прокси ${_ONB_ICON.server} прямо на твоём телефоне — без серверов, без регистраций`,
+        gradient: 'linear-gradient(to top, rgba(15,40,140,1) 0%, rgba(8,24,100,0.8) 35%, rgba(4,12,60,0.4) 60%, transparent 80%)',
+        btnText: 'Далее', btnIcon: null,
+      },
+      {
+        visual: _ONB_VISUAL.toggle,
+        html: `Включи тумблер, дождись зелёного ${_ONB_ICON.check} и открой Telegram — он подключится сам`,
+        gradient: 'linear-gradient(to top, rgba(15,90,35,1) 0%, rgba(8,60,20,0.8) 35%, rgba(4,30,10,0.4) 60%, transparent 80%)',
+        btnText: 'Далее', btnIcon: null,
+      },
+      {
+        visual: _ONB_VISUAL.proxies,
+        html: `Не работает? Есть список публичных прокси ${_ONB_ICON.globe} — чужие серверы, зато на любом интернете`,
+        gradient: 'linear-gradient(to top, rgba(140,80,10,1) 0%, rgba(100,55,5,0.8) 35%, rgba(60,30,2,0.4) 60%, transparent 80%)',
+        btnText: 'Далее', btnIcon: null,
+      },
+      {
+        visual: _ONB_VISUAL.shield,
+        html: `Всё работает локально ${_ONB_ICON.shield} — твои данные не покидают телефон`,
+        gradient: 'linear-gradient(to top, rgba(70,15,120,1) 0%, rgba(50,8,90,0.8) 35%, rgba(25,4,50,0.4) 60%, transparent 80%)',
+        btnText: 'Начать', btnIcon: 'start',
+      },
+    ];
+
+    let onboardingStep = 0;
+    let _onbGradActive = 'a';
+
     function showPage(name) {
       document.getElementById('page-main').classList.toggle('active', name === 'main');
       document.getElementById('page-proxies').classList.toggle('active', name === 'proxies');
       document.getElementById('back-btn').style.display = name === 'proxies' ? 'flex' : 'none';
       if (name === 'proxies' && !_loaded) loadProxies();
+      if (name === 'proxies' && _loaded) _queueProxyVirtualRender(true);
     }
+
+    function onboardingRender(animate) {
+      const step = _ONB_STEPS[onboardingStep];
+      if (!step) return;
+
+      const gradA = document.getElementById('onb-grad-a');
+      const gradB = document.getElementById('onb-grad-b');
+      if (gradA && gradB) {
+        const nextLyr = _onbGradActive === 'a' ? 'b' : 'a';
+        const nextEl = nextLyr === 'a' ? gradA : gradB;
+        const prevEl = nextLyr === 'a' ? gradB : gradA;
+        nextEl.style.background = step.gradient;
+        nextEl.style.opacity = '1';
+        prevEl.style.opacity = '0';
+        _onbGradActive = nextLyr;
+      }
+
+      const currEl = document.getElementById('onb-curr-text');
+      const visualEl = document.getElementById('onb-visual');
+      if (animate) {
+        if (currEl) currEl.style.opacity = '0';
+        if (visualEl) visualEl.style.opacity = '0';
+        setTimeout(() => {
+          if (currEl) { currEl.innerHTML = step.html; currEl.offsetHeight; currEl.style.opacity = '1'; }
+          if (visualEl) { visualEl.innerHTML = step.visual || ''; visualEl.offsetHeight; visualEl.style.opacity = '1'; if (window.lucide) lucide.createIcons(); }
+        }, 280);
+      } else {
+        if (currEl) { currEl.style.opacity = '1'; currEl.innerHTML = step.html; }
+        if (visualEl) { visualEl.style.opacity = '1'; visualEl.innerHTML = step.visual || ''; if (window.lucide) lucide.createIcons(); }
+      }
+
+      const btn = document.getElementById('onb-next-btn');
+      if (btn) {
+        const iconHtml = step.btnIcon ? _ONB_ICON[step.btnIcon] : '';
+        btn.innerHTML = iconHtml + step.btnText;
+      }
+    }
+
+    function onboardingNext() {
+      if (onboardingStep >= _ONB_STEPS.length - 1) {
+        openLandingScreen();
+        return;
+      }
+      onboardingStep += 1;
+      onboardingRender(true);
+    }
+
+    function openLandingScreen() {
+      document.getElementById('screen-start').classList.remove('is-active');
+      document.getElementById('screen-landing').classList.add('is-active');
+    }
+
+    function openOnboardingScreen() {
+      document.getElementById('screen-landing').classList.remove('is-active');
+      document.getElementById('screen-start').classList.add('is-active');
+      initOnboardingScreen();
+    }
+
+    function initOnboardingScreen() {
+      onboardingStep = 0;
+      _onbGradActive = 'b';
+      const gradA = document.getElementById('onb-grad-a');
+      const gradB = document.getElementById('onb-grad-b');
+      if (gradA) {
+        gradA.style.transition = 'none';
+        gradA.style.background = _ONB_STEPS[0].gradient;
+        gradA.style.opacity = '0';
+      }
+      if (gradB) {
+        gradB.style.transition = 'none';
+        gradB.style.opacity = '0';
+      }
+      requestAnimationFrame(() => {
+        if (gradA) gradA.style.transition = '';
+        if (gradB) gradB.style.transition = '';
+      });
+      onboardingRender(false);
+    }
+
+    initOnboardingScreen();
 
     const SOURCES = [
       { url: 'https://mtprobe.cyou/search?ee_mask=true&max_ping=350&limit=120&offset=0&search=&no_mask=false&dd_mask=false', type: 'json_mtprobe' },
@@ -290,73 +1752,364 @@
     ];
 
     let _loaded = false;
+    let _proxyList = [];
+    let _proxyPingRun = 0;
+    let _proxyVirtualQueued = false;
+    let _proxySortQueued = false;
+    const _proxyVirtual = {
+      rowHeight: 76,
+      gap: 8,
+      overscan: 6,
+      start: 0,
+      end: 0,
+    };
+    let _qrModalLink = null;
+    let _qrModalTitle = 'QR для Telegram';
 
     function _flag(code) {
       if (!code || code.length !== 2) return '🌐';
       return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
     }
+
     function _isEe(p) {
       return p?.maskType === 'ee_mask' || (typeof p?.secret === 'string' && p.secret.toLowerCase().startsWith('ee'));
     }
+
     function _proxyLink(p) {
       return `tg://proxy?server=${encodeURIComponent(p.host)}&port=${p.port}&secret=${p.secret}`;
     }
+
+    function showProxyQr(host, port, secret) {
+      openQrModal(`tg://proxy?server=${encodeURIComponent(host)}&port=${port}&secret=${secret}`, `QR для ${host}:${port}`);
+    }
+
+    function renderQrModal() {
+      const host = document.getElementById('qr-modal-svg-host');
+      const ph = document.getElementById('qr-modal-placeholder');
+      const linkEl = document.getElementById('qr-modal-link');
+      if (!host || !ph) return;
+      host.innerHTML = '';
+      host.classList.remove('visible');
+      ph.classList.remove('hidden');
+      ph.textContent = 'Загрузка QR…';
+      if (linkEl) linkEl.textContent = _qrModalLink || '';
+      if (!_qrModalLink) return;
+      if (typeof QRCode === 'undefined') {
+        ph.textContent = 'QR недоступен';
+        return;
+      }
+      QRCode.toString(_qrModalLink, { type: 'svg', width: 176, margin: 2, color: { dark: '#0f172a', light: '#f8fafc' } }, (err, svg) => {
+        if (err) {
+          ph.textContent = 'Ошибка QR';
+          return;
+        }
+        host.innerHTML = svg;
+        host.classList.add('visible');
+        ph.classList.add('hidden');
+      });
+    }
+
+    function openQrModal(link, title = 'QR для Telegram') {
+      const modal = document.getElementById('qr-modal');
+      const titleEl = document.getElementById('qr-modal-title');
+      const copyBtn = document.getElementById('qr-modal-copy-btn');
+      if (!modal) return;
+      _qrModalLink = link || null;
+      _qrModalTitle = title;
+      if (titleEl) titleEl.textContent = _qrModalTitle;
+      if (copyBtn) copyBtn.textContent = 'Скопировать ссылку';
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      renderQrModal();
+      const onKey = (e) => {
+        if (e.key === 'Escape') closeQrModal();
+      };
+      document.addEventListener('keydown', onKey);
+      modal._qrEsc = onKey;
+    }
+
+    function closeQrModal() {
+      const modal = document.getElementById('qr-modal');
+      const titleEl = document.getElementById('qr-modal-title');
+      const copyBtn = document.getElementById('qr-modal-copy-btn');
+      if (!modal) return;
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      _qrModalLink = null;
+      _qrModalTitle = 'QR для Telegram';
+      if (titleEl) titleEl.textContent = _qrModalTitle;
+      if (copyBtn) copyBtn.textContent = 'Скопировать ссылку';
+      if (modal._qrEsc) {
+        document.removeEventListener('keydown', modal._qrEsc);
+        modal._qrEsc = null;
+      }
+    }
+
+    async function copyQrLink() {
+      const copyBtn = document.getElementById('qr-modal-copy-btn');
+      if (!_qrModalLink) return;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(_qrModalLink);
+        } else {
+          const input = document.createElement('textarea');
+          input.value = _qrModalLink;
+          input.setAttribute('readonly', '');
+          input.style.position = 'absolute';
+          input.style.left = '-9999px';
+          document.body.appendChild(input);
+          input.select();
+          document.execCommand('copy');
+          input.remove();
+        }
+        if (copyBtn) {
+          copyBtn.textContent = 'Ссылка скопирована';
+          setTimeout(() => {
+            if (copyBtn && _qrModalLink) copyBtn.textContent = 'Скопировать ссылку';
+          }, 1600);
+        }
+      } catch {
+        if (copyBtn) {
+          copyBtn.textContent = 'Не удалось скопировать';
+          setTimeout(() => {
+            if (copyBtn) copyBtn.textContent = 'Скопировать ссылку';
+          }, 1600);
+        }
+      }
+    }
+
     function _pingClass(ms) {
+      if (ms === null) return 'dead';
       if (!Number.isFinite(ms)) return '';
       if (ms < 200) return 'fast';
       if (ms < 500) return 'ok';
       return 'slow';
     }
+
+    function _pingLabel(ms) {
+      if (ms === null) return '—';
+      if (!Number.isFinite(ms)) return '';
+      return Math.round(ms) + 'мс';
+    }
+
+    function _displayPing(p) {
+      if (Number.isFinite(p?.sourcePing)) return Math.round(p.sourcePing);
+      return p?._ping ?? null;
+    }
+
+    function _isDomainHost(host) {
+      return typeof host === 'string' && /[a-z]/i.test(host);
+    }
+
+    function _proxyKey(p) {
+      return `${p.host}:${p.port}:${p.secret}`;
+    }
+
+    function _proxyId(p) {
+      return `dp-${p.host.replace(/[^a-zA-Z0-9]+/g, '-')}-${p.port}`;
+    }
+
+    function _proxyRank(p) {
+      const displayPing = _displayPing(p);
+      return [
+        _isEe(p) ? 0 : 1,
+        p?.port === 443 ? 0 : 1,
+        _isDomainHost(p?.host) ? 0 : 1,
+        Number.isFinite(displayPing) ? displayPing : 999999,
+        p?.host || '',
+        p?.port || 0
+      ];
+    }
+
+    function _compareProxyRank(a, b) {
+      const ra = _proxyRank(a);
+      const rb = _proxyRank(b);
+      for (let i = 0; i < ra.length; i += 1) {
+        if (ra[i] < rb[i]) return -1;
+        if (ra[i] > rb[i]) return 1;
+      }
+      return 0;
+    }
+
+    function _restoreProxyPingLabels(list) {
+      list.forEach(p => {
+        const el = document.getElementById(_proxyId(p) + '-ping');
+        if (!el) return;
+        const shownMs = _displayPing(p);
+        const isPending = p?._ping === undefined && !Number.isFinite(p?.sourcePing);
+        el.textContent = isPending ? 'проверка…' : _pingLabel(shownMs);
+        el.className = 'proxy-ping ' + _pingClass(shownMs);
+      });
+    }
+
+    function _getProxyScrollContainer() {
+      return document.querySelector('#page-proxies .scroll');
+    }
+
+    function _proxyItemMarkup(p) {
+      const id = _proxyId(p);
+      const ping = _displayPing(p);
+      const pingText = p?._ping === undefined && !Number.isFinite(p?.sourcePing) ? 'проверка…' : _pingLabel(ping);
+      const cls = _pingClass(ping);
+      return `<a class="proxy-item" href="${_proxyLink(p)}">
+        <div class="proxy-flag">${_flag(p.country)}</div>
+        <div class="proxy-info">
+          <div class="proxy-server">${p.host}:${p.port}</div>
+          <div class="proxy-meta">${p.country || '??'}${_isEe(p) ? ' · FakeTLS' : ''}</div>
+        </div>
+        <div class="proxy-ping ${cls}" id="${id}-ping">${pingText}</div>
+        <button type="button" class="proxy-qr-btn" onclick="event.preventDefault(); event.stopPropagation(); showProxyQr('${p.host}', '${p.port}', '${p.secret}')" aria-label="Показать QR" title="Показать QR">
+          <svg viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+        </button>
+        <div class="proxy-arrow">›</div>
+      </a>`;
+    }
+
+    function _measureProxyRowHeight() {
+      const firstItem = document.querySelector('#proxy-list .proxy-item');
+      const container = document.getElementById('proxy-list');
+      if (!firstItem || !container) return;
+      const gap = parseFloat(getComputedStyle(container).gap || '8') || 8;
+      _proxyVirtual.gap = gap;
+      _proxyVirtual.rowHeight = Math.ceil(firstItem.getBoundingClientRect().height + gap);
+    }
+
+    function _renderVirtualProxies(force = false) {
+      const container = document.getElementById('proxy-list');
+      const scrollEl = _getProxyScrollContainer();
+      if (!container || !_proxyList.length) return;
+
+      const rowHeight = _proxyVirtual.rowHeight || 76;
+      const overscan = _proxyVirtual.overscan;
+      const viewportTop = Math.max(0, (scrollEl?.scrollTop || 0) - container.offsetTop);
+      const viewportHeight = scrollEl?.clientHeight || window.innerHeight || 600;
+      const start = Math.max(0, Math.floor(viewportTop / rowHeight) - overscan);
+      const visibleCount = Math.ceil(viewportHeight / rowHeight) + overscan * 2;
+      const end = Math.min(_proxyList.length, start + visibleCount);
+
+      if (!force && start === _proxyVirtual.start && end === _proxyVirtual.end) return;
+      _proxyVirtual.start = start;
+      _proxyVirtual.end = end;
+
+      const topPad = start * rowHeight;
+      const bottomPad = Math.max(0, (_proxyList.length - end) * rowHeight);
+      const visible = _proxyList.slice(start, end);
+
+      container.innerHTML =
+        `<div class="proxy-list-spacer" style="height:${topPad}px"></div>` +
+        visible.map(_proxyItemMarkup).join('') +
+        `<div class="proxy-list-spacer" style="height:${bottomPad}px"></div>`;
+
+      if (force) {
+        requestAnimationFrame(() => {
+          _measureProxyRowHeight();
+          _renderVirtualProxies();
+        });
+      }
+    }
+
+    function _queueProxyVirtualRender(force = false) {
+      if (_proxyVirtualQueued && !force) return;
+      _proxyVirtualQueued = true;
+      requestAnimationFrame(() => {
+        _proxyVirtualQueued = false;
+        _renderVirtualProxies(force);
+      });
+    }
+
+    function _bindProxyVirtualization() {
+      const scrollEl = _getProxyScrollContainer();
+      if (!scrollEl || scrollEl._proxyVirtualBound) return;
+      const onScroll = () => _queueProxyVirtualRender();
+      scrollEl.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', () => _queueProxyVirtualRender(true), { passive: true });
+      scrollEl._proxyVirtualBound = true;
+    }
+
+    function _queueProxyLiveSort(runId) {
+      if (_proxySortQueued) return;
+      _proxySortQueued = true;
+      requestAnimationFrame(() => {
+        _proxySortQueued = false;
+        if (runId !== _proxyPingRun) return;
+        _proxyList = [..._proxyList].sort(_compareProxyRank);
+        _render(_proxyList);
+        _restoreProxyPingLabels(_proxyList);
+      });
+    }
+
     function _parseProxyLine(line) {
       try {
         const url = new URL(line.trim().replace('https://t.me/proxy', 'tg://proxy'));
         const host = url.searchParams.get('server');
-        const port = parseInt(url.searchParams.get('port'));
+        const port = parseInt(url.searchParams.get('port'), 10);
         const secret = url.searchParams.get('secret');
         if (!host || !port || !secret) return null;
         return { host, port, secret, country: null, sourcePing: null };
-      } catch { return null; }
+      } catch {
+        return null;
+      }
     }
 
     async function _fetchSource(src) {
       try {
         const r = await fetch(src.url, { cache: 'no-store' });
         if (!r.ok) return [];
+
         if (src.type === 'json_mtprobe') {
           const data = await r.json();
           return (data?.servers || []).filter(p => p.ip && p.port && p.secret).map(p => ({
-            host: p.ip, port: p.port, secret: p.secret,
+            host: p.ip,
+            port: p.port,
+            secret: p.secret,
             country: p.country || null,
             sourcePing: Number.isFinite(+p.last_ping) ? +p.last_ping : null,
             maskType: p.mask_type || null,
           }));
-        } else if (src.type === 'json') {
+        }
+
+        if (src.type === 'json') {
           const data = await r.json();
           return data.filter(p => p.host && p.port && p.secret).map(p => ({
-            host: p.host, port: p.port, secret: p.secret, country: p.country || null,
+            host: p.host,
+            port: p.port,
+            secret: p.secret,
+            country: p.country || null,
             sourcePing: Number.isFinite(+p.ping) ? +p.ping : null,
             maskType: _isEe(p) ? 'ee_mask' : null,
           }));
-        } else if (src.type === 'json_therealwh') {
+        }
+
+        if (src.type === 'json_therealwh') {
           const data = await r.json();
           return data.filter(p => p.host && p.port && p.secret).map(p => ({
-            host: p.host, port: p.port, secret: p.secret, country: p.region || null,
+            host: p.host,
+            port: p.port,
+            secret: p.secret,
+            country: p.region || null,
             sourcePing: Number.isFinite(+p.ping) ? +p.ping * 1000 : null,
             maskType: _isEe(p) ? 'ee_mask' : null,
           }));
-        } else if (src.type === 'json_player') {
+        }
+
+        if (src.type === 'json_player') {
           const data = await r.json();
           const list = Array.isArray(data?.proxies) ? data.proxies : (Array.isArray(data) ? data : []);
           return list.filter(p => p.ip && p.port && p.secret).map(p => ({
-            host: p.ip, port: p.port, secret: p.secret, country: p.country || null,
+            host: p.ip,
+            port: p.port,
+            secret: p.secret,
+            country: p.country || null,
             sourcePing: Number.isFinite(+p.ping) ? +p.ping : null,
             maskType: _isEe(p) ? 'ee_mask' : null,
           }));
-        } else {
-          const text = await r.text();
-          return text.split('\n').map(_parseProxyLine).filter(Boolean);
         }
-      } catch { return []; }
+
+        const text = await r.text();
+        return text.split('\n').map(_parseProxyLine).filter(Boolean);
+      } catch {
+        return [];
+      }
     }
 
     function _render(list) {
@@ -365,20 +2118,58 @@
         container.innerHTML = '<div class="proxy-status">Нет прокси. Попробуй обновить.</div>';
         return;
       }
-      container.innerHTML = list.map(p => {
-        const ping = p.sourcePing != null ? Math.round(p.sourcePing) : null;
-        const pingText = ping != null ? ping + 'мс' : '';
-        const cls = _pingClass(ping);
-        return `<a class="proxy-item" href="${_proxyLink(p)}">
-          <div class="proxy-flag">${_flag(p.country)}</div>
-          <div class="proxy-info">
-            <div class="proxy-server">${p.host}:${p.port}</div>
-            <div class="proxy-meta">${p.country || '??'}${_isEe(p) ? ' · FakeTLS' : ''}</div>
-          </div>
-          ${pingText ? `<div class="proxy-ping ${cls}">${pingText}</div>` : ''}
-          <div class="proxy-arrow">›</div>
-        </a>`;
-      }).join('');
+      _proxyVirtual.start = -1;
+      _proxyVirtual.end = -1;
+      _renderVirtualProxies(true);
+    }
+
+    async function _pingOne(host, port) {
+      return new Promise(resolve => {
+        const start = performance.now();
+        const REFUSED_MS = 25;
+        let settled = false;
+        const finish = (ok) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          try { ws.close(); } catch (_) {}
+          resolve(ok ? Math.round(performance.now() - start) : null);
+        };
+        const timer = setTimeout(() => finish(false), 3000);
+        let ws;
+        try {
+          ws = new WebSocket(`ws://${host}:${port}/`);
+          ws.onerror = () => finish((performance.now() - start) >= REFUSED_MS);
+          ws.onopen = () => finish(true);
+        } catch (_) {
+          finish(false);
+        }
+      });
+    }
+
+    async function _pingAll(list, runId) {
+      const BATCH = 12;
+      for (let i = 0; i < list.length; i += BATCH) {
+        if (runId !== _proxyPingRun) return;
+        const batch = list.slice(i, i + BATCH);
+        await Promise.all(batch.map(async (p) => {
+          const ms = await _pingOne(p.host, p.port);
+          if (runId !== _proxyPingRun) return;
+          p._ping = ms;
+          const el = document.getElementById(_proxyId(p) + '-ping');
+          const shownMs = _displayPing(p);
+          if (el) {
+            el.textContent = _pingLabel(shownMs);
+            el.className = 'proxy-ping ' + _pingClass(shownMs);
+          }
+          _queueProxyLiveSort(runId);
+        }));
+      }
+
+      if (runId !== _proxyPingRun) return;
+      _proxyList = [...list].sort(_compareProxyRank);
+      _render(_proxyList);
+      _restoreProxyPingLabels(_proxyList);
     }
 
     async function loadProxies() {
@@ -386,24 +2177,31 @@
       const btn = document.getElementById('refresh-btn');
       container.innerHTML = '<div class="proxy-status">Загрузка…</div>';
       btn.disabled = true;
+      const runId = ++_proxyPingRun;
 
       const results = await Promise.allSettled(SOURCES.map(_fetchSource));
       const all = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
 
       const seen = new Set();
       const unique = all.filter(p => {
-        const key = `${p.host}:${p.port}:${p.secret}`;
+        const key = _proxyKey(p);
         if (seen.has(key)) return false;
-        seen.add(key); return true;
+        seen.add(key);
+        p._ping = undefined;
+        return true;
       });
 
       const ee = unique.filter(p => _isEe(p) && p.port === 443);
       const rest = unique.filter(p => !(_isEe(p) && p.port === 443));
-      _render([...ee, ...rest].slice(0, 60));
+      const initial = [...ee.sort(_compareProxyRank), ...rest.sort(_compareProxyRank)];
+      _proxyList = initial;
+      _bindProxyVirtualization();
+      _render(initial);
+      _restoreProxyPingLabels(initial);
+      _pingAll(initial, runId);
       _loaded = true;
       btn.disabled = false;
     }
   </script>
-
 </body>
 </html>
