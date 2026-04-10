@@ -2896,26 +2896,23 @@
       await Promise.all(batch.map(async p => {
         const ms = await _pingOne(p.host, p.port);
         const el = document.getElementById(_proxyId(p) + '-ping');
-        const shownMs = ms === null ? null : _displayPing(p);
+        p._ping = ms;
+        const shownMs = ms != null
+          ? ms
+          : (Number.isFinite(p?.sourcePing) ? Math.round(p.sourcePing) : null);
         if (el) {
-          el.textContent = _pingLabel(shownMs);
+          el.textContent = _pingLabel(shownMs) || (shownMs === null ? '—' : '');
           el.className = 'ext-proxy-ping ' + _pingClass(shownMs);
         }
-        p._ping = ms;
       }));
     }
-    // re-render: reachable plus favorites, sorted by rank
+    // Не отфильтровывать по WebSocket-пингу: MTProto — не ws://, проверка была ложной и на части
+    // сетей/WebView все порты «мёртвые» → пустой список. Оставляем все загруженные, сортировка по рангу.
     const container = document.getElementById('ext-proxy-list');
     if (!container) return;
-    const reachable = list
-      .filter(p => p._ping !== null || _extProxyFavorites.has(_proxyKey(p)))
-      .sort(_compareProxyRank);
-    if (reachable.length === 0) {
-      container.innerHTML = '<div class="ext-proxy-status">Ни один прокси не ответил. Проверьте интернет.</div>';
-      return;
-    }
-    _renderExtProxies(reachable);
-    _restoreExtProxyPingLabels(reachable);
+    const sorted = [...list].sort(_compareProxyRank);
+    _renderExtProxies(sorted);
+    _restoreExtProxyPingLabels(sorted);
   }
 
   let _extProxiesLoaded = false;
@@ -2994,7 +2991,7 @@
   async function loadExtProxies() {
     const container = document.getElementById('ext-proxy-list');
     const btn = document.getElementById('ext-refresh-btn');
-    if (container) container.innerHTML = '<div class="ext-proxy-status">Загрузка и фильтрация EE/Fake-TLS прокси…</div>';
+    if (container) container.innerHTML = '<div class="ext-proxy-status">Загрузка списка прокси…</div>';
     _updateExtProxyScrollTopButton();
     if (btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
     try {
