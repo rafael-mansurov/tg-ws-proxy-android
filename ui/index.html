@@ -2034,11 +2034,15 @@
     const btn = document.getElementById('share-app-btn');
     const originalHTML = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.style.opacity = '0.55'; }
+    let done = false;
     try {
-      // 1. Мост WebView → ShareCompat (надёжнее jnius из HTTP-потока Python)
+      // 1. Мост WebView → ShareCompat. Не проверять typeof shareApp === 'function': в WebView
+      //    методы @JavascriptInterface часто не дают typeof "function", хотя вызов работает.
       try {
-        if (typeof TgwsAndroid !== 'undefined' && typeof TgwsAndroid.shareApp === 'function') {
-          TgwsAndroid.shareApp();
+        const a = window.TgwsAndroid;
+        if (a != null) {
+          a.shareApp();
+          done = true;
           return;
         }
       } catch (_) {}
@@ -2046,7 +2050,10 @@
       // 2. Нативный путь через сервер (fallback)
       try {
         const r = await fetch('/api/share', { method: 'POST' });
-        if (r.ok) { const d = await r.json(); if (d.ok) return; }
+        if (r.ok) {
+          const d = await r.json();
+          if (d.ok) { done = true; return; }
+        }
       } catch (_) {}
 
       // 3. Web Share API (браузер / новый WebView)
@@ -2063,20 +2070,27 @@
         const data = { title: 'TG WS Proxy', text: _SHARE_TEXT + _SHARE_URL, url: _SHARE_URL };
         if (files.length) data.files = files;
         await navigator.share(data);
+        done = true;
         return;
       }
       throw new Error('no-share');
     } catch (err) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError') { done = true; return; }
       // 4. Буфер обмена
       try {
         await navigator.clipboard.writeText(_SHARE_TEXT + _SHARE_URL);
         if (btn) btn.innerHTML = '✓ Скопировано';
         setTimeout(() => { if (btn) { btn.innerHTML = originalHTML; btn.disabled = false; btn.style.opacity = ''; } }, 2200);
+        done = true;
         return;
       } catch (_) {}
     } finally {
       if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+      if (!done && btn) {
+        const t = originalHTML;
+        btn.innerHTML = 'Не удалось открыть шаринг';
+        setTimeout(() => { if (btn) btn.innerHTML = t; }, 2200);
+      }
     }
   }
 

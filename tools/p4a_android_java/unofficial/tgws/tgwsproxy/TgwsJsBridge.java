@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.net.Uri;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
+import android.widget.Toast;
 
 import androidx.core.app.ShareCompat;
 import androidx.core.content.FileProvider;
@@ -54,6 +55,11 @@ public final class TgwsJsBridge {
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "shareApp failed", e);
+                        Toast.makeText(
+                                        activity,
+                                        "Не удалось открыть «Поделиться»",
+                                        Toast.LENGTH_LONG)
+                                .show();
                     }
                 });
     }
