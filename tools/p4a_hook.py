@@ -1,6 +1,7 @@
 """p4a hook: copy patched assets/java and inject extra Android components."""
 
 from pathlib import Path
+import re
 import shutil
 import xml.etree.ElementTree as ET
 
@@ -117,6 +118,50 @@ def _patch_manifest_components() -> None:
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
 
 
+def _patch_gradle_compile_sdk(min_sdk: int = 34) -> None:
+    """p4a шаблон часто фиксирует compileSdk 33; androidx.core:1.12+ требует compileSdk >= 34 (checkReleaseAarMetadata)."""
+    bg = Path("build.gradle")
+    if not bg.is_file():
+        return
+    text = bg.read_text(encoding="utf-8")
+    orig = text
+
+    def _bump_compile_eq(m: re.Match) -> str:
+        key, ver = m.group(1), int(m.group(2))
+        if ver < min_sdk:
+            return f"{key} = {min_sdk}"
+        return m.group(0)
+
+    def _bump_compile_sp(m: re.Match) -> str:
+        key, ver = m.group(1), int(m.group(2))
+        if ver < min_sdk:
+            return f"{key} {min_sdk}"
+        return m.group(0)
+
+    text = re.sub(
+        r"(compileSdkVersion)\s*=\s*(\d+)\b",
+        _bump_compile_eq,
+        text,
+    )
+    text = re.sub(
+        r"(compileSdk)\s*=\s*(\d+)\b",
+        _bump_compile_eq,
+        text,
+    )
+    text = re.sub(
+        r"(compileSdkVersion)\s+(\d+)\b",
+        _bump_compile_sp,
+        text,
+    )
+    text = re.sub(
+        r"(compileSdk)\s+(\d+)\b",
+        _bump_compile_sp,
+        text,
+    )
+    if text != orig:
+        bg.write_text(text, encoding="utf-8")
+
+
 def _apply_tgws_build_overlay():
     """Копирует Java/res и правит манифест. Дважды: после build.py и сразу перед gradle assemble (p4a toolchain)."""
     root = Path(__file__).resolve().parent
@@ -154,6 +199,7 @@ def _apply_tgws_build_overlay():
                 shutil.copy2(src, dest)
 
     _patch_manifest_components()
+    _patch_gradle_compile_sdk(34)
 
 
 def after_apk_build(toolchain):
