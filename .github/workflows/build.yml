@@ -108,12 +108,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          REPO="${{ github.repository }}"
+          # Старые tg-ws-proxy-1.5.xxx-release.apk убираем — оставляем один свежий + tg-ws-proxy-release.apk.
+          if gh release view latest-apk --repo "${REPO}" &>/dev/null; then
+            gh api "repos/${REPO}/releases/tags/latest-apk" \
+              --jq '.assets[] | select(.name | test("^tg-ws-proxy-[0-9.]+-release\\.apk$")) | .id' 2>/dev/null \
+              | while read -r aid; do
+                  [ -n "${aid}" ] && gh api -X DELETE "repos/${REPO}/releases/assets/${aid}" --silent || true
+                done
+          fi
           APK=$(ls -1 bin/*.apk | head -1)
           cp -f "$APK" "${APK_FILENAME}"
+          # Уникальное имя на каждый run — иначе тот же URL кэшируется (браузер / Android), и качается старый APK.
+          VERSIONED_APK="tg-ws-proxy-${APP_VERSION}-release.apk"
+          cp -f "$APK" "${VERSIONED_APK}"
           echo "${APP_VERSION}" > version.txt
           NOTES="Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}"
           if gh release view latest-apk --repo "${{ github.repository }}" &>/dev/null; then
-            gh release upload latest-apk "${APK_FILENAME}" version.txt \
+            gh release upload latest-apk "${APK_FILENAME}" "${VERSIONED_APK}" version.txt \
               --repo "${{ github.repository }}" \
               --clobber
             gh release edit latest-apk \
@@ -122,7 +134,7 @@ jobs:
               --notes "${NOTES}" \
               --latest=false
           else
-            gh release create latest-apk "${APK_FILENAME}" version.txt \
+            gh release create latest-apk "${APK_FILENAME}" "${VERSIONED_APK}" version.txt \
               --repo "${{ github.repository }}" \
               --title "Приложение для Android (APK)" \
               --notes "${NOTES}" \
