@@ -574,10 +574,12 @@
       height: 2px;
       background: rgba(154,162,175,0.9);
       border-radius: 999px;
+      z-index: 0;
     }
     .lifehack-scale-points {
       position: relative;
       height: 100%;
+      z-index: 1;
     }
     .lifehack-scale-points span {
       position: absolute;
@@ -677,6 +679,42 @@
       padding: 0 24px;
     }
     .onb-ui { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 300px; }
+    .onb-lifehack-dark {
+      background: rgba(18,22,30,0.9);
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.04),
+        0 16px 36px rgba(0,0,0,0.28);
+    }
+    .onb-lifehack-dark::before {
+      opacity: 0.08;
+      background-image:
+        radial-gradient(rgba(255,255,255,0.08) 0.6px, transparent 0.8px),
+        radial-gradient(rgba(120,160,255,0.08) 0.5px, transparent 0.7px);
+    }
+    .onb-lifehack-dark .lifehack-visual-label {
+      color: rgba(255,255,255,0.94);
+    }
+    .onb-lifehack-dark .lifehack-scale {
+      border-top-color: rgba(255,255,255,0.08);
+    }
+    .onb-lifehack-dark .lifehack-scale-labels {
+      color: rgba(255,255,255,0.46);
+    }
+    .onb-lifehack-dark .lifehack-scale-labels span.is-active {
+      color: #70caff;
+    }
+    .onb-lifehack-dark .lifehack-scale-track::before {
+      background: #3a4252;
+    }
+    .onb-lifehack-dark .lifehack-scale-points span {
+      background: #8c94a3;
+      box-shadow: 0 0 0 3px #12161e;
+    }
+    .onb-lifehack-dark .lifehack-scale-points span.is-active {
+      background: #229ED9;
+      box-shadow: 0 0 0 3px #12161e;
+    }
     .onb-ui-card {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.08);
@@ -714,6 +752,11 @@
       gap: 10px;
     }
 
+    #onb-text-wrap > * {
+      position: relative;
+      z-index: 1;
+    }
+
     #onb-curr-text {
       font-size: 36px;
       font-weight: 800;
@@ -744,10 +787,38 @@
       bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
       left: 28px;
       right: 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 2;
+    }
+
+    #onb-back-btn {
+      position: relative;
+      z-index: 1;
+      flex: 0 0 auto;
+      min-width: 112px;
+      padding: 18px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.92);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.18s ease, visibility 0.18s ease, background 0.18s ease;
+    }
+
+    #onb-back-btn.is-hidden {
+      display: none;
     }
 
     #onb-next-btn {
-      width: 100%;
+      position: relative;
+      z-index: 1;
+      flex: 1 1 auto;
       padding: 18px 24px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.16);
@@ -763,6 +834,7 @@
       gap: 10px;
       -webkit-tap-highlight-color: transparent;
     }
+    #onb-back-btn:active { background: rgba(255,255,255,0.12); }
     #onb-next-btn:active { background: rgba(255,255,255,0.18); }
     #onb-next-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -952,7 +1024,7 @@
     .ext-proxy-ping.slow  { color: rgba(255,100,80,0.9); }
     .ext-proxy-ping.dead  { color: rgba(255,255,255,0.18); }
     .ext-proxy-tip {
-      margin: 4px 16px 8px;
+      margin: 8px 16px 8px;
       padding: 13px 14px;
       border-radius: 14px;
       background: rgba(8,95,80,0.18);
@@ -1192,8 +1264,8 @@
         <div style="font-size:14px;font-weight:700;color:#fff;text-shadow:0 0 20px rgba(34,158,217,0.5)">Доступно обновление <span id="update-version-label" style="color:#4fc3f7"></span></div>
         <button onclick="dismissUpdate()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;line-height:1;cursor:pointer;padding:0;flex-shrink:0" aria-label="Закрыть">✕</button>
       </div>
-      <div style="font-size:12px;font-weight:500;color:rgba(160,210,255,0.72);margin:6px 0 12px;line-height:1.45">Скачайте новый APK и установите поверх текущей версии.</div>
-      <a id="update-download-link" href="#" target="_blank" style="display:block;text-align:center;background:linear-gradient(180deg,#229ed9 0%,#1565c0 100%);color:#fff;border:none;border-radius:16px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 0 28px rgba(34,158,217,0.40),inset 0 1px 0 rgba(255,255,255,0.20)">Скачать APK →</a>
+      <div style="font-size:12px;font-weight:500;color:rgba(160,210,255,0.72);margin:6px 0 12px;line-height:1.45">Скачайте новый&nbsp;APK и установите поверх текущей версии.</div>
+      <a id="update-download-link" href="#" target="_blank" style="display:block;text-align:center;background:linear-gradient(180deg,#229ed9 0%,#1565c0 100%);color:#fff;border:none;border-radius:16px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 0 28px rgba(34,158,217,0.40),inset 0 1px 0 rgba(255,255,255,0.20)">Скачать&nbsp;APK →</a>
     </div>
 
     <div class="status off" id="status">
@@ -1224,15 +1296,15 @@
 
     <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;color:rgba(255,255,255,0.28)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>
-      Работает только через Wi-Fi
+      Работает только через&nbsp;Wi-Fi
     </div>
 
     <div id="no-traffic-hint" style="display:none;margin-bottom:10px;padding:11px 14px;border-radius:14px;background:rgba(255,180,40,0.08);border:1px solid rgba(255,180,40,0.22);font-size:12px;font-weight:600;color:rgba(255,210,100,0.9);line-height:1.45;text-align:center">
-      Telegram ещё не подключился к прокси.<br>Нажми «Открыть в Telegram» чтобы применить настройки.
+      Telegram ещё не подключился к&nbsp;прокси.<br>Нажми «Открыть в&nbsp;Telegram», чтобы применить настройки.
     </div>
 
     <div class="cta-row">
-    <button type="button" class="btn off" id="tg-btn" onclick="openTelegram()">Открыть в Telegram</button>
+    <button type="button" class="btn off" id="tg-btn" onclick="openTelegram()">Открыть в&nbsp;Telegram</button>
     </div>
 
     <button type="button" onclick="openExtProxies()" style="width:100%;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
@@ -1294,67 +1366,16 @@
               <div class="sett-select-wrap">
                 <select id="restart-interval-select" onchange="saveRestartInterval()">
                   <option value="0">Выкл.</option>
-                  <option value="900">15 мин</option>
-                  <option value="1800">30 мин</option>
-                  <option value="3600">1 час</option>
-                  <option value="7200">2 часа</option>
-                  <option value="10800">3 часа</option>
+                  <option value="900">15&nbsp;мин</option>
+                  <option value="1800">30&nbsp;мин</option>
+                  <option value="3600">1&nbsp;час</option>
+                  <option value="7200">2&nbsp;часа</option>
+                  <option value="10800">3&nbsp;часа</option>
                 </select>
                 <span class="sett-select-arrow"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="sett-section">
-        <div class="sett-section-title">Лайфхак</div>
-        <div class="sett-card">
-          <div class="sett-row">
-            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
-              <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/></svg>
-            </div>
-            <div class="sett-row-body">
-              <div class="sett-row-label">Держите запасной план</div>
-              <div class="sett-row-sub">Если локальный прокси тупит — откройте внешние прокси и добавьте несколько штук в Telegram. Чем больше, тем лучше :) Затем включите автоподключение прокси</div>
-            </div>
-          </div>
-        </div>
-        <div class="lifehack-visual" aria-hidden="true">
-          <div class="lifehack-visual-caption">
-            <svg viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761C1.27894 7.38924 1.28414 7.39088 1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097C8.6685 6.97392 8.66534 6.97687 8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z"/>
-            </svg>
-            Telegram
-          </div>
-          <div class="lifehack-visual-head">
-            <div class="lifehack-visual-label">Автопереключение прокси</div>
-            <div class="lifehack-visual-toggle"></div>
-          </div>
-          <div class="lifehack-scale">
-            <div class="lifehack-scale-labels">
-              <span class="is-active">5 c</span>
-              <span>10 c</span>
-              <span>15 c</span>
-              <span>30 c</span>
-              <span>60 c</span>
-            </div>
-            <div class="lifehack-scale-track">
-              <div class="lifehack-scale-points">
-                <span class="is-active"></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="lifehack-actions">
-          <button type="button" onclick="openExtProxies()" style="width:100%;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            Внешние прокси
-          </button>
         </div>
       </div>
 
@@ -1427,7 +1448,7 @@
             </div>
             <div class="sett-row-body">
               <div class="sett-row-label">Поддержка</div>
-              <div class="sett-row-sub">Написать в Telegram</div>
+              <div class="sett-row-sub">Написать в&nbsp;Telegram</div>
             </div>
             <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
           </div>
@@ -1462,7 +1483,7 @@
   <div class="qr-modal-panel" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
     <div class="qr-modal-header">
       <span class="qr-modal-header-spacer" aria-hidden="true"></span>
-      <h2 class="qr-modal-title" id="qr-modal-title">QR для Telegram</h2>
+      <h2 class="qr-modal-title" id="qr-modal-title">QR для&nbsp;Telegram</h2>
       <button type="button" class="qr-modal-close" onclick="closeQrModal()" aria-label="Закрыть">×</button>
     </div>
     <div class="qr-modal-body">
@@ -1483,14 +1504,14 @@
       <button class="ext-proxy-head-btn" id="ext-refresh-btn" onclick="loadExtProxies()" title="Обновить">Обновить</button>
       <button class="ext-proxy-head-btn" onclick="closeExtProxies()" aria-label="Закрыть">✕</button>
     </div>
-    <div class="ext-proxy-sub">Публичные MTProto-прокси — работают на мобильном интернете и Wi-Fi. Выбери любой, Telegram применит автоматически.</div>
+    <div class="ext-proxy-sub">Публичные MTProto-прокси — работают на мобильном интернете и&nbsp;Wi-Fi. Выбери любой, Telegram применит автоматически.</div>
     <div id="ext-proxy-tip" class="ext-proxy-tip">
       <div class="ext-proxy-tip-icon">
         <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
       </div>
       <div class="ext-proxy-tip-body">
         <div class="ext-proxy-tip-title">Включи автопереключение</div>
-        <div class="ext-proxy-tip-sub">Telegram → Прокси → Автопереключение → 5 сек — он сам найдёт рабочий</div>
+        <div class="ext-proxy-tip-sub">Чтобы автопереключение работало нормально, добавь в&nbsp;Telegram побольше разных прокси. Оптимально держать около&nbsp;20&nbsp;штук.</div>
       </div>
       <button class="ext-proxy-tip-close" onclick="dismissExtProxyTip()" aria-label="Закрыть">✕</button>
     </div>
@@ -1513,6 +1534,7 @@
     <div id="onb-curr-text"></div>
   </div>
   <div id="onb-footer">
+    <button type="button" id="onb-back-btn" class="is-hidden" onclick="onboardingPrev()">Назад</button>
     <button type="button" id="onb-next-btn" onclick="onboardingNext()">Далее</button>
   </div>
 </div>
@@ -1532,7 +1554,7 @@
       </div>
     </div>
     <p style="padding:4px 24px 0;text-align:center;font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5">
-      Отсканируй чтобы скачать APK
+      Отсканируй, чтобы скачать&nbsp;APK
     </p>
     <div style="padding:16px 20px calc(env(safe-area-inset-bottom,0px) + 24px)">
       <button type="button" id="share-app-btn" onclick="shareApp()" style="width:100%;padding:15px 20px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.1);color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;-webkit-tap-highlight-color:transparent">
@@ -1611,7 +1633,7 @@
   const _ONB_ICON = {
     lock:   `<svg class="onb-inline-icon" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
     server: `<svg class="onb-inline-icon" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>`,
-    check:  `<svg class="onb-inline-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+    check:  `<svg class="onb-inline-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="m8 12 3 3 5-6"/></svg>`,
     shield: `<svg class="onb-inline-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
     globe:  `<svg class="onb-inline-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
     start:  `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="currentColor"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`,
@@ -1723,7 +1745,7 @@
 
     // Шаг 5: всё локально — Telegram подключён через локальный прокси, нет внешних серверов
     tips: `<div class="onb-ui" style="align-items:center">
-      <div class="lifehack-visual" style="transform:rotate(-1.5deg);max-width:272px;width:100%">
+      <div class="lifehack-visual onb-lifehack-dark" style="transform:rotate(-1.5deg);max-width:100%;width:100%">
         <div class="lifehack-visual-caption">
           <svg viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761C1.27894 7.38924 1.28414 7.39088 1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097C8.6685 6.97392 8.66534 6.97687 8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z" fill="white"/></svg>
           Telegram
@@ -1806,19 +1828,19 @@
     },
     {
       visual: _ONB_VISUAL.toggle,
-      html: `Включи тумблер, дождись зелёного ${_ONB_ICON.check} и открой Telegram — он подключится сам`,
+        html: `Включи тумблер, дождись зелёного ${_ONB_ICON.check} и&nbsp;открой Telegram — он подключится сам`,
       gradient: 'linear-gradient(to top, rgba(15,90,35,1) 0%, rgba(8,60,20,0.8) 35%, rgba(4,30,10,0.4) 60%, transparent 80%)',
       btnText: 'Далее', btnIcon: null,
     },
     {
       visual: _ONB_VISUAL.proxies,
-      html: `Не работает? Есть список публичных прокси ${_ONB_ICON.globe} — чужие серверы, зато на любом интернете`,
+        html: `Не работает? Есть список публичных прокси ${_ONB_ICON.globe} — чужие серверы, зато на&nbsp;любом интернете`,
       gradient: 'linear-gradient(to top, rgba(140,80,10,1) 0%, rgba(100,55,5,0.8) 35%, rgba(60,30,2,0.4) 60%, transparent 80%)',
       btnText: 'Далее', btnIcon: null,
     },
     {
       visual: _ONB_VISUAL.tips,
-      html: `Добавь несколько прокси в Telegram ${_ONB_ICON.globe} и включи автопереключение — он сам найдёт рабочий`,
+        html: `Добавь несколько прокси в&nbsp;Telegram ${_ONB_ICON.globe} и&nbsp;включи автопереключение — он сам найдёт рабочий`,
       gradient: 'linear-gradient(to top, rgba(8,95,80,1) 0%, rgba(4,65,55,0.8) 35%, rgba(2,32,28,0.4) 60%, transparent 80%)',
       btnText: 'Далее', btnIcon: null,
     },
@@ -1833,7 +1855,9 @@
   let onboardingStep = 0;
   let _onbGradActive = 'a';
 
-  function onboardingLayout() { /* no-op — new design is static */ }
+  function onboardingLayout() {
+    /* no-op */
+  }
 
   function onboardingRender(animate) {
     const step = _ONB_STEPS[onboardingStep];
@@ -1869,9 +1893,13 @@
 
     // Button
     const btn = document.getElementById('onb-next-btn');
+    const backBtn = document.getElementById('onb-back-btn');
     if (btn) {
       const iconHtml = step.btnIcon ? _ONB_ICON[step.btnIcon] : '';
       btn.innerHTML = iconHtml + step.btnText;
+    }
+    if (backBtn) {
+      backBtn.classList.toggle('is-hidden', onboardingStep === 0);
     }
   }
 
@@ -1881,6 +1909,12 @@
       return;
     }
     onboardingStep += 1;
+    onboardingRender(true);
+  }
+
+  function onboardingPrev() {
+    if (onboardingStep <= 0) return;
+    onboardingStep -= 1;
     onboardingRender(true);
   }
 
@@ -1932,7 +1966,7 @@
   }
 
   const _SHARE_URL = 'https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk';
-  const _SHARE_TEXT = 'TG WS Proxy — прокси для Telegram\nРаботает локально на телефоне, без серверов и регистрации.\n\n';
+  const _SHARE_TEXT = 'TG WS Proxy — прокси для Telegram\nРаботает локально на&nbsp;телефоне, без серверов и регистрации.\n\n';
 
   function openShareAppModal() {
     const modal = document.getElementById('share-app-modal');
@@ -2278,7 +2312,7 @@
         if (d.optimized) {
           settingsBanner.style.display = 'block';
           if (settingsTitle) settingsTitle.textContent = 'Оптимизация батареи включена';
-          if (settingsSub) settingsSub.textContent = 'Прокси будет останавливаться в фоне. Отключите оптимизацию чтобы он работал стабильно.';
+          if (settingsSub) settingsSub.textContent = 'Прокси будет останавливаться в&nbsp;фоне. Отключите оптимизацию, чтобы он работал стабильно.';
           if (settingsBtn) settingsBtn.style.display = 'block';
         } else {
           settingsBanner.style.display = 'none';

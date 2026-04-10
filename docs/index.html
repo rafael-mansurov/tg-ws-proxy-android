@@ -232,6 +232,42 @@
     }
 
     .onb-ui { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 300px; }
+    .onb-lifehack-dark {
+      background: rgba(18,22,30,0.9);
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.04),
+        0 16px 36px rgba(0,0,0,0.28);
+    }
+    .onb-lifehack-dark::before {
+      opacity: 0.08;
+      background-image:
+        radial-gradient(rgba(255,255,255,0.08) 0.6px, transparent 0.8px),
+        radial-gradient(rgba(120,160,255,0.08) 0.5px, transparent 0.7px);
+    }
+    .onb-lifehack-dark .lifehack-visual-label {
+      color: rgba(255,255,255,0.94);
+    }
+    .onb-lifehack-dark .lifehack-scale {
+      border-top-color: rgba(255,255,255,0.08);
+    }
+    .onb-lifehack-dark .lifehack-scale-labels {
+      color: rgba(255,255,255,0.46);
+    }
+    .onb-lifehack-dark .lifehack-scale-labels span.is-active {
+      color: #70caff;
+    }
+    .onb-lifehack-dark .lifehack-scale-track::before {
+      background: #3a4252;
+    }
+    .onb-lifehack-dark .lifehack-scale-points span {
+      background: #8c94a3;
+      box-shadow: 0 0 0 3px #12161e;
+    }
+    .onb-lifehack-dark .lifehack-scale-points span.is-active {
+      background: #229ED9;
+      box-shadow: 0 0 0 3px #12161e;
+    }
     .onb-ui-card {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.08);
@@ -267,6 +303,11 @@
       gap: 10px;
     }
 
+    #onb-text-wrap > * {
+      position: relative;
+      z-index: 1;
+    }
+
     #onb-curr-text {
       font-size: 36px;
       font-weight: 800;
@@ -297,10 +338,38 @@
       bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
       left: 28px;
       right: 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 2;
+    }
+
+    #onb-back-btn {
+      position: relative;
+      z-index: 1;
+      flex: 0 0 auto;
+      min-width: 112px;
+      padding: 18px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.92);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.18s ease, visibility 0.18s ease, background 0.18s ease;
+    }
+
+    #onb-back-btn.is-hidden {
+      display: none;
     }
 
     #onb-next-btn {
-      width: 100%;
+      position: relative;
+      z-index: 1;
+      flex: 1 1 auto;
       padding: 18px 24px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.16);
@@ -317,6 +386,7 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    #onb-back-btn:active { background: rgba(255,255,255,0.12); }
     #onb-next-btn:active { background: rgba(255,255,255,0.18); }
     #onb-next-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -1079,6 +1149,69 @@
       background: #ffffff;
     }
 
+    .proxy-tip {
+      margin: 8px 0 8px;
+      padding: 13px 14px;
+      border-radius: 18px;
+      background: rgba(8, 95, 80, 0.18);
+      border: 1px solid rgba(34, 180, 150, 0.2);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .proxy-tip-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(34, 180, 150, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .proxy-tip-icon svg {
+      width: 14px;
+      height: 14px;
+      stroke: rgba(60, 210, 170, 0.9);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .proxy-tip-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .proxy-tip-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(60, 210, 170, 0.9);
+      margin-bottom: 2px;
+    }
+
+    .proxy-tip-sub {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.45);
+      line-height: 1.4;
+    }
+
+    .proxy-tip-close {
+      background: none;
+      border: none;
+      padding: 0;
+      width: 18px;
+      height: 18px;
+      color: rgba(255, 255, 255, 0.25);
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
     .proxy-list-spacer {
       width: 100%;
       flex: 0 0 auto;
@@ -1408,6 +1541,7 @@
           <div id="onb-curr-text"></div>
         </div>
         <div id="onb-footer">
+          <button type="button" id="onb-back-btn" class="is-hidden" onclick="onboardingPrev()">Назад</button>
           <button type="button" id="onb-next-btn" onclick="onboardingNext()">Далее</button>
         </div>
       </div>
@@ -1419,13 +1553,13 @@
           <section class="cta-stack">
             <div class="cta-panel">
               <div class="cta-kicker">Быстрый запуск</div>
-              <h2>Скачай APK или открой внешние прокси</h2>
-              <p>Если ставить приложение удобно, скачай APK. Если нет, ниже есть публичные внешние прокси для Telegram.</p>
+              <h2>Скачай&nbsp;APK или открой внешние прокси</h2>
+              <p>Если ставить приложение удобно, скачай&nbsp;APK. Если нет, ниже есть публичные внешние прокси для&nbsp;Telegram.</p>
 
               <div class="cta-actions">
                 <a class="btn-download" href="https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk" target="_blank">
                   <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Скачать APK
+                  Скачать&nbsp;APK
                 </a>
               </div>
 
@@ -1440,18 +1574,18 @@
                   <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
                   <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/>
                 </svg>
-                Локальный режим работает через Wi-Fi
+                Локальный режим работает через&nbsp;Wi-Fi
               </div>
             </div>
 
             <div class="alt-panel">
               <div class="secondary-access-head">
                 <div class="secondary-access-kicker">Если APK не подходит</div>
-                <div class="secondary-access-title">Внешние прокси для iPhone и тех, кто не хочет ставить приложение</div>
-                <div class="secondary-access-text">Это публичные MTProto-серверы. Они пригодятся на iOS или если хочешь подключить Telegram без установки TG WS Proxy.</div>
+                <div class="secondary-access-title">Внешние прокси для&nbsp;iPhone и тех, кто не хочет ставить приложение</div>
+                <div class="secondary-access-text">Это публичные MTProto-серверы. Они пригодятся на&nbsp;iOS или если хочешь подключить Telegram без установки TG WS Proxy.</div>
                 <div class="secondary-access-tags">
                   <div class="secondary-access-tag">iPhone / iPad</div>
-                  <div class="secondary-access-tag">Без установки APK</div>
+                  <div class="secondary-access-tag">Без установки&nbsp;APK</div>
                 </div>
               </div>
               <button class="btn-secondary" onclick="showPage('proxies')">
@@ -1471,8 +1605,19 @@
         <section class="proxy-intro">
           <div class="cta-kicker">Публичные серверы</div>
           <h2>Внешние MTProto-прокси</h2>
-          <p>Выбери любой вариант из списка, и Telegram применит его автоматически.</p>
+          <p>Выбери любой вариант из списка, и&nbsp;Telegram применит его автоматически.</p>
         </section>
+
+        <div id="proxy-tip" class="proxy-tip">
+          <div class="proxy-tip-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+          </div>
+          <div class="proxy-tip-body">
+            <div class="proxy-tip-title">Включи автопереключение</div>
+            <div class="proxy-tip-sub">Чтобы автопереключение работало нормально, добавь в&nbsp;Telegram побольше разных прокси. Оптимально держать около&nbsp;20&nbsp;штук.</div>
+          </div>
+          <button class="proxy-tip-close" onclick="dismissProxyTip()" aria-label="Закрыть">✕</button>
+        </div>
 
         <div id="proxy-list" class="proxy-list">
           <div class="proxy-status">Загрузка…</div>
@@ -1483,7 +1628,7 @@
           Обновить список
         </button>
 
-        <div class="proxy-hint">Работают на Wi-Fi и мобильном интернете. Выбирай любой вариант и подключай Telegram в один тап.</div>
+        <div class="proxy-hint">Работают на&nbsp;Wi-Fi и мобильном интернете. Выбирай любой вариант и подключай Telegram в&nbsp;один тап.</div>
       </div>
     </div>
     <button type="button" class="scroll-top-btn" id="proxy-scroll-top-btn" onclick="scrollProxiesToTop()" aria-label="Наверх">
@@ -1496,7 +1641,7 @@
     <div class="qr-modal-panel" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
       <div class="qr-modal-header">
         <span class="qr-modal-header-spacer" aria-hidden="true"></span>
-        <h2 class="qr-modal-title" id="qr-modal-title">QR для Telegram</h2>
+        <h2 class="qr-modal-title" id="qr-modal-title">QR для&nbsp;Telegram</h2>
         <button type="button" class="qr-modal-close" onclick="closeQrModal()" aria-label="Закрыть">×</button>
       </div>
       <div class="qr-modal-body">
@@ -1627,6 +1772,33 @@
           <span style="color:rgba(255,255,255,0.15);font-size:16px">›</span>
         </div>
       </div>`,
+      tips: `<div class="onb-ui" style="align-items:center">
+        <div class="lifehack-visual onb-lifehack-dark" style="transform:rotate(-1.5deg);max-width:100%;width:100%">
+          <div class="lifehack-visual-caption">
+            <svg viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761C1.27894 7.38924 1.28414 7.39088 1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097C8.6685 6.97392 8.66534 6.97687 8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z" fill="white"/></svg>
+            Telegram
+          </div>
+          <div class="lifehack-visual-head">
+            <div class="lifehack-visual-label">Автопереключение прокси</div>
+            <div class="lifehack-visual-toggle"></div>
+          </div>
+          <div class="lifehack-scale">
+            <div class="lifehack-scale-labels">
+              <span class="is-active">5 c</span>
+              <span>10 c</span>
+              <span>15 c</span>
+              <span>30 c</span>
+              <span>60 c</span>
+            </div>
+            <div class="lifehack-scale-track">
+              <div class="lifehack-scale-points">
+                <span class="is-active"></span>
+                <span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`,
       shield: `<div style="position:relative;width:100%;max-width:300px;height:200px">
         <div style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(95,50,215,0.28) 0%,transparent 70%);pointer-events:none"></div>
         <div style="position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:7px">
@@ -1676,14 +1848,20 @@
       },
       {
         visual: _ONB_VISUAL.toggle,
-        html: `Включи тумблер, дождись зелёного ${_ONB_ICON.check} и открой Telegram — он подключится сам`,
+        html: `Включи тумблер, дождись зелёного ${_ONB_ICON.check} и&nbsp;открой Telegram — он подключится сам`,
         gradient: 'linear-gradient(to top, rgba(15,90,35,1) 0%, rgba(8,60,20,0.8) 35%, rgba(4,30,10,0.4) 60%, transparent 80%)',
         btnText: 'Далее', btnIcon: null,
       },
       {
         visual: _ONB_VISUAL.proxies,
-        html: `Не работает? Есть список публичных прокси ${_ONB_ICON.globe} — чужие серверы, зато на любом интернете`,
+        html: `Не работает? Есть список публичных прокси ${_ONB_ICON.globe} — чужие серверы, зато на&nbsp;любом интернете`,
         gradient: 'linear-gradient(to top, rgba(140,80,10,1) 0%, rgba(100,55,5,0.8) 35%, rgba(60,30,2,0.4) 60%, transparent 80%)',
+        btnText: 'Далее', btnIcon: null,
+      },
+      {
+        visual: _ONB_VISUAL.tips,
+        html: `Добавь несколько прокси в&nbsp;Telegram ${_ONB_ICON.globe} и&nbsp;включи автопереключение — он сам найдёт рабочий`,
+        gradient: 'linear-gradient(to top, rgba(8,95,80,1) 0%, rgba(4,65,55,0.8) 35%, rgba(2,32,28,0.4) 60%, transparent 80%)',
         btnText: 'Далее', btnIcon: null,
       },
       {
@@ -1737,9 +1915,13 @@
       }
 
       const btn = document.getElementById('onb-next-btn');
+      const backBtn = document.getElementById('onb-back-btn');
       if (btn) {
         const iconHtml = step.btnIcon ? _ONB_ICON[step.btnIcon] : '';
         btn.innerHTML = iconHtml + step.btnText;
+      }
+      if (backBtn) {
+        backBtn.classList.toggle('is-hidden', onboardingStep === 0);
       }
     }
 
@@ -1749,6 +1931,12 @@
         return;
       }
       onboardingStep += 1;
+      onboardingRender(true);
+    }
+
+    function onboardingPrev() {
+      if (onboardingStep <= 0) return;
+      onboardingStep -= 1;
       onboardingRender(true);
     }
 
@@ -1783,8 +1971,6 @@
       });
       onboardingRender(false);
     }
-
-    initOnboardingScreen();
 
     const SOURCES = [
       { url: 'https://mtprobe.cyou/search?ee_mask=true&max_ping=350&limit=120&offset=0&search=&no_mask=false&dd_mask=false', type: 'json_mtprobe' },
@@ -2005,6 +2191,11 @@
       const scrollEl = _getProxyScrollContainer();
       if (!scrollEl) return;
       scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function dismissProxyTip() {
+      const el = document.getElementById('proxy-tip');
+      if (el) el.style.display = 'none';
     }
 
     function _proxyItemMarkup(p) {
