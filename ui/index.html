@@ -412,6 +412,13 @@
       display: flex; align-items: center; justify-content: center;
     }
     .sett-row-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sett-row-icon .icon-telegram {
+      width: 16px;
+      height: 14px;
+      stroke: none;
+      fill: none;
+      stroke-width: 0;
+    }
     .sett-row-body { flex: 1; min-width: 0; padding: 14px 0; }
     .sett-row-label { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.92); line-height: 1.3; }
     .sett-row-sub { font-size: 12px; color: rgba(255,255,255,0.42); margin-top: 3px; line-height: 1.4; }
@@ -438,6 +445,171 @@
       display: none; font-family: monospace;
     }
     .sett-log-box.is-open { display: block; }
+    .lifehack-visual {
+      position: relative;
+      margin-top: 14px;
+      padding: 20px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.96);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transform: rotate(-1deg);
+      overflow: hidden;
+    }
+    .lifehack-visual::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0.12;
+      background-image:
+        radial-gradient(rgba(18,26,38,0.12) 0.6px, transparent 0.8px),
+        radial-gradient(rgba(255,255,255,0.3) 0.5px, transparent 0.7px);
+      background-size: 12px 12px, 14px 14px;
+      background-position: 0 0, 7px 7px;
+    }
+    .lifehack-visual > * {
+      position: relative;
+      z-index: 1;
+    }
+    .lifehack-visual-caption {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #229ED9;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: none;
+      color: #fff;
+    }
+    .lifehack-visual-caption svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+    .lifehack-visual-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .lifehack-visual-label {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: rgba(25,32,45,0.96);
+      letter-spacing: -0.01em;
+    }
+    .lifehack-visual-toggle {
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      background: #229ED9;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
+    }
+    .lifehack-visual-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 20px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+    }
+    .lifehack-scale {
+      border-top: 1px solid rgba(30,36,48,0.08);
+      padding-top: 12px;
+    }
+    .lifehack-scale-labels {
+      position: relative;
+      height: 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(120,128,142,0.92);
+      text-align: center;
+    }
+    .lifehack-scale-labels span {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    .lifehack-scale-labels span:first-child {
+      left: 0;
+      transform: none;
+    }
+    .lifehack-scale-labels span:nth-child(2) { left: 25%; }
+    .lifehack-scale-labels span:nth-child(3) { left: 50%; }
+    .lifehack-scale-labels span:nth-child(4) { left: 75%; }
+    .lifehack-scale-labels span:last-child {
+      left: 100%;
+      transform: translateX(-100%);
+    }
+    .lifehack-scale-labels span.is-active {
+      color: #229ED9;
+    }
+    .lifehack-scale-track {
+      position: relative;
+      height: 24px;
+    }
+    .lifehack-scale-track::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 11px;
+      height: 2px;
+      background: rgba(154,162,175,0.9);
+      border-radius: 999px;
+    }
+    .lifehack-scale-points {
+      position: relative;
+      height: 100%;
+    }
+    .lifehack-scale-points span {
+      position: absolute;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(154,162,175,1);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 3px #f5f5f5;
+    }
+    .lifehack-scale-points span:first-child {
+      left: 0;
+      transform: translate(0, -50%);
+    }
+    .lifehack-scale-points span:nth-child(2) { left: 25%; }
+    .lifehack-scale-points span:nth-child(3) { left: 50%; }
+    .lifehack-scale-points span:nth-child(4) { left: 75%; }
+    .lifehack-scale-points span:last-child {
+      left: 100%;
+      transform: translate(-100%, -50%);
+    }
+    .lifehack-scale-points span.is-active {
+      width: 14px;
+      height: 14px;
+      background: #229ED9;
+      box-shadow: 0 0 0 3px #f5f5f5;
+    }
+    .lifehack-actions {
+      display: flex;
+      width: 100%;
+      margin-top: 14px;
+    }
 
     .settings-logs-block {
       flex: 0 0 auto;
@@ -1008,6 +1180,57 @@
         </div>
       </div>
 
+      <div class="sett-section">
+        <div class="sett-section-title">Лайфхак</div>
+        <div class="sett-card">
+          <div class="sett-row">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+              <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Держите запасной план</div>
+              <div class="sett-row-sub">Если локальный прокси тупит — откройте внешние прокси и добавьте несколько штук в Telegram. Чем больше, тем лучше :) Затем включите автоподключение прокси</div>
+            </div>
+          </div>
+        </div>
+        <div class="lifehack-visual" aria-hidden="true">
+          <div class="lifehack-visual-caption">
+            <svg viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761C1.27894 7.38924 1.28414 7.39088 1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097C8.6685 6.97392 8.66534 6.97687 8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z"/>
+            </svg>
+            Telegram
+          </div>
+          <div class="lifehack-visual-head">
+            <div class="lifehack-visual-label">Автопереключение прокси</div>
+            <div class="lifehack-visual-toggle"></div>
+          </div>
+          <div class="lifehack-scale">
+            <div class="lifehack-scale-labels">
+              <span class="is-active">5 c</span>
+              <span>10 c</span>
+              <span>15 c</span>
+              <span>30 c</span>
+              <span>60 c</span>
+            </div>
+            <div class="lifehack-scale-track">
+              <div class="lifehack-scale-points">
+                <span class="is-active"></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="lifehack-actions">
+          <button type="button" onclick="openExtProxies()" style="width:100%;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Внешние прокси
+          </button>
+        </div>
+      </div>
+
       <!-- О приложении -->
       <div class="sett-section">
         <div class="sett-section-title">О приложении</div>
@@ -1032,9 +1255,15 @@
             </div>
             <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
           </div>
+        </div>
+      </div>
+
+      <div class="sett-section">
+        <div class="sett-section-title">Ссылки</div>
+        <div class="sett-card">
           <div class="sett-row" onclick="window.open('https://web.tribute.tg/d/HpN','_blank')" style="cursor:pointer">
             <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
-              <svg viewBox="0 0 24 24"><path d="M12 21s-6.716-4.32-9.193-8.053C.533 9.521 2.21 5 6.364 5c2.186 0 3.43 1.147 4.166 2.268C11.206 6.147 12.45 5 14.636 5 18.79 5 20.467 9.521 21.193 12.947 18.716 16.68 12 21 12 21Z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M16 4c-1.54 0-3.04.99-4 2.09C11.04 4.99 9.54 4 8 4 5.24 4 3 6.24 3 9c0 4.5 4.78 8.26 8.09 10.91a1.4 1.4 0 0 0 1.82 0C16.22 17.26 21 13.5 21 9c0-2.76-2.24-5-5-5z"/></svg>
             </div>
             <div class="sett-row-body">
               <div class="sett-row-label">Поддержать проект</div>
@@ -1044,7 +1273,10 @@
           </div>
           <div class="sett-row" onclick="window.open('https://t.me/+jBWqVxkC-fs0YmUy','_blank')" style="cursor:pointer">
             <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
-              <svg viewBox="0 0 24 24"><path d="M21 4 3 11l7 2 2 7 9-16Z"/><path d="m10 13 11-9"/></svg>
+              <svg class="icon-telegram" width="16" height="14" viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761C1.27894 7.38924 1.28414 7.39088 1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097C8.6685 6.97392 8.66534 6.97687 8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z" fill="white"/>
+                <path d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761L1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097L8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z" fill="white"/>
+              </svg>
             </div>
             <div class="sett-row-body">
               <div class="sett-row-label">Telegram-канал</div>
