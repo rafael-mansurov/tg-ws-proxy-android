@@ -5,3 +5,4 @@ SWIFTBAR.md
 .cursor/rules/swiftbar-proxy.mdc
 .secrets/
 .ci/
+.claude/
