@@ -951,6 +951,61 @@
     .ext-proxy-ping.ok    { color: #ffd166; }
     .ext-proxy-ping.slow  { color: rgba(255,100,80,0.9); }
     .ext-proxy-ping.dead  { color: rgba(255,255,255,0.18); }
+    .ext-proxy-tip {
+      margin: 4px 16px 8px;
+      padding: 13px 14px;
+      border-radius: 14px;
+      background: rgba(8,95,80,0.18);
+      border: 1px solid rgba(34,180,150,0.2);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .ext-proxy-tip-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(34,180,150,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .ext-proxy-tip-icon svg {
+      width: 14px;
+      height: 14px;
+      stroke: rgba(60,210,170,0.9);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .ext-proxy-tip-body { flex: 1; min-width: 0; }
+    .ext-proxy-tip-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(60,210,170,0.9);
+      margin-bottom: 2px;
+    }
+    .ext-proxy-tip-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+      line-height: 1.4;
+    }
+    .ext-proxy-tip-close {
+      background: none;
+      border: none;
+      padding: 0;
+      width: 18px;
+      height: 18px;
+      color: rgba(255,255,255,0.25);
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+      line-height: 1;
+      margin-top: 1px;
+    }
     .ext-proxy-status {
       padding: 32px 18px;
       text-align: center;
@@ -1429,6 +1484,16 @@
       <button class="ext-proxy-head-btn" onclick="closeExtProxies()" aria-label="Закрыть">✕</button>
     </div>
     <div class="ext-proxy-sub">Публичные MTProto-прокси — работают на мобильном интернете и Wi-Fi. Выбери любой, Telegram применит автоматически.</div>
+    <div id="ext-proxy-tip" class="ext-proxy-tip">
+      <div class="ext-proxy-tip-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+      </div>
+      <div class="ext-proxy-tip-body">
+        <div class="ext-proxy-tip-title">Включи автопереключение</div>
+        <div class="ext-proxy-tip-sub">Telegram → Прокси → Автопереключение → 5 сек — он сам найдёт рабочий</div>
+      </div>
+      <button class="ext-proxy-tip-close" onclick="dismissExtProxyTip()" aria-label="Закрыть">✕</button>
+    </div>
     <div id="ext-proxy-list" class="ext-proxy-list">
       <div class="ext-proxy-status">Загрузка…</div>
     </div>
@@ -1657,6 +1722,34 @@
     </div>`,
 
     // Шаг 5: всё локально — Telegram подключён через локальный прокси, нет внешних серверов
+    tips: `<div class="onb-ui" style="align-items:center">
+      <div class="lifehack-visual" style="transform:rotate(-1.5deg);max-width:272px;width:100%">
+        <div class="lifehack-visual-caption">
+          <svg viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761C1.27894 7.38924 1.28414 7.39088 1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097C8.6685 6.97392 8.66534 6.97687 8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z" fill="white"/></svg>
+          Telegram
+        </div>
+        <div class="lifehack-visual-head">
+          <div class="lifehack-visual-label">Автопереключение прокси</div>
+          <div class="lifehack-visual-toggle"></div>
+        </div>
+        <div class="lifehack-scale">
+          <div class="lifehack-scale-labels">
+            <span class="is-active">5 c</span>
+            <span>10 c</span>
+            <span>15 c</span>
+            <span>30 c</span>
+            <span>60 c</span>
+          </div>
+          <div class="lifehack-scale-track">
+            <div class="lifehack-scale-points">
+              <span class="is-active"></span>
+              <span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`,
+
     shield: `<div style="position:relative;width:100%;max-width:300px;height:200px">
       <!-- ambient glow -->
       <div style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(95,50,215,0.28) 0%,transparent 70%);pointer-events:none"></div>
@@ -1721,6 +1814,12 @@
       visual: _ONB_VISUAL.proxies,
       html: `Не работает? Есть список публичных прокси ${_ONB_ICON.globe} — чужие серверы, зато на любом интернете`,
       gradient: 'linear-gradient(to top, rgba(140,80,10,1) 0%, rgba(100,55,5,0.8) 35%, rgba(60,30,2,0.4) 60%, transparent 80%)',
+      btnText: 'Далее', btnIcon: null,
+    },
+    {
+      visual: _ONB_VISUAL.tips,
+      html: `Добавь несколько прокси в Telegram ${_ONB_ICON.globe} и включи автопереключение — он сам найдёт рабочий`,
+      gradient: 'linear-gradient(to top, rgba(8,95,80,1) 0%, rgba(4,65,55,0.8) 35%, rgba(2,32,28,0.4) 60%, transparent 80%)',
       btnText: 'Далее', btnIcon: null,
     },
     {
@@ -2880,6 +2979,12 @@
     }
   }
 
+  function dismissExtProxyTip() {
+    try { localStorage.setItem('tgws_ext_tip_v1', '1'); } catch(e) {}
+    const el = document.getElementById('ext-proxy-tip');
+    if (el) el.style.display = 'none';
+  }
+
   function openExtProxies() {
     const modal = document.getElementById('ext-proxy-modal');
     if (!modal) return;
@@ -2890,6 +2995,11 @@
     else _queueExtProxyVirtualRender(true);
     _initExtPanelSwipe();
     requestAnimationFrame(_updateExtProxyScrollTopButton);
+    // показать/скрыть подсказку
+    try {
+      const tip = document.getElementById('ext-proxy-tip');
+      if (tip) tip.style.display = localStorage.getItem('tgws_ext_tip_v1') === '1' ? 'none' : '';
+    } catch(e) {}
   }
 
   function closeExtProxies() {
