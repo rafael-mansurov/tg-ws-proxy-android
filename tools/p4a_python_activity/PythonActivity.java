@@ -43,6 +43,8 @@ import android.net.Uri;
 
 import androidx.core.splashscreen.SplashScreen;
 
+import unofficial.tgws.tgwsproxy.TgwsJsBridge;
+
 import org.renpy.android.ResourceManager;
 
 /**
@@ -165,6 +167,7 @@ public class PythonActivity extends Activity {
             mWebView = new WebView(PythonActivity.mActivity);
             mWebView.getSettings().setJavaScriptEnabled(true);
             mWebView.getSettings().setDomStorageEnabled(true);
+            mWebView.addJavascriptInterface(new TgwsJsBridge(PythonActivity.mActivity), "TgwsAndroid");
             mWebView.loadUrl("file:///android_asset/_load.html");
 
             mWebView.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));

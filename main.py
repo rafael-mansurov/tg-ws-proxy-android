@@ -110,8 +110,12 @@ def _share_app() -> bool:
 
             cover_path = str(_cover_jpg_path())
             authority = f"{activity.getPackageName()}.tgws.share"
-            # new IntentBuilder(Context): не использовать устаревший from(Activity).
-            ib = IntentBuilder(activity)
+            try:
+                ib = IntentBuilder(activity)
+            except Exception:
+                # pyjnius иногда не находит IntentBuilder(Context); from(Activity) в Java — from_ в Python.
+                log.debug("_share_app: IntentBuilder(activity) failed, using from_", exc_info=True)
+                ib = IntentBuilder.from_(activity)
 
             if os.path.isfile(cover_path):
                 # Документация: бинарный контент — ACTION_SEND, конкретный MIME (не */*).

@@ -2035,13 +2035,21 @@
     const originalHTML = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.style.opacity = '0.55'; }
     try {
-      // 1. Нативный Android Intent через сервер (включает cover.jpg)
+      // 1. Мост WebView → ShareCompat (надёжнее jnius из HTTP-потока Python)
+      try {
+        if (typeof TgwsAndroid !== 'undefined' && typeof TgwsAndroid.shareApp === 'function') {
+          TgwsAndroid.shareApp();
+          return;
+        }
+      } catch (_) {}
+
+      // 2. Нативный путь через сервер (fallback)
       try {
         const r = await fetch('/api/share', { method: 'POST' });
         if (r.ok) { const d = await r.json(); if (d.ok) return; }
       } catch (_) {}
 
-      // 2. Web Share API (браузер / новый WebView)
+      // 3. Web Share API (браузер / новый WebView)
       if (navigator.share) {
         let files = [];
         try {
@@ -2060,7 +2068,7 @@
       throw new Error('no-share');
     } catch (err) {
       if (err.name === 'AbortError') return;
-      // 3. Буфер обмена
+      // 4. Буфер обмена
       try {
         await navigator.clipboard.writeText(_SHARE_TEXT + _SHARE_URL);
         if (btn) btn.innerHTML = '✓ Скопировано';
