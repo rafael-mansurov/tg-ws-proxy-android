@@ -2490,19 +2490,7 @@
   }
 
   const GH_REPO = 'rafael-mansurov/tg-ws-proxy-android';
-  /** Стабильный URL (README и т.д.); из-за кэша для обновления в приложении см. _apkDownloadUrlFromRelease */
   const APK_URL = `https://github.com/${GH_REPO}/releases/download/latest-apk/tg-ws-proxy-release.apk`;
-
-  function _apkDownloadUrlFromRelease(release, latestVersion) {
-    const assets = (release && release.assets) || [];
-    const versioned = `tg-ws-proxy-${latestVersion}-release.apk`;
-    let a = assets.find((x) => x.name === versioned);
-    if (a) return a.browser_download_url;
-    a = assets.find((x) => x.name === 'tg-ws-proxy-release.apk');
-    if (a) return a.browser_download_url;
-    a = assets.find((x) => /\.apk$/i.test(x.name));
-    return a ? a.browser_download_url : APK_URL;
-  }
   const EXT_PROXY_FAVORITES_KEY = 'tgws_ext_proxy_favorites_v1';
   let _extProxyFavorites = new Set();
   let _qrModalLink = null;
@@ -2536,7 +2524,7 @@
       const latest = m[1];
       if (!_isNewer(latest, current)) return;
       document.getElementById('update-version-label').textContent = `v${latest}`;
-      document.getElementById('update-download-link').href = _apkDownloadUrlFromRelease(release, latest);
+      document.getElementById('update-download-link').href = APK_URL;
       document.getElementById('update-banner').style.display = 'block';
     } catch(e) {}
   }
