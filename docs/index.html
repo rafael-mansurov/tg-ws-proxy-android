@@ -1039,6 +1039,46 @@
       gap: 8px;
     }
 
+    .scroll-top-btn {
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+      transform: translate(-50%, 18px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 124px;
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(18px) saturate(1.1);
+      -webkit-backdrop-filter: blur(18px) saturate(1.1);
+      box-shadow: 0 10px 24px rgb(0 0 0 / 57%), 0 2px 8px rgb(0 0 0);
+      color: #111318;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
+      z-index: 10010;
+    }
+
+    .scroll-top-btn.is-visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translate(-50%, 0);
+    }
+
+    .scroll-top-btn:active {
+      background: #ffffff;
+    }
+
     .proxy-list-spacer {
       width: 100%;
       flex: 0 0 auto;
@@ -1446,7 +1486,10 @@
         <div class="proxy-hint">Работают на Wi-Fi и мобильном интернете. Выбирай любой вариант и подключай Telegram в один тап.</div>
       </div>
     </div>
-</div>
+    <button type="button" class="scroll-top-btn" id="proxy-scroll-top-btn" onclick="scrollProxiesToTop()" aria-label="Наверх">
+      Наверх
+    </button>
+  </div>
 
   <div id="qr-modal" class="qr-modal" aria-hidden="true">
     <div class="qr-modal-backdrop" onclick="closeQrModal()"></div>
@@ -1660,6 +1703,7 @@
       document.getElementById('back-btn').style.display = name === 'proxies' ? 'flex' : 'none';
       if (name === 'proxies' && !_loaded) loadProxies();
       if (name === 'proxies' && _loaded) _queueProxyVirtualRender(true);
+      _updateProxyScrollTopButton();
     }
 
     function onboardingRender(animate) {
@@ -1946,6 +1990,23 @@
       return document.querySelector('#page-proxies .scroll');
     }
 
+    function _updateProxyScrollTopButton() {
+      const btn = document.getElementById('proxy-scroll-top-btn');
+      const page = document.getElementById('page-proxies');
+      const scrollEl = _getProxyScrollContainer();
+      if (!btn || !page || !scrollEl) return;
+      const isActive = page.classList.contains('active');
+      const canScroll = scrollEl.scrollHeight - scrollEl.clientHeight > 120;
+      const shouldShow = isActive && canScroll && scrollEl.scrollTop > 280;
+      btn.classList.toggle('is-visible', shouldShow);
+    }
+
+    function scrollProxiesToTop() {
+      const scrollEl = _getProxyScrollContainer();
+      if (!scrollEl) return;
+      scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function _proxyItemMarkup(p) {
       const id = _proxyId(p);
       const ping = _displayPing(p);
@@ -2020,9 +2081,15 @@
     function _bindProxyVirtualization() {
       const scrollEl = _getProxyScrollContainer();
       if (!scrollEl || scrollEl._proxyVirtualBound) return;
-      const onScroll = () => _queueProxyVirtualRender();
+      const onScroll = () => {
+        _queueProxyVirtualRender();
+        _updateProxyScrollTopButton();
+      };
       scrollEl.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', () => _queueProxyVirtualRender(true), { passive: true });
+      window.addEventListener('resize', () => {
+        _queueProxyVirtualRender(true);
+        _updateProxyScrollTopButton();
+      }, { passive: true });
       scrollEl._proxyVirtualBound = true;
     }
 
@@ -2116,11 +2183,13 @@
       const container = document.getElementById('proxy-list');
       if (!list.length) {
         container.innerHTML = '<div class="proxy-status">Нет прокси. Попробуй обновить.</div>';
+        _updateProxyScrollTopButton();
         return;
       }
       _proxyVirtual.start = -1;
       _proxyVirtual.end = -1;
       _renderVirtualProxies(true);
+      _updateProxyScrollTopButton();
     }
 
     async function _pingOne(host, port) {
@@ -2201,6 +2270,7 @@
       _pingAll(initial, runId);
       _loaded = true;
       btn.disabled = false;
+      _updateProxyScrollTopButton();
     }
   </script>
 </body>
