@@ -3,6 +3,18 @@ name: Build APK
 on:
   push:
     branches: [main]
+    paths:
+      - ".github/workflows/build.yml"
+      - "buildozer.spec"
+      - "main.py"
+      - "services/**"
+      - "proxy/**"
+      - "ui/**"
+      - "tools/**"
+      - "scripts/**"
+      - "icon.png"
+      - "presplash.png"
+      - "cover.jpg"
   workflow_dispatch:
 
 jobs:
