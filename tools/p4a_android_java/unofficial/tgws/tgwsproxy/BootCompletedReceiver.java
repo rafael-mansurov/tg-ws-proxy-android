@@ -65,11 +65,11 @@ public class BootCompletedReceiver extends BroadcastReceiver {
 
         String reason;
         if (ProxyControl.readSecret(context) == null) {
-            reason = "Не удалось прочитать настройки прокси после перезагрузки. Открой приложение и включи прокси снова.";
+            reason = "Не удалось прочитать настройки прокси после перезагрузки. Откройте приложение и включите прокси снова.";
         } else if (!ProxyControl.isIgnoringBatteryOptimizations(context)) {
-            reason = "Android ограничил фоновый запуск. Открой приложение и отключи оптимизацию батареи для TG WS Proxy.";
+            reason = "Android ограничил фоновый запуск. Откройте приложение и отключите оптимизацию батареи для TG WS Proxy.";
         } else {
-            reason = "Сервис не поднялся автоматически после перезагрузки. Открой приложение и проверь статус прокси.";
+            reason = "Сервис не поднялся автоматически после перезагрузки. Откройте приложение и проверьте статус прокси.";
         }
         ProxyControl.showBootAutostartIssue(context, reason);
     }
@@ -102,7 +102,7 @@ public class BootCompletedReceiver extends BroadcastReceiver {
         } catch (Exception ignored) {
             String text = String.format(
                 Locale.US,
-                "Автозапуск не удался, и повторный запуск не назначился. Открой приложение и проверь прокси."
+                "Автозапуск не удался, и повторный запуск не назначился. Откройте приложение и проверьте прокси."
             );
             ProxyControl.showBootAutostartIssue(context, text);
         }

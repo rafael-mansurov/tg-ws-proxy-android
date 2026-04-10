@@ -308,7 +308,7 @@ public class PythonActivity extends Activity {
 
             if (SystemClock.elapsedRealtime() - lastBackClick > 2000){
                 lastBackClick = SystemClock.elapsedRealtime();
-                Toast.makeText(this, "Tap again to close the app", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Нажмите «Назад» ещё раз, чтобы закрыть приложение", Toast.LENGTH_LONG).show();
                 return true;
             }
 

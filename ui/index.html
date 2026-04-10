@@ -1255,7 +1255,7 @@
     </div>
     <div id="battery-banner" style="display:none;background:linear-gradient(165deg,rgba(60,25,15,0.9) 0%,rgba(25,12,8,0.95) 100%);border:1px solid rgba(255,120,60,0.35);border-radius:22px;padding:16px 16px;margin-bottom:8px;box-shadow:0 0 40px rgba(255,80,40,0.12),inset 0 1px 0 rgba(255,200,150,0.08)">
       <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;text-shadow:0 0 20px rgba(255,140,80,0.4)">⚠ Оптимизация батареи включена</div>
-      <div style="font-size:12px;font-weight:500;color:rgba(255,220,200,0.75);margin-bottom:12px;line-height:1.45">Прокси будет останавливаться когда вы закрываете приложение. Отключите оптимизацию батареи чтобы сервис работал в фоне.</div>
+      <div style="font-size:12px;font-weight:500;color:rgba(255,220,200,0.75);margin-bottom:12px;line-height:1.45">Прокси будет останавливаться когда вы закрываете приложение. Отключите оптимизацию батареи, чтобы сервис работал в фоне.</div>
       <button onclick="openBatterySettings()" style="width:100%;background:linear-gradient(180deg,#ff6b35 0%,#c41e1e 100%);color:#fff;border:none;border-radius:16px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 0 28px rgba(255,80,60,0.45),inset 0 1px 0 rgba(255,255,255,0.25)">Отключить оптимизацию →</button>
     </div>
 
@@ -1279,7 +1279,7 @@
     <div class="row">
       <div class="card">
         <div class="clabel">Сервер</div>
-        <div class="cvalue" id="server-val">127.0.0.1</div>
+        <div class="cvalue" id="server-val">После запуска</div>
       </div>
       <div class="card" style="flex:0.6">
         <div class="clabel">Порт</div>
@@ -1300,7 +1300,7 @@
     </div>
 
     <div id="no-traffic-hint" style="display:none;margin-bottom:10px;padding:11px 14px;border-radius:14px;background:rgba(255,180,40,0.08);border:1px solid rgba(255,180,40,0.22);font-size:12px;font-weight:600;color:rgba(255,210,100,0.9);line-height:1.45;text-align:center">
-      Telegram ещё не подключился к&nbsp;прокси.<br>Нажми «Открыть в&nbsp;Telegram», чтобы применить настройки.
+      Telegram ещё не подключился к&nbsp;прокси.<br>Нажмите «Открыть в&nbsp;Telegram», чтобы применить настройки.
     </div>
 
     <div class="cta-row">
@@ -1504,14 +1504,14 @@
       <button class="ext-proxy-head-btn" id="ext-refresh-btn" onclick="loadExtProxies()" title="Обновить">Обновить</button>
       <button class="ext-proxy-head-btn" onclick="closeExtProxies()" aria-label="Закрыть">✕</button>
     </div>
-    <div class="ext-proxy-sub">Публичные MTProto-прокси — работают на мобильном интернете и&nbsp;Wi-Fi. Выбери любой, Telegram применит автоматически.</div>
+    <div class="ext-proxy-sub">Публичные MTProto-прокси — работают на мобильном интернете и&nbsp;Wi-Fi. Выберите любой, Telegram применит автоматически.</div>
     <div id="ext-proxy-tip" class="ext-proxy-tip">
       <div class="ext-proxy-tip-icon">
         <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
       </div>
       <div class="ext-proxy-tip-body">
-        <div class="ext-proxy-tip-title">Включи автопереключение</div>
-        <div class="ext-proxy-tip-sub">Чтобы автопереключение работало нормально, добавь в&nbsp;Telegram побольше разных прокси. Оптимально держать около&nbsp;20&nbsp;штук.</div>
+        <div class="ext-proxy-tip-title">Включите автопереключение</div>
+        <div class="ext-proxy-tip-sub">Чтобы автопереключение работало нормально, добавьте в&nbsp;Telegram побольше разных прокси. Оптимально держать около&nbsp;20&nbsp;штук.</div>
       </div>
       <button class="ext-proxy-tip-close" onclick="dismissExtProxyTip()" aria-label="Закрыть">✕</button>
     </div>
@@ -1554,7 +1554,7 @@
       </div>
     </div>
     <p style="padding:4px 24px 0;text-align:center;font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5">
-      Отсканируй, чтобы скачать&nbsp;APK
+      Отсканируйте QR, чтобы скачать&nbsp;APK
     </p>
     <div style="padding:16px 20px calc(env(safe-area-inset-bottom,0px) + 24px)">
       <button type="button" id="share-app-btn" onclick="shareApp()" style="width:100%;padding:15px 20px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.1);color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;-webkit-tap-highlight-color:transparent">
@@ -1613,6 +1613,7 @@
   const HEADER_SUB_SETTINGS = 'Логи и диагностика';
   const APP_VERSION_FALLBACK = '—';
   const APP_MIN_ANDROID = '7.0+';
+  const SERVER_PLACEHOLDER = 'После запуска';
 
   /* Режимы предпросмотра (без сервера):
      ?demo=1 — прокси запущен, тумблер работает   (default при file://)
@@ -1662,7 +1663,7 @@
       </div>
     </div>`,
 
-    // Шаг 2: прокси на твоём телефоне — выключен, но параметры уже готовы
+    // Шаг 2: прокси на телефоне пользователя — выключен, но параметры уже готовы
     server: `<div class="onb-ui">
       <div class="onb-ui-card" style="border-color:rgba(255,255,255,0.08);background:rgba(8,24,80,0.4)">
         <div class="onb-ui-dot" style="background:rgba(255,255,255,0.2)"></div>
@@ -1677,7 +1678,7 @@
       <div style="display:flex;gap:8px">
         <div class="onb-ui-row" style="flex:1;flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.2)">
           <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Сервер</div>
-          <div class="onb-ui-label" style="font-size:12px;color:rgba(100,180,255,0.85)">127.0.0.1</div>
+          <div class="onb-ui-label" style="font-size:12px;color:rgba(100,180,255,0.85)">После запуска</div>
         </div>
         <div class="onb-ui-row" style="flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.15)">
           <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Порт</div>
@@ -1690,7 +1691,7 @@
       </div>
     </div>`,
 
-    // Шаг 3: включи тумблер — большой статус карточка + тоггл ВКЛ
+    // Шаг 3: включение тумблера — большой статус карточка + тоггл ВКЛ
     toggle: `<div class="onb-ui">
       <div class="onb-ui-card" style="border-color:rgba(34,200,80,0.3);background:rgba(8,50,20,0.55);box-shadow:0 0 30px rgba(34,200,80,0.08)">
         <div class="onb-ui-dot" style="background:rgba(34,220,90,0.9);box-shadow:0 0 10px rgba(34,220,90,0.7)"></div>
@@ -1822,13 +1823,13 @@
     },
     {
       visual: _ONB_VISUAL.server,
-      html: `Это приложение поднимает MTProto&#8209;прокси ${_ONB_ICON.server} прямо на твоём телефоне — без серверов, без регистраций`,
+      html: `Это приложение поднимает MTProto&#8209;прокси ${_ONB_ICON.server} прямо на вашем телефоне — без серверов, без регистраций`,
       gradient: 'linear-gradient(to top, rgba(15,40,140,1) 0%, rgba(8,24,100,0.8) 35%, rgba(4,12,60,0.4) 60%, transparent 80%)',
       btnText: 'Далее', btnIcon: null,
     },
     {
       visual: _ONB_VISUAL.toggle,
-        html: `Включи тумблер, дождись зелёного ${_ONB_ICON.check} и&nbsp;открой Telegram — он подключится сам`,
+        html: `Включите тумблер, дождитесь зелёного ${_ONB_ICON.check} и&nbsp;откройте Telegram — подключение произойдёт автоматически`,
       gradient: 'linear-gradient(to top, rgba(15,90,35,1) 0%, rgba(8,60,20,0.8) 35%, rgba(4,30,10,0.4) 60%, transparent 80%)',
       btnText: 'Далее', btnIcon: null,
     },
@@ -1840,13 +1841,13 @@
     },
     {
       visual: _ONB_VISUAL.tips,
-        html: `Добавь несколько прокси в&nbsp;Telegram ${_ONB_ICON.globe} и&nbsp;включи автопереключение — он сам найдёт рабочий`,
+        html: `Добавьте несколько прокси в&nbsp;Telegram ${_ONB_ICON.globe} и&nbsp;включите автопереключение — Telegram сам найдёт рабочий`,
       gradient: 'linear-gradient(to top, rgba(8,95,80,1) 0%, rgba(4,65,55,0.8) 35%, rgba(2,32,28,0.4) 60%, transparent 80%)',
       btnText: 'Далее', btnIcon: null,
     },
     {
       visual: _ONB_VISUAL.shield,
-      html: `Всё работает локально ${_ONB_ICON.shield} — твои данные не покидают телефон`,
+      html: `Всё работает локально ${_ONB_ICON.shield} — ваши данные не покидают телефон`,
       gradient: 'linear-gradient(to top, rgba(70,15,120,1) 0%, rgba(50,8,90,0.8) 35%, rgba(25,4,50,0.4) 60%, transparent 80%)',
       btnText: 'Начать', btnIcon: 'start',
     },
@@ -1965,8 +1966,8 @@
     }
   }
 
-  const _SHARE_URL = 'https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk';
-  const _SHARE_TEXT = 'TG WS Proxy — прокси для Telegram\nРаботает локально на&nbsp;телефоне, без серверов и регистрации.\n\n';
+  const _SHARE_URL = 'https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-release.apk';
+  const _SHARE_TEXT = 'TG WS Proxy — прокси для Telegram\nРаботает локально на телефоне, без серверов и регистрации.\n\n';
 
   function openShareAppModal() {
     const modal = document.getElementById('share-app-modal');
@@ -2139,9 +2140,18 @@
   function updateUI(isRunning, sec, lh, uptimeSec, rxBps, txBps, lastSessionOkTs) {
     running = isRunning;
     secret = sec || secret;
-    if (lh) {
-      linkHost = lh;
-      document.getElementById('server-val').textContent = lh;
+    const serverEl = document.getElementById('server-val');
+    if (serverEl) {
+      if (isRunning && lh) {
+        linkHost = lh;
+        serverEl.textContent = lh;
+      } else if (isRunning && !lh) {
+        linkHost = null;
+        serverEl.textContent = '…';
+      } else {
+        linkHost = null;
+        serverEl.textContent = SERVER_PLACEHOLDER;
+      }
     }
 
     document.getElementById('toggle').classList.toggle('on', running);
@@ -2274,7 +2284,7 @@
 
   async function onToggle() {
     if (DESIGN_DEMO) {
-      if (running) updateUI(false, null, DEMO_HOST, null, 0, 0);
+      if (running) updateUI(false, null, null, null, 0, 0);
       else updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
       return;
     }
@@ -2472,7 +2482,7 @@
   }
 
   const GH_REPO = 'rafael-mansurov/tg-ws-proxy-android';
-  const APK_URL = `https://github.com/${GH_REPO}/releases/download/latest-apk/tg-ws-proxy-debug.apk`;
+  const APK_URL = `https://github.com/${GH_REPO}/releases/download/latest-apk/tg-ws-proxy-release.apk`;
   const EXT_PROXY_FAVORITES_KEY = 'tgws_ext_proxy_favorites_v1';
   let _extProxyFavorites = new Set();
   let _qrModalLink = null;
@@ -2824,7 +2834,7 @@
     const container = document.getElementById('ext-proxy-list');
     if (!container) return;
     if (!list || list.length === 0) {
-      container.innerHTML = '<div class="ext-proxy-status">Нет доступных прокси. Попробуй обновить.</div>';
+      container.innerHTML = '<div class="ext-proxy-status">Нет доступных прокси. Попробуйте обновить.</div>';
       _updateExtProxyScrollTopButton();
       return;
     }
@@ -2879,7 +2889,7 @@
       .filter(p => p._ping !== null || _extProxyFavorites.has(_proxyKey(p)))
       .sort(_compareProxyRank);
     if (reachable.length === 0) {
-      container.innerHTML = '<div class="ext-proxy-status">Ни один прокси не ответил. Проверь интернет.</div>';
+      container.innerHTML = '<div class="ext-proxy-status">Ни один прокси не ответил. Проверьте интернет.</div>';
       return;
     }
     _renderExtProxies(reachable);
@@ -2978,7 +2988,7 @@
       });
 
       if (unique.length === 0) {
-        container.innerHTML = '<div class="ext-proxy-status">Нет доступных прокси. Проверь интернет и обнови.</div>';
+        container.innerHTML = '<div class="ext-proxy-status">Нет доступных прокси. Проверьте интернет и обновите список.</div>';
         _updateExtProxyScrollTopButton();
         return;
       }
@@ -3006,7 +3016,7 @@
       _extProxiesLoaded = true;
       _pingAll(sorted);
     } catch (e) {
-      if (container) container.innerHTML = '<div class="ext-proxy-status">Ошибка загрузки. Проверь интернет и обнови.</div>';
+      if (container) container.innerHTML = '<div class="ext-proxy-status">Ошибка загрузки. Проверьте интернет и обновите список.</div>';
       _updateExtProxyScrollTopButton();
     } finally {
       if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }

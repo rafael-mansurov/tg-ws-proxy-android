@@ -3,6 +3,7 @@ HTTP server entry point for the WebView bootstrap.
 Serves the UI and provides a REST API to control the proxy service.
 """
 import json
+import logging
 import os
 import re
 import secrets
@@ -66,61 +67,90 @@ _SHARE_TEXT = (
     "TG WS Proxy — прокси для Telegram\n"
     "Работает локально на телефоне, без серверов и регистрации.\n\n"
     "https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/"
-    "download/latest-apk/tg-ws-proxy-debug.apk"
+    "download/latest-apk/tg-ws-proxy-release.apk"
 )
 
 
+def _cover_jpg_path() -> Path:
+    return Path(__file__).resolve().parent / "cover.jpg"
+
+
 def _share_app() -> bool:
-    """Открывает Android share sheet с обложкой и ссылкой. Возвращает True если удалось."""
+    """Android Sharesheet: текст + ссылка (+ cover.jpg через FileProvider, если файл есть).
+
+    Соответствует руководству «Send simple data to other apps» (ACTION_SEND + createChooser /
+    эквивалент) и androidx ShareCompat.IntentBuilder — без устаревшего from(Activity), только
+    конструктор IntentBuilder(Context) с API 1.5.0+.
+    https://developer.android.com/training/sharing/send
+    https://developer.android.com/reference/androidx/core/app/ShareCompat.IntentBuilder
+    """
     log = logging.getLogger(__name__)
+    done = threading.Event()
+    outcome = {"ok": False}
+
+    def _run_share_on_ui() -> None:
+        try:
+            from jnius import autoclass
+
+            # androidx.core.app.ShareCompat.IntentBuilder — единый поддерживаемый способ:
+            # выставляет ClipData, FLAG_GRANT_READ_URI_PERMISSION и вызывает системный chooser.
+            IntentBuilder = autoclass("androidx.core.app.ShareCompat$IntentBuilder")
+            JavaString = autoclass("java.lang.String")
+            File = autoclass("java.io.File")
+            FileProvider = autoclass("androidx.core.content.FileProvider")
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            activity = PythonActivity.mActivity
+            if activity is None:
+                log.warning("_share_app: mActivity is None")
+                return
+
+            chooser_title = JavaString("Поделиться")
+            subject = JavaString("TG WS Proxy")
+            body = JavaString(_SHARE_TEXT)
+
+            cover_path = str(_cover_jpg_path())
+            authority = f"{activity.getPackageName()}.tgws.share"
+            # new IntentBuilder(Context): не использовать устаревший from(Activity).
+            ib = IntentBuilder(activity)
+
+            if os.path.isfile(cover_path):
+                # Документация: бинарный контент — ACTION_SEND, конкретный MIME (не */*).
+                uri = FileProvider.getUriForFile(activity, authority, File(cover_path))
+                ib.setType("image/jpeg")
+                ib.setStream(uri)
+                ib.setText(body)
+                ib.setSubject(subject)
+                ib.setChooserTitle(chooser_title)
+                log.debug("_share_app: image/jpeg + text, uri=%s", uri)
+            else:
+                ib.setType("text/plain")
+                ib.setText(body)
+                ib.setSubject(subject)
+                ib.setChooserTitle(chooser_title)
+                log.debug("_share_app: text/plain only (нет cover.jpg)")
+
+            ib.startChooser()
+            outcome["ok"] = True
+        except Exception as exc:
+            log.warning("_share_app failed: %s", exc, exc_info=True)
+        finally:
+            done.set()
+
     try:
-        from jnius import autoclass, cast
-        Intent = autoclass("android.content.Intent")
-        JavaString = autoclass("java.lang.String")
-        PythonActivity = autoclass("org.kivy.android.PythonActivity")
-        activity = PythonActivity.mActivity
+        from android.runnable import run_on_ui_thread
 
-        intent = Intent(Intent.ACTION_SEND)
-        shared_with_image = False
+        @run_on_ui_thread
+        def _post():
+            _run_share_on_ui()
 
-        cover_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cover.jpg")
-        log.debug("_share_app: cover_path=%s exists=%s", cover_path, os.path.exists(cover_path))
-        if os.path.exists(cover_path):
-            try:
-                File = autoclass("java.io.File")
-                FileProvider = autoclass("androidx.core.content.FileProvider")
-                pkg = activity.getPackageName()
-                for authority in (pkg + ".fileprovider", pkg + ".provider"):
-                    try:
-                        uri = FileProvider.getUriForFile(activity, authority, File(cover_path))
-                        intent.setType("image/jpeg")
-                        # cast uri to Parcelable so jnius picks the right putExtra overload
-                        Parcelable = autoclass("android.os.Parcelable")
-                        intent.putExtra(Intent.EXTRA_STREAM, cast("android.os.Parcelable", uri))
-                        intent.putExtra(Intent.EXTRA_TEXT, JavaString(_SHARE_TEXT))
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        shared_with_image = True
-                        log.debug("_share_app: image share prepared with authority=%s", authority)
-                        break
-                    except Exception as e:
-                        log.debug("_share_app: FileProvider authority=%s failed: %s", authority, e)
-                        continue
-            except Exception as e:
-                log.debug("_share_app: FileProvider setup failed: %s", e)
+        _post()
+    except ImportError:
+        _run_share_on_ui()
 
-        if not shared_with_image:
-            intent.setType("text/plain")
-            # explicit Java String cast to avoid jnius putExtra overload ambiguity
-            intent.putExtra(Intent.EXTRA_TEXT, JavaString(_SHARE_TEXT))
-            log.debug("_share_app: text-only share prepared")
-
-        chooser = Intent.createChooser(intent, JavaString("Поделиться"))
-        activity.startActivity(chooser)
-        log.debug("_share_app: startActivity called OK")
-        return True
-    except Exception as exc:
-        log.warning("_share_app failed: %s", exc, exc_info=True)
+    if not done.wait(timeout=20.0):
+        log.warning("_share_app: UI thread timeout")
         return False
+    return bool(outcome["ok"])
 
 
 def _proxy_link_host() -> str:
@@ -546,7 +576,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     from jnius import autoclass
 
     if len(SECRET) != 32:
-        return False, "Секрет не готов. Закрой приложение и открой снова."
+        return False, "Секрет не готов. Закройте приложение и откройте снова."
 
     link_host = _proxy_link_host()
 
@@ -589,7 +619,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         except Exception:
             pass
         _write_start_log(f"UI: proxy failed to listen for Telegram on {link_host}:{PORT_PROXY}")
-        return False, "Прокси не поднялся за 25 с. Проверь разрешения и попробуй снова."
+        return False, "Прокси не поднялся за 25 с. Проверьте разрешения и попробуйте снова."
     if _read_service_start_ts() is None:
         _write_service_start_ts_now()
     # Короткая пауза: прокси теперь обрабатывает клиентов параллельно с warmup, но первому
@@ -650,6 +680,24 @@ class Handler(BaseHTTPRequestHandler):
                 data = icon_path.read_bytes()
                 self.send_response(200)
                 self.send_header("Content-Type", "image/png")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            except OSError:
+                self.send_response(404)
+                self.end_headers()
+
+        elif self.path == "/cover.jpg":
+            cover = _cover_jpg_path()
+            if not cover.is_file():
+                self.send_response(404)
+                self.end_headers()
+                return
+            try:
+                data = cover.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/jpeg")
                 self.send_header("Cache-Control", "public, max-age=86400")
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()

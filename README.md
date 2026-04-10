@@ -2,7 +2,7 @@
 
 ![TG WS Proxy](cover.jpg)
 
-[![Скачать TG WS Proxy](https://img.shields.io/badge/СКАЧАТЬ_TG_WS_PROXY-24.8_МБ-229ED9?style=for-the-badge&logo=android&logoColor=white)](https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk)
+[![Скачать TG WS Proxy](https://img.shields.io/badge/СКАЧАТЬ_TG_WS_PROXY-24.8_МБ-229ED9?style=for-the-badge&logo=android&logoColor=white)](https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-release.apk)
 [![Написать в Telegram](https://img.shields.io/badge/НАПИСАТЬ_В_TELEGRAM-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/mansurov_rafael)
 
 # Локальный прокси для Telegram прямо на Android
@@ -60,7 +60,7 @@
 
 **01 · Скачиваете APK**
 
-> Скачиваете [tg-ws-proxy.apk ≈24.8 МБ](https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-debug.apk).
+> Скачиваете [tg-ws-proxy.apk ≈24.8 МБ](https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-release.apk).
 
 **02 · Ставите на телефон**
 

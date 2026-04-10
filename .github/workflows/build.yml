@@ -53,11 +53,13 @@ jobs:
             chmod 600 .ci/release.keystore
 
             echo "BUILD_MODE=release" >> "${GITHUB_ENV}"
+            echo "APK_FILENAME=tg-ws-proxy-release.apk" >> "${GITHUB_ENV}"
             echo "P4A_RELEASE_KEYSTORE_PASSWD=${ANDROID_KEYSTORE_PASSWORD}" >> "${GITHUB_ENV}"
             echo "P4A_RELEASE_KEYALIAS_PASSWD=${ANDROID_KEY_ALIAS_PASSWORD}" >> "${GITHUB_ENV}"
           else
             echo "::warning::Release signing secrets are missing. Building debug APK (not suitable for stable in-place upgrades)."
             echo "BUILD_MODE=debug" >> "${GITHUB_ENV}"
+            echo "APK_FILENAME=tg-ws-proxy-debug.apk" >> "${GITHUB_ENV}"
           fi
 
       - name: Cache Buildozer (project + Android SDK home)
@@ -66,7 +68,7 @@ jobs:
           path: |
             .buildozer
             /home/runner/.buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec', 'icon.png', 'presplash.png', 'tools/p4a_hook.py', 'tools/p4a_webview_loader/**', 'tools/p4a_python_activity/**', 'tools/p4a_android_java/**', 'tools/p4a_android_res/**') }}-v7-sdkhome
+          key: buildozer-${{ hashFiles('buildozer.spec', 'icon.png', 'presplash.png', 'cover.jpg', 'tools/p4a_hook.py', 'tools/p4a_webview_loader/**', 'tools/p4a_python_activity/**', 'tools/p4a_android_java/**', 'tools/p4a_android_res/**') }}-v8-sdkhome
           restore-keys: |
             buildozer-${{ hashFiles('buildozer.spec') }}-
             buildozer-
@@ -96,7 +98,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: tg-ws-proxy-debug
+          name: tg-ws-proxy-${{ env.BUILD_MODE }}
           path: bin/*.apk
           retention-days: 30
 
@@ -107,11 +109,11 @@ jobs:
         run: |
           set -euo pipefail
           APK=$(ls -1 bin/*.apk | head -1)
-          cp -f "$APK" tg-ws-proxy-debug.apk
+          cp -f "$APK" "${APK_FILENAME}"
           echo "${APP_VERSION}" > version.txt
           NOTES="Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}"
           if gh release view latest-apk --repo "${{ github.repository }}" &>/dev/null; then
-            gh release upload latest-apk tg-ws-proxy-debug.apk version.txt \
+            gh release upload latest-apk "${APK_FILENAME}" version.txt \
               --repo "${{ github.repository }}" \
               --clobber
             gh release edit latest-apk \
@@ -120,7 +122,7 @@ jobs:
               --notes "${NOTES}" \
               --latest=false
           else
-            gh release create latest-apk tg-ws-proxy-debug.apk version.txt \
+            gh release create latest-apk "${APK_FILENAME}" version.txt \
               --repo "${{ github.repository }}" \
               --title "Приложение для Android (APK)" \
               --notes "${NOTES}" \
@@ -139,7 +141,7 @@ jobs:
             exit 0
           fi
           BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-apk"
-          DL_APK="${BASE}/tg-ws-proxy-debug.apk"
+          DL_APK="${BASE}/${APK_FILENAME}"
           CAPTION=$(printf '✅ <b>Новая сборка Android</b>\n\nВерсия: %s · режим: %s\n<a href="%s">Скачать APK</a>' \
             "${APP_VERSION}" "${BUILD_MODE}" "${DL_APK}")
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
@@ -149,7 +151,7 @@ jobs:
             -F parse_mode="HTML"
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             -F chat_id="$TELEGRAM_CHAT_ID" \
-            -F document=@"tg-ws-proxy-debug.apk" \
+            -F document=@"${APK_FILENAME}" \
             -F caption=$'Установи на телефон как обычное приложение (при необходимости разреши установку из файла).' \
             || echo "::warning::Telegram: не удалось отправить APK файл (лимит бота ~50 МБ или сеть)."
 

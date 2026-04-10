@@ -38,6 +38,49 @@ def _ensure_boot_receiver(app: ET.Element) -> None:
     ET.SubElement(filt, "action", {_an("name"): "android.intent.action.MY_PACKAGE_REPLACED"})
 
 
+def _manifest_package(manifest_root: ET.Element):
+    pkg = manifest_root.get("package")
+    if pkg:
+        return pkg
+    return manifest_root.get(_an("package"))
+
+
+def _has_tgws_share_provider(app: ET.Element) -> bool:
+    cls = "unofficial.tgws.tgwsproxy.TgwsShareFileProvider"
+    for node in app.findall("provider"):
+        if node.get(_an("name")) == cls:
+            return True
+    return False
+
+
+def _ensure_file_provider(app: ET.Element, manifest_root: ET.Element) -> None:
+    """Share cover.jpg via FileProvider (content:// URI + app chooser)."""
+    if _has_tgws_share_provider(app):
+        return
+    pkg = _manifest_package(manifest_root)
+    if not pkg:
+        return
+    authority = f"{pkg}.tgws.share"
+    provider = ET.SubElement(
+        app,
+        "provider",
+        {
+            _an("name"): "unofficial.tgws.tgwsproxy.TgwsShareFileProvider",
+            _an("authorities"): authority,
+            _an("exported"): "false",
+            _an("grantUriPermissions"): "true",
+        },
+    )
+    ET.SubElement(
+        provider,
+        "meta-data",
+        {
+            _an("name"): "android.support.FILE_PROVIDER_PATHS",
+            _an("resource"): "@xml/tgws_file_paths",
+        },
+    )
+
+
 def _ensure_tile_service(app: ET.Element) -> None:
     cls = "unofficial.tgws.tgwsproxy.ProxyTileService"
     if _has_component(app, "service", cls):
@@ -70,10 +113,12 @@ def _patch_manifest_components() -> None:
         return
     _ensure_boot_receiver(app)
     _ensure_tile_service(app)
+    _ensure_file_provider(app, root)
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
 
 
-def after_apk_build(toolchain):
+def _apply_tgws_build_overlay():
+    """Копирует Java/res и правит манифест. Дважды: после build.py и сразу перед gradle assemble (p4a toolchain)."""
     root = Path(__file__).resolve().parent
 
     assets = Path("src/main/assets")
@@ -99,4 +144,22 @@ def after_apk_build(toolchain):
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
 
+    extra_res = root / "p4a_android_res"
+    if extra_res.is_dir():
+        for src in extra_res.rglob("*"):
+            if src.is_file():
+                rel = src.relative_to(extra_res)
+                dest = Path("src/main/res") / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
+
     _patch_manifest_components()
+
+
+def after_apk_build(toolchain):
+    _apply_tgws_build_overlay()
+
+
+def before_apk_assemble(toolchain):
+    """Страховка: manifest/res попадают в APK независимо от порядка шагов p4a."""
+    _apply_tgws_build_overlay()

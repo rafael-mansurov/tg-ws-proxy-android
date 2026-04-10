@@ -4,7 +4,7 @@ package.name = tgwsproxy
 package.domain = unofficial.tgws
 source.dir = .
 source.include_exts = py,html,png,css,jpg
-source.include_patterns = ui/*,icon.png
+source.include_patterns = ui/*,icon.png,cover.jpg
 version = 1.5.6
 requirements = python3,openssl,cryptography,cffi,android
 orientation = portrait
@@ -26,7 +26,7 @@ android.release_artifact = apk
 p4a.bootstrap = webview
 p4a.port = 8080
 p4a.hook = tools/p4a_hook.py
-android.gradle_dependencies = androidx.core:core-splashscreen:1.0.1
+android.gradle_dependencies = androidx.core:core:1.12.0,androidx.core:core-splashscreen:1.0.1
 
 [buildozer]
 log_level = 2

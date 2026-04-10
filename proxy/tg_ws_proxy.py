@@ -831,7 +831,7 @@ async def _handle_client(reader, writer, secret: bytes, peer_label: str = "?"):
         result = _try_handshake(handshake, secret)
         if result is None:
             _stats.connections_bad += 1
-            log.warning("[%s] ✗ Неверный секрет — Telegram настроен на другой прокси. Нажми 'Открыть в Telegram' заново. first16=%s",
+            log.warning("[%s] ✗ Неверный секрет — Telegram настроен на другой прокси. Нажмите «Открыть в Telegram» заново. first16=%s",
                         label, handshake[:16].hex())
             try:
                 while await reader.read(4096):
