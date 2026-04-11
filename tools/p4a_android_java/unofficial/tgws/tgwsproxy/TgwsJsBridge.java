@@ -1,6 +1,8 @@
 package unofficial.tgws.tgwsproxy;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
@@ -10,6 +12,9 @@ import androidx.core.app.ShareCompat;
 import androidx.core.content.FileProvider;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * WebView → нативный шаринг. HTTP POST /api/share из JS иногда даёт ok:false (jnius/потоки);
@@ -48,7 +53,7 @@ public final class TgwsJsBridge {
                 });
     }
 
-    /** Картинка + текст; при любой ошибке — false, чтобы открыть только текст. */
+    /** Картинка + подпись (ссылка в тексте). Копия в cache + явный ClipData — иначе Telegram часто не вставляет фото. */
     private boolean tryShareWithCover() {
         try {
             String authority = activity.getPackageName() + ".tgws.share";
@@ -56,18 +61,40 @@ public final class TgwsJsBridge {
             if (!cover.isFile()) {
                 return false;
             }
-            Uri uri = FileProvider.getUriForFile(activity, authority, cover);
-            new ShareCompat.IntentBuilder(activity)
-                    .setType("image/jpeg")
-                    .setStream(uri)
-                    .setText(SHARE_BODY)
-                    .setSubject("TG WS Proxy")
-                    .setChooserTitle("Поделиться")
-                    .startChooser();
+            File shareDir = new File(activity.getCacheDir(), "share");
+            if (!shareDir.isDirectory() && !shareDir.mkdirs()) {
+                Log.w(TAG, "share cache dir mkdirs failed");
+            }
+            File cacheCopy = new File(shareDir, "tgws-cover.jpg");
+            copyFileOrThrow(cover, cacheCopy);
+
+            Uri uri = FileProvider.getUriForFile(activity, authority, cacheCopy);
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType("image/*");
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.putExtra(Intent.EXTRA_TEXT, SHARE_BODY);
+            send.putExtra(Intent.EXTRA_SUBJECT, "TG WS Proxy");
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            send.setClipData(ClipData.newUri(activity.getContentResolver(), "cover", uri));
+
+            Intent chooser = Intent.createChooser(send, "Поделиться");
+            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            activity.startActivity(chooser);
             return true;
         } catch (Exception e) {
             Log.w(TAG, "share with cover failed, falling back to text", e);
             return false;
+        }
+    }
+
+    private static void copyFileOrThrow(File src, File dst) throws IOException {
+        try (FileInputStream in = new FileInputStream(src);
+                FileOutputStream out = new FileOutputStream(dst)) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                out.write(buf, 0, n);
+            }
         }
     }
 
