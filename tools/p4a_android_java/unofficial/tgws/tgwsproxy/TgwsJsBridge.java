@@ -34,33 +34,55 @@ public final class TgwsJsBridge {
     public void shareApp() {
         activity.runOnUiThread(
                 () -> {
-                    try {
-                        String authority = activity.getPackageName() + ".tgws.share";
-                        File cover = new File(new File(activity.getFilesDir(), "app"), "cover.jpg");
-                        ShareCompat.IntentBuilder ib = new ShareCompat.IntentBuilder(activity);
-                        if (cover.isFile()) {
-                            Uri uri = FileProvider.getUriForFile(activity, authority, cover);
-                            ib.setType("image/jpeg")
-                                    .setStream(uri)
-                                    .setText(SHARE_BODY)
-                                    .setSubject("TG WS Proxy")
-                                    .setChooserTitle("Поделиться")
-                                    .startChooser();
-                        } else {
-                            ib.setType("text/plain")
-                                    .setText(SHARE_BODY)
-                                    .setSubject("TG WS Proxy")
-                                    .setChooserTitle("Поделиться")
-                                    .startChooser();
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "shareApp failed", e);
-                        Toast.makeText(
-                                        activity,
-                                        "Не удалось открыть «Поделиться»",
-                                        Toast.LENGTH_LONG)
-                                .show();
+                    if (tryShareWithCover()) {
+                        return;
                     }
+                    if (tryShareTextOnly()) {
+                        return;
+                    }
+                    Toast.makeText(
+                                    activity,
+                                    "Не удалось открыть «Поделиться»",
+                                    Toast.LENGTH_LONG)
+                            .show();
                 });
+    }
+
+    /** Картинка + текст; при любой ошибке — false, чтобы открыть только текст. */
+    private boolean tryShareWithCover() {
+        try {
+            String authority = activity.getPackageName() + ".tgws.share";
+            File cover = new File(new File(activity.getFilesDir(), "app"), "cover.jpg");
+            if (!cover.isFile()) {
+                return false;
+            }
+            Uri uri = FileProvider.getUriForFile(activity, authority, cover);
+            new ShareCompat.IntentBuilder(activity)
+                    .setType("image/jpeg")
+                    .setStream(uri)
+                    .setText(SHARE_BODY)
+                    .setSubject("TG WS Proxy")
+                    .setChooserTitle("Поделиться")
+                    .startChooser();
+            return true;
+        } catch (Exception e) {
+            Log.w(TAG, "share with cover failed, falling back to text", e);
+            return false;
+        }
+    }
+
+    private boolean tryShareTextOnly() {
+        try {
+            new ShareCompat.IntentBuilder(activity)
+                    .setType("text/plain")
+                    .setText(SHARE_BODY)
+                    .setSubject("TG WS Proxy")
+                    .setChooserTitle("Поделиться")
+                    .startChooser();
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "shareApp text failed", e);
+            return false;
+        }
     }
 }

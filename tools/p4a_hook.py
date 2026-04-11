@@ -46,6 +46,26 @@ def _manifest_package(manifest_root: ET.Element):
     return manifest_root.get(_an("package"))
 
 
+def _manifest_has_send_queries(manifest_root: ET.Element) -> bool:
+    """Package visibility (API 30+): need SEND intents or share chooser may fail on some devices."""
+    for q in manifest_root.findall("queries"):
+        for intent in q.findall("intent"):
+            for action in intent.findall("action"):
+                if action.get(_an("name")) == "android.intent.action.SEND":
+                    return True
+    return False
+
+
+def _ensure_share_queries(manifest_root: ET.Element) -> None:
+    if _manifest_has_send_queries(manifest_root):
+        return
+    queries = ET.SubElement(manifest_root, "queries")
+    for mime in ("text/plain", "image/jpeg"):
+        intent = ET.SubElement(queries, "intent")
+        ET.SubElement(intent, "action", {_an("name"): "android.intent.action.SEND"})
+        ET.SubElement(intent, "data", {_an("mimeType"): mime})
+
+
 def _has_tgws_share_provider(app: ET.Element) -> bool:
     cls = "unofficial.tgws.tgwsproxy.TgwsShareFileProvider"
     for node in app.findall("provider"):
@@ -112,6 +132,7 @@ def _patch_manifest_components() -> None:
     app = root.find("application")
     if app is None:
         return
+    _ensure_share_queries(root)
     _ensure_boot_receiver(app)
     _ensure_tile_service(app)
     _ensure_file_provider(app, root)
