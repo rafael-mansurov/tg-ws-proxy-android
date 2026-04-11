@@ -78,7 +78,47 @@
       pointer-events: none;
       /* overflow:hidden здесь обрезает halo от filter:blur() — даёт ровную линию по краю слоя */
       overflow: visible;
+      /* translateY отдельно от scaleX: иначе при невалидном calc весь transform отбрасывается */
       transform: translateY(var(--blobs-offset-y));
+    }
+
+    .frame__mesh-scaler {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 82%;
+    }
+
+    /* Десктоп / планшет: пятна и туман на всю ширину; до 767px — как в макете */
+    @media (min-width: 768px) {
+      .frame {
+        background-image:
+          radial-gradient(
+            ellipse 240% 115% at 50% 124%,
+            rgba(32, 22, 48, 0.22) 0%,
+            transparent 52%
+          ),
+          radial-gradient(
+            ellipse 220% 100% at 50% 182%,
+            rgba(32, 22, 48, 0.45) 0%,
+            transparent 62%
+          );
+      }
+
+      .frame__mesh {
+        inset: auto;
+        left: 50%;
+        right: auto;
+        top: 0;
+        bottom: 0;
+        width: 100vw;
+        margin-left: -50vw;
+        transform: translateY(var(--blobs-offset-y));
+      }
+
+      /* 390px — эталон мобильной ширины макета; ratio = длина/длина для scaleX */
+      .frame__mesh-scaler {
+        transform: scaleX(calc(100vw / 390px));
+      }
     }
 
     .frame__blob-wrap {
@@ -214,10 +254,7 @@
       display: flex;
       justify-content: center;
       padding: 0 40px max(28px, calc(12px + env(safe-area-inset-bottom, 0px)));
-      pointer-events: none;
-    }
-
-    .frame__cta-wrap .cta {
+      /* pointer-events:none на родителе ломает :hover у ссылки в части браузеров */
       pointer-events: auto;
     }
 
@@ -236,11 +273,17 @@
       -webkit-appearance: none;
       text-decoration: none;
       -webkit-tap-highlight-color: transparent;
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.15s ease;
     }
 
-    .cta:hover {
-      opacity: 0.92;
+    @media (hover: hover) and (pointer: fine) {
+      .cta:hover {
+        background: #f0f2f5;
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+      }
     }
 
     .cta:active {
@@ -260,17 +303,19 @@
 <body>
   <div class="frame" data-node-id="3058:12129">
     <div class="frame__mesh" aria-hidden="true">
-      <div class="frame__blob-wrap frame__blob-wrap--1">
-        <div class="frame__blob-inner frame__blob-inner--1"></div>
-      </div>
-      <div class="frame__blob-wrap frame__blob-wrap--2">
-        <div class="frame__blob-inner frame__blob-inner--2"></div>
-      </div>
-      <div class="frame__blob-wrap frame__blob-wrap--3">
-        <div class="frame__blob-inner frame__blob-inner--3"></div>
-      </div>
-      <div class="frame__blob-wrap frame__blob-wrap--4">
-        <div class="frame__blob-inner frame__blob-inner--4"></div>
+      <div class="frame__mesh-scaler">
+        <div class="frame__blob-wrap frame__blob-wrap--1">
+          <div class="frame__blob-inner frame__blob-inner--1"></div>
+        </div>
+        <div class="frame__blob-wrap frame__blob-wrap--2">
+          <div class="frame__blob-inner frame__blob-inner--2"></div>
+        </div>
+        <div class="frame__blob-wrap frame__blob-wrap--3">
+          <div class="frame__blob-inner frame__blob-inner--3"></div>
+        </div>
+        <div class="frame__blob-wrap frame__blob-wrap--4">
+          <div class="frame__blob-inner frame__blob-inner--4"></div>
+        </div>
       </div>
     </div>
 
