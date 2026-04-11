@@ -233,6 +233,171 @@
     }
 
     .onb-ui { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 300px; }
+
+    /* Базовые стили карточки «автопереключение» (как в ui/index.html) — без них шаг онбординга ломается */
+    .lifehack-visual {
+      position: relative;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.96);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transform: rotate(-1deg);
+      overflow: hidden;
+    }
+    .lifehack-visual::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0.12;
+      background-image:
+        radial-gradient(rgba(18,26,38,0.12) 0.6px, transparent 0.8px),
+        radial-gradient(rgba(255,255,255,0.3) 0.5px, transparent 0.7px);
+      background-size: 12px 12px, 14px 14px;
+      background-position: 0 0, 7px 7px;
+    }
+    .lifehack-visual > * {
+      position: relative;
+      z-index: 1;
+    }
+    .lifehack-visual-caption {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #229ED9;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: none;
+      color: #fff;
+    }
+    .lifehack-visual-caption svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+    .lifehack-visual-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .lifehack-visual-label {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: rgba(25,32,45,0.96);
+      letter-spacing: -0.01em;
+    }
+    .lifehack-visual-toggle {
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      background: #229ED9;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
+    }
+    .lifehack-visual-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 20px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+    }
+    .lifehack-scale {
+      border-top: 1px solid rgba(30,36,48,0.08);
+      padding-top: 12px;
+    }
+    .lifehack-scale-labels {
+      position: relative;
+      height: 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(120,128,142,0.92);
+      text-align: center;
+    }
+    .lifehack-scale-labels span {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    .lifehack-scale-labels span:first-child {
+      left: 0;
+      transform: none;
+    }
+    .lifehack-scale-labels span:nth-child(2) { left: 25%; }
+    .lifehack-scale-labels span:nth-child(3) { left: 50%; }
+    .lifehack-scale-labels span:nth-child(4) { left: 75%; }
+    .lifehack-scale-labels span:last-child {
+      left: 100%;
+      transform: translateX(-100%);
+    }
+    .lifehack-scale-labels span.is-active {
+      color: #229ED9;
+    }
+    .lifehack-scale-track {
+      position: relative;
+      height: 24px;
+    }
+    .lifehack-scale-track::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 11px;
+      height: 2px;
+      background: rgba(154,162,175,0.9);
+      border-radius: 999px;
+      z-index: 0;
+    }
+    .lifehack-scale-points {
+      position: relative;
+      height: 100%;
+      z-index: 1;
+    }
+    .lifehack-scale-points span {
+      position: absolute;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(154,162,175,1);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 3px #f5f5f5;
+    }
+    .lifehack-scale-points span:first-child {
+      left: 0;
+      transform: translate(0, -50%);
+    }
+    .lifehack-scale-points span:nth-child(2) { left: 25%; }
+    .lifehack-scale-points span:nth-child(3) { left: 50%; }
+    .lifehack-scale-points span:nth-child(4) { left: 75%; }
+    .lifehack-scale-points span:last-child {
+      left: 100%;
+      transform: translate(-100%, -50%);
+    }
+    .lifehack-scale-points span.is-active {
+      width: 14px;
+      height: 14px;
+      background: #229ED9;
+      box-shadow: 0 0 0 3px #f5f5f5;
+    }
+
     .onb-lifehack-dark {
       background: rgba(18,22,30,0.9);
       border: 1px solid rgba(255,255,255,0.09);
@@ -1797,11 +1962,11 @@
           </div>
           <div class="lifehack-scale">
             <div class="lifehack-scale-labels">
-              <span class="is-active">5 c</span>
-              <span>10 c</span>
-              <span>15 c</span>
-              <span>30 c</span>
-              <span>60 c</span>
+              <span class="is-active">5 с</span>
+              <span>10 с</span>
+              <span>15 с</span>
+              <span>30 с</span>
+              <span>60 с</span>
             </div>
             <div class="lifehack-scale-track">
               <div class="lifehack-scale-points">
