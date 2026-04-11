@@ -102,6 +102,13 @@ def _ensure_file_provider(app: ET.Element, manifest_root: ET.Element) -> None:
     )
 
 
+def _ensure_loopback_network_security(app: ET.Element) -> None:
+    """Разрешить HTTP к 127.0.0.1 для загрузки cover при шаринге (не трогаем уже заданный config)."""
+    if app.get(_an("networkSecurityConfig")):
+        return
+    app.set(_an("networkSecurityConfig"), "@xml/network_security_config")
+
+
 def _ensure_tile_service(app: ET.Element) -> None:
     cls = "unofficial.tgws.tgwsproxy.ProxyTileService"
     if _has_component(app, "service", cls):
@@ -136,6 +143,7 @@ def _patch_manifest_components() -> None:
     _ensure_boot_receiver(app)
     _ensure_tile_service(app)
     _ensure_file_provider(app, root)
+    _ensure_loopback_network_security(app)
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
 
 
