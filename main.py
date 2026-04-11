@@ -64,8 +64,8 @@ def _open_battery_optimization_settings() -> None:
 
 
 _SHARE_TEXT = (
-    "TG WS Proxy — прокси для Telegram\n"
-    "Работает локально на телефоне, без серверов и регистрации.\n\n"
+    "**TG WS Proxy** — бесплатный прокси для Telegram\n\n"
+    "Скачать файл:\n"
     "https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/"
     "download/latest-apk/tg-ws-proxy-release.apk"
 )
@@ -711,7 +711,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
 
         elif self.path == "/api/version":
-            self._send_json({"version": APP_VERSION})
+            self._send_json({"version": APP_VERSION, "serve_port": SERVE_PORT})
 
         elif self.path == "/api/battery":
             self._send_json({"optimized": not _is_ignoring_battery_optimizations()})
