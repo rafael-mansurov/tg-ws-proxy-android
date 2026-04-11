@@ -88,6 +88,14 @@
       transform-origin: 50% 82%;
     }
 
+    @media (max-width: 767px) {
+      .frame__mesh {
+        transform: translateY(
+          calc(var(--blobs-offset-y) + clamp(100px, 14dvh, 188px))
+        );
+      }
+    }
+
     /* Десктоп / планшет: пятна и туман на всю ширину; до 767px — как в макете */
     @media (min-width: 768px) {
       .frame {
@@ -104,20 +112,49 @@
           );
       }
 
+      /*
+       * Холст пятен = ширина макета, строго по центру экрана.
+       * scaleX от середины — при росте окна расширяется симметрично, не «ползёт» влево.
+       */
       .frame__mesh {
-        inset: auto;
-        left: 50%;
-        right: auto;
-        top: 0;
-        bottom: 0;
-        width: 100vw;
-        margin-left: -50vw;
-        transform: translateY(var(--blobs-offset-y));
+        inset: 0;
+        width: auto;
+        margin-left: 0;
+        transform: translateY(
+          calc(var(--blobs-offset-y) + clamp(320px, 46dvh, 840px))
+        );
       }
 
-      /* 390px — эталон мобильной ширины макета; ratio = длина/длина для scaleX */
+      /*
+       * Без потолка по X на ультраширине всё сливается в одно пятно из‑за blur.
+       * По Y — сильное растяжение от transform-origin у низа.
+       * Чуть меньше blur на десктопе — разделяются цвета 1…4.
+       */
       .frame__mesh-scaler {
-        transform: scaleX(calc(100vw / 390px));
+        inset: auto;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 390px;
+        margin-left: -195px;
+        transform: scale(
+          min(2.35, calc(100vw / 390px)),
+          1.42
+        );
+        transform-origin: 50% 96%;
+      }
+
+      .frame__blob-inner--1 {
+        filter: blur(105px);
+      }
+
+      .frame__blob-inner--2 {
+        filter: blur(48px);
+      }
+
+      .frame__blob-inner--3,
+      .frame__blob-inner--4 {
+        filter: blur(78px);
       }
     }
 
@@ -208,19 +245,32 @@
       padding: 28px 40px calc(72px + env(safe-area-inset-bottom, 0px));
     }
 
+    @keyframes promo-main-fade {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 10px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
     .frame__main {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 31px;
       flex-shrink: 0;
+      opacity: 0;
+      /* Сначала иконка + текст, затем кнопка — см. задержку .frame__cta-wrap */
+      animation: promo-main-fade 0.55s ease-out 0s both;
     }
 
     .app-icon {
       width: 59px;
       height: 59px;
       flex-shrink: 0;
-      border-radius: 13.828px;
       background: rgba(14, 16, 21, 0.2);
       overflow: hidden;
       display: flex;
@@ -235,6 +285,13 @@
       object-fit: contain;
     }
 
+    @media (min-width: 768px) {
+      .app-icon {
+        width: 72px;
+        height: 72px;
+      }
+    }
+
     .title {
       margin: 0;
       width: 243px;
@@ -243,6 +300,17 @@
       line-height: 1.32;
       text-align: center;
       color: var(--marathon-white);
+    }
+
+    @keyframes promo-cta-slide-up {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 100%, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
     }
 
     .frame__cta-wrap {
@@ -256,6 +324,18 @@
       padding: 0 40px max(28px, calc(12px + env(safe-area-inset-bottom, 0px)));
       /* pointer-events:none на родителе ломает :hover у ссылки в части браузеров */
       pointer-events: auto;
+      opacity: 0;
+      /* Старт после окончания promo-main-fade (0.55s) + небольшая пауза */
+      animation: promo-cta-slide-up 0.58s cubic-bezier(0.22, 1, 0.36, 1) 0.68s both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .frame__main,
+      .frame__cta-wrap {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
     }
 
     .cta {
@@ -274,15 +354,18 @@
       text-decoration: none;
       -webkit-tap-highlight-color: transparent;
       transition:
-        background-color 0.2s ease,
-        box-shadow 0.2s ease,
-        transform 0.15s ease;
+        background-color 0.22s ease,
+        box-shadow 0.22s ease,
+        transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     @media (hover: hover) and (pointer: fine) {
       .cta:hover {
-        background: #f0f2f5;
-        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+        background: var(--marathon-white);
+        transform: translateY(-3px) scale(1.04);
+        box-shadow:
+          0 14px 36px rgba(0, 0, 0, 0.5),
+          0 6px 14px rgba(0, 0, 0, 0.32);
       }
     }
 
