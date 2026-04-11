@@ -1493,6 +1493,17 @@
       word-break: break-all;
     }
 
+    .qr-modal-proxy-hint {
+      margin: 0;
+      padding: 0 2px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.44);
+      letter-spacing: -0.01em;
+    }
+
     .refresh-btn:disabled {
       opacity: 0.4;
       pointer-events: none;
@@ -1613,8 +1624,8 @@
             <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
           </div>
           <div class="proxy-tip-body">
-            <div class="proxy-tip-title">Включите автопереключение</div>
-            <div class="proxy-tip-sub">Чтобы автопереключение работало нормально, добавьте в&nbsp;Telegram побольше разных прокси. Оптимально держать около&nbsp;20&nbsp;штук.</div>
+            <div class="proxy-tip-title">Держите запасной план</div>
+            <div class="proxy-tip-sub">Чтобы Telegram работал везде, добавьте 15–20 разных прокси из этого списка. Затем в Telegram откройте настройки прокси и включите тумблер автопереключения с таймаутом в 5&nbsp;секунд</div>
           </div>
           <button class="proxy-tip-close" onclick="dismissProxyTip()" aria-label="Закрыть">✕</button>
         </div>
@@ -1649,6 +1660,7 @@
           <div id="qr-modal-svg-host" class="qr-svg-host"></div>
           <div class="qr-placeholder" id="qr-modal-placeholder">Загрузка QR…</div>
         </div>
+        <p class="qr-modal-proxy-hint">Чтобы добавить этот прокси, Вашим друзьям достаточно сканировать этот код камерой телефона.</p>
         <button type="button" class="qr-modal-copy" id="qr-modal-copy-btn" onclick="copyQrLink()">Скопировать ссылку</button>
         <div class="qr-modal-link" id="qr-modal-link"></div>
       </div>
@@ -1711,7 +1723,7 @@
         <div style="display:flex;gap:8px">
           <div class="onb-ui-row" style="flex:1;flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.2)">
             <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Сервер</div>
-            <div class="onb-ui-label" style="font-size:12px;color:rgba(100,180,255,0.85)">После запуска</div>
+            <div class="onb-ui-label" style="font-size:12px;letter-spacing:0.04em;color:rgba(100,180,255,0.5)">––––––––</div>
           </div>
           <div class="onb-ui-row" style="flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.15)">
             <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Порт</div>
@@ -2028,7 +2040,7 @@
         ph.textContent = 'QR недоступен';
         return;
       }
-      QRCode.toString(_qrModalLink, { type: 'svg', width: 176, margin: 2, color: { dark: '#0f172a', light: '#f8fafc' } }, (err, svg) => {
+      QRCode.toString(_qrModalLink, { type: 'svg', width: 176, margin: 2, color: { dark: '#0f172a', light: '#f4f6fa' } }, (err, svg) => {
         if (err) {
           ph.textContent = 'Ошибка QR';
           return;

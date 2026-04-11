@@ -64,7 +64,7 @@ def _open_battery_optimization_settings() -> None:
 
 
 _SHARE_TEXT = (
-    "**TG WS Proxy** — бесплатный прокси для Telegram\n\n"
+    "TG WS Proxy — бесплатный прокси для Telegram\n\n"
     "Скачать файл:\n"
     "https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/"
     "download/latest-apk/tg-ws-proxy-release.apk"

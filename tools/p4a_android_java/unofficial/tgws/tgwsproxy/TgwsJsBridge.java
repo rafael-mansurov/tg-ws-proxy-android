@@ -39,7 +39,7 @@ public final class TgwsJsBridge {
             Pattern.compile("\"serve_port\"\\s*:\\s*(\\d+)");
 
     private static final String SHARE_BODY =
-            "**TG WS Proxy** — бесплатный прокси для Telegram\n\n"
+            "TG WS Proxy — бесплатный прокси для Telegram\n\n"
                     + "Скачать файл:\n"
                     + "https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/"
                     + "download/latest-apk/tg-ws-proxy-release.apk";

@@ -306,7 +306,8 @@
       word-break: break-all;
       transition: color 0.2s;
     }
-    .cvalue.secret.dim {
+    .cvalue.secret.dim,
+    .cvalue.dim {
       color: rgba(255,255,255,0.22);
     }
 
@@ -1182,6 +1183,20 @@
       justify-content: center;
       align-items: center;
     }
+    #qr-modal .qr-modal-body {
+      flex-direction: column;
+      gap: 18px;
+    }
+    .qr-modal-proxy-hint {
+      margin: 0;
+      padding: 0 2px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.48);
+      letter-spacing: -0.01em;
+    }
     .qr-modal .qr-frame { margin: 0 auto; }
 
     .about-sheet {
@@ -1218,12 +1233,60 @@
       line-height: 1.35;
       text-align: right;
     }
+
+    #page-faq > .content {
+      padding-bottom: max(28px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+    }
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .faq-qa {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.95);
+      line-height: 1.35;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .faq-a {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.52);
+      line-height: 1.55;
+    }
+    a.faq-support-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    a.faq-support-btn:active {
+      opacity: 0.9;
+      background: rgba(255, 255, 255, 0.09);
+    }
   </style>
 </head>
 <body>
 
   <div class="header">
-    <button type="button" class="header-back-btn" id="header-back" onclick="closeSettings()" aria-label="Назад">
+    <button type="button" class="header-back-btn" id="header-back" onclick="onHeaderBack()" aria-label="Назад">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
     </button>
     <div class="hicon header-app-icon" id="header-app-icon">
@@ -1279,7 +1342,7 @@
     <div class="row">
       <div class="card">
         <div class="clabel">Сервер</div>
-        <div class="cvalue" id="server-val">После запуска</div>
+        <div class="cvalue dim" id="server-val">––––––––</div>
       </div>
       <div class="card" style="flex:0.6">
         <div class="clabel">Порт</div>
@@ -1289,7 +1352,7 @@
 
     <div class="card">
       <div class="clabel">Secret</div>
-      <div class="cvalue secret dim" id="secret-val">––––––––––––––––</div>
+      <div class="cvalue secret dim" id="secret-val">––––––––</div>
     </div>
 
     <div class="spacer"></div>
@@ -1393,6 +1456,16 @@
           </div>
           <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
         </div>
+        <div class="sett-row" onclick="openFaq()" style="cursor:pointer">
+          <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+          </div>
+          <div class="sett-row-body">
+            <div class="sett-row-label">Частые вопросы</div>
+            <div class="sett-row-sub">Wi‑Fi, запуск, внешние прокси и другое</div>
+          </div>
+          <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+        </div>
         <div class="sett-row" onclick="showOnboardingAgain()" style="cursor:pointer">
           <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
@@ -1478,6 +1551,49 @@
     </div>
   </div>
 
+  <div id="page-faq" class="page">
+    <div class="content">
+      <div class="sett-section">
+        <div class="faq-list">
+          <div class="faq-qa">
+            <div class="faq-q">Что вы получаете вместо чужого «облачного» прокси?</div>
+            <div class="faq-a">Вы поднимаете MTProto‑прокси прямо на телефоне. Telegram видит обычный прокси в вашей Wi‑Fi сети. Вы не отправляете трафик через чужой сервер в интернете — порт открывает ваше устройство. Вернитесь на главный экран, включите тумблер и дождитесь зелёного статуса «Прокси запущен».</div>
+          </div>
+          <div class="faq-qa">
+            <div class="faq-q">Как подключить Telegram за три шага?</div>
+            <div class="faq-a">Подключите Wi‑Fi. Включите тумблер в шапке. Дождитесь «Прокси запущен» — первый запуск обычно занимает 10–30 секунд, не закрывайте окно. Нажмите «Открыть в Telegram». Если минуту нет активности, нажмите кнопку ещё раз — Telegram подтянет ссылку заново.</div>
+          </div>
+          <div class="faq-qa">
+            <div class="faq-q">Как включить прокси сам после перезагрузки телефона?</div>
+            <div class="faq-a">Откройте Настройки по иконке шестерёнки. В блоке «Прокси» включите «Автозапуск при загрузке». Перезагрузите телефон и проверьте главный экран: тумблер должен встать в «вкл» без ручного старта. Автоперезапуск сервиса настраивается там же — выберите интервал или «Выкл.».</div>
+          </div>
+          <div class="faq-qa">
+            <div class="faq-q">Как не пропустить новую версию приложения?</div>
+            <div class="faq-a">Мы показываем синий баннер на главном экране, когда выходит свежий APK. Нажмите в баннере «Скачать APK →» и установите файл поверх текущей версии. Загляните в Настройки → «Ссылки» → «Telegram‑канал» — там дублируем релизы и новости.</div>
+          </div>
+          <div class="faq-qa">
+            <div class="faq-q">Почему локальный прокси работает по Wi‑Fi и что делать в мобильном интернете?</div>
+            <div class="faq-a">Прокси слушает адрес в вашей локальной сети. Мобильный оператор в эту схему сам не попадает. Нужен Telegram в LTE или 5G — откройте на главном экране «Внешние прокси» и выберите сервер из списка: Telegram применит его в один тап.</div>
+          </div>
+          <div class="faq-qa">
+            <div class="faq-q">Насколько безопасны публичные прокси из списка?</div>
+            <div class="faq-a">Это чужие машины из открытых источников. Вы подключаетесь к ним на свой риск: владелец узла теоретически видит метаданные. Максимум приватности — локальный прокси по домашнему Wi‑Fi. Добавьте в Telegram несколько внешних прокси и включите автопереключение — сервис сам переберёт живые.</div>
+          </div>
+          <div class="faq-qa">
+            <div class="faq-q">Горит «Прокси запущен», а сообщения не идут — что нажать?</div>
+            <div class="faq-a">Сначала дважды подряд нажмите «Открыть в Telegram» — это самый частый пропуск. Если сверху висит баннер про батарею, нажмите «Отключить оптимизацию →» и повторите кнопку в Telegram. Дальше выключите и включите тумблер или зайдите в «Внешние прокси» и подключите запасной сервер.</div>
+          </div>
+          <div class="faq-qa">
+            <div class="faq-q">Не нашли ответ?</div>
+            <div class="faq-a" style="margin-bottom:0">
+              <a class="faq-support-btn" href="https://t.me/mansurov_rafael" target="_blank" rel="noopener noreferrer">Написать в поддержку</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <div id="qr-modal" class="qr-modal" aria-hidden="true">
   <div class="qr-modal-backdrop" onclick="closeQrModal()"></div>
   <div class="qr-modal-panel" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
@@ -1491,6 +1607,7 @@
         <div id="qr-modal-svg-host" class="qr-svg-host"></div>
         <div class="qr-placeholder" id="qr-modal-placeholder">Загрузка QR…</div>
       </div>
+      <p class="qr-modal-proxy-hint">Чтобы добавить этот прокси, Вашим друзьям достаточно сканировать этот код камерой телефона.</p>
     </div>
   </div>
 </div>
@@ -1510,8 +1627,8 @@
         <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
       </div>
       <div class="ext-proxy-tip-body">
-        <div class="ext-proxy-tip-title">Включите автопереключение</div>
-        <div class="ext-proxy-tip-sub">Чтобы автопереключение работало нормально, добавьте в&nbsp;Telegram побольше разных прокси. Оптимально держать около&nbsp;20&nbsp;штук.</div>
+        <div class="ext-proxy-tip-title">Держите запасной план</div>
+        <div class="ext-proxy-tip-sub">Чтобы Telegram работал везде, добавьте 15–20 разных прокси из этого списка. Затем в Telegram откройте настройки прокси и включите тумблер автопереключения с таймаутом в 5&nbsp;секунд</div>
       </div>
       <button class="ext-proxy-tip-close" onclick="dismissExtProxyTip()" aria-label="Закрыть">✕</button>
     </div>
@@ -1610,10 +1727,11 @@
   let currentPage = 'main';
   const HEADER_TITLE_MAIN = 'TG WS Proxy';
   const HEADER_SUB_DEFAULT = 'MTProto · локальный';
-  const HEADER_SUB_SETTINGS = 'Логи и диагностика';
+  const HEADER_SUB_SETTINGS = 'Автозапуск, ссылки и справка';
+  const HEADER_SUB_FAQ = 'Ответы на типичные вопросы';
   const APP_VERSION_FALLBACK = '—';
   const APP_MIN_ANDROID = '7.0+';
-  const SERVER_PLACEHOLDER = 'После запуска';
+  const SERVER_PLACEHOLDER = '––––––––';
 
   /* Режимы предпросмотра (без сервера):
      ?demo=1 — прокси запущен, тумблер работает   (default при file://)
@@ -1678,7 +1796,7 @@
       <div style="display:flex;gap:8px">
         <div class="onb-ui-row" style="flex:1;flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.2)">
           <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Сервер</div>
-          <div class="onb-ui-label" style="font-size:12px;color:rgba(100,180,255,0.85)">После запуска</div>
+          <div class="onb-ui-label" style="font-size:12px;letter-spacing:0.04em;color:rgba(100,180,255,0.5)">––––––––</div>
         </div>
         <div class="onb-ui-row" style="flex-direction:column;align-items:flex-start;gap:2px;border-color:rgba(34,158,217,0.15)">
           <div class="onb-ui-sub" style="color:rgba(255,255,255,0.35);font-size:10px">Порт</div>
@@ -1967,7 +2085,7 @@
   }
 
   const _SHARE_URL = 'https://github.com/rafael-mansurov/tg-ws-proxy-android/releases/download/latest-apk/tg-ws-proxy-release.apk';
-  const _SHARE_TEXT = '**TG WS Proxy** — бесплатный прокси для Telegram\n\nСкачать файл:\n';
+  const _SHARE_TEXT = 'TG WS Proxy — бесплатный прокси для Telegram\n\nСкачать файл:\n';
 
   function openShareAppModal() {
     const modal = document.getElementById('share-app-modal');
@@ -1985,7 +2103,7 @@
       ph.textContent = 'QR недоступен';
       return;
     }
-    QRCode.toString(_SHARE_URL, { type: 'svg', width: 176, margin: 2, color: { dark: '#0f172a', light: '#f8fafc' } }, (err, svg) => {
+    QRCode.toString(_SHARE_URL, { type: 'svg', width: 176, margin: 2, color: { dark: '#0f172a', light: '#f4f6fa' } }, (err, svg) => {
       if (err) { ph.textContent = 'Ошибка QR'; return; }
       host.innerHTML = svg;
       host.classList.add('visible');
@@ -2102,9 +2220,8 @@
 
   function showOnboardingAgain() {
     try { localStorage.removeItem(ONBOARDING_SEEN_KEY); } catch (e) {}
-    if (currentPage === 'settings') {
-      closeSettings();
-    }
+    if (currentPage === 'faq') closeFaq();
+    if (currentPage === 'settings') closeSettings();
     setTimeout(onboardingOpen, 120);
   }
 
@@ -2134,7 +2251,9 @@
     const hsub = document.getElementById('header-sub');
     if (hsub) {
       if (on) hsub.textContent = 'Запуск прокси…';
-      else hsub.textContent = currentPage === 'settings' ? HEADER_SUB_SETTINGS : HEADER_SUB_DEFAULT;
+      else if (currentPage === 'settings') hsub.textContent = HEADER_SUB_SETTINGS;
+      else if (currentPage === 'faq') hsub.textContent = HEADER_SUB_FAQ;
+      else hsub.textContent = HEADER_SUB_DEFAULT;
     }
     const st = document.getElementById('status');
     if (st) {
@@ -2173,13 +2292,11 @@
       if (isRunning && lh) {
         linkHost = lh;
         serverEl.textContent = lh;
-      } else if (isRunning && !lh) {
-        linkHost = null;
-        serverEl.textContent = '…';
       } else {
         linkHost = null;
         serverEl.textContent = SERVER_PLACEHOLDER;
       }
+      serverEl.classList.toggle('dim', !isRunning);
     }
 
     document.getElementById('toggle').classList.toggle('on', running);
@@ -2208,12 +2325,42 @@
     }
   }
 
+  function onHeaderBack() {
+    if (uiBusy) return;
+    if (currentPage === 'faq') {
+      history.back();
+      return;
+    }
+    closeSettings();
+  }
+
+  function openFaq() {
+    if (uiBusy) return;
+    document.getElementById('page-settings').classList.remove('is-active');
+    document.getElementById('page-faq').classList.add('is-active');
+    currentPage = 'faq';
+    history.pushState({ page: 'faq' }, '');
+    document.getElementById('header-title').textContent = 'Частые вопросы';
+    const hsub = document.getElementById('header-sub');
+    if (hsub && !uiBusy) hsub.textContent = HEADER_SUB_FAQ;
+  }
+
+  function closeFaq() {
+    document.getElementById('page-faq').classList.remove('is-active');
+    document.getElementById('page-settings').classList.add('is-active');
+    currentPage = 'settings';
+    document.getElementById('header-title').textContent = 'Настройки';
+    const hsub = document.getElementById('header-sub');
+    if (hsub && !uiBusy) hsub.textContent = HEADER_SUB_SETTINGS;
+  }
+
   function openSettings() {
     if (uiBusy) return;
     currentPage = 'settings';
     history.pushState({ page: 'settings' }, '');
     document.getElementById('page-main').classList.remove('is-active');
     document.getElementById('page-settings').classList.add('is-active');
+    document.getElementById('page-faq').classList.remove('is-active');
     document.getElementById('header-back').classList.add('is-on');
     document.getElementById('header-app-icon').classList.add('is-hidden');
     document.getElementById('header-settings-btn').classList.add('is-hidden');
@@ -2227,6 +2374,7 @@
   function closeSettings() {
     currentPage = 'main';
     document.getElementById('page-settings').classList.remove('is-active');
+    document.getElementById('page-faq').classList.remove('is-active');
     document.getElementById('page-main').classList.add('is-active');
     document.getElementById('header-back').classList.remove('is-on');
     document.getElementById('header-app-icon').classList.remove('is-hidden');
@@ -2321,16 +2469,25 @@
     if (turningOn) setStartBusy(true);
     try {
       const r = await fetch(endpoint, { method: 'POST' });
-      const d = await r.json();
+      let d = {};
+      try {
+        d = await r.json();
+      } catch (_) {}
+      if (!r.ok) {
+        if (turningOn) updateUI(false, null, null, null, 0, 0);
+        alert(d.error || `Сервис недоступен (${r.status}). Попробуйте ещё раз.`);
+        return;
+      }
       if (!d.ok) {
         updateUI(false, null, null, null, 0, 0);
         if (d.error) alert(d.error);
         return;
       }
       updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps, d.last_session_ok_ts);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
       if (turningOn) updateUI(false, null, null, null, 0, 0);
+      alert('Не удалось связаться с сервисом приложения. Проверьте, что приложение не закрыто, и повторите попытку.');
     } finally {
       if (turningOn) setStartBusy(false);
     }
@@ -2443,7 +2600,7 @@
     const host = document.getElementById('qr-modal-svg-host');
     const ph = document.getElementById('qr-modal-placeholder');
     if (!host || !ph) return;
-    const qrLink = _qrModalLink || (running && secret ? proxyUrl() : null);
+    const qrLink = _qrModalLink;
     if (!qrLink) return;
     if (typeof QRCode === 'undefined') {
       ph.textContent = 'QR недоступен';
@@ -2456,7 +2613,7 @@
     ph.classList.remove('hidden');
     host.classList.remove('visible');
     host.innerHTML = '';
-    QRCode.toString(qrLink, { type:'svg', width:176, margin:2, color:{dark:'#0f172a',light:'#f8fafc'} },
+    QRCode.toString(qrLink, { type:'svg', width:176, margin:2, color:{dark:'#0f172a',light:'#f4f6fa'} },
       (err, svg) => {
         if (err) return;
         ph.classList.add('hidden');
@@ -2466,12 +2623,12 @@
     );
   }
 
-  function openQrModal(link = null, title = 'QR для Telegram') {
-    if (!link && (!running || !secret)) return;
+  function openQrModal(link, title) {
+    if (!link) return;
     const modal = document.getElementById('qr-modal');
     if (!modal) return;
-    _qrModalLink = link || proxyUrl();
-    _qrModalTitle = title;
+    _qrModalLink = link;
+    _qrModalTitle = title || 'QR для Telegram';
     const titleEl = document.getElementById('qr-modal-title');
     if (titleEl) titleEl.textContent = _qrModalTitle;
     modal.classList.add('is-open');
@@ -3153,6 +3310,8 @@
   window.addEventListener('popstate', (e) => {
     if (document.getElementById('ext-proxy-modal')?.classList.contains('is-open')) {
       closeExtProxies();
+    } else if (currentPage === 'faq') {
+      closeFaq();
     } else if (currentPage === 'settings') {
       closeSettings();
     }
