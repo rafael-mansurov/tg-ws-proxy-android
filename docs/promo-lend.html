@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telegram Proxy для Android</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --marathon-black: #0e1015;
+      --marathon-white: #ffffff;
+      /* Общий сдвиг «пятен» к низу экрана */
+      --blobs-offset-y: clamp(168px, 46dvh, 480px);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      margin: 0;
+      height: 100%;
+      background-color: var(--marathon-black);
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body {
+      margin: 0;
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      font-family: "Inter", system-ui, sans-serif;
+      background-color: var(--marathon-black);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
+    }
+
+    .frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      padding: 0;
+      background-color: var(--marathon-black);
+      /* Мягче стыки: два слоя вместо одного резкого перехода */
+      background-image:
+        radial-gradient(
+          ellipse 160% 100% at 50% 124%,
+          rgba(32, 22, 48, 0.22) 0%,
+          transparent 52%
+        ),
+        radial-gradient(
+          ellipse 130% 95% at 50% 182%,
+          rgba(32, 22, 48, 0.45) 0%,
+          transparent 62%
+        );
+      /* visible оставлял «хвосты» blur — растягивался документ и появлялся скролл */
+      overflow: hidden;
+    }
+
+    /*
+     * Фоновые пятна: как в Figma — обёртка (x, y + bounding box поворота),
+     * внутри эллипс заданного размера, rotate −56.07°, layer blur.
+     * Размеры обёрток — AABB повёрнутого прямоугольника (из экспорта макета).
+     */
+    .frame__mesh {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      /* overflow:hidden здесь обрезает halo от filter:blur() — даёт ровную линию по краю слоя */
+      overflow: visible;
+      transform: translateY(var(--blobs-offset-y));
+    }
+
+    .frame__blob-wrap {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .frame__blob-inner {
+      flex: none;
+      border-radius: 50%;
+      transform: rotate(-56.07deg);
+    }
+
+    /* 1: #0011FF, blur 153.48, x −261 y 115, 238.23×468.33 */
+    .frame__blob-wrap--1 {
+      left: -261px;
+      top: 115px;
+      width: 521.556px;
+      height: 459.088px;
+    }
+
+    .frame__blob-inner--1 {
+      width: 238.23px;
+      height: 468.33px;
+      background: #0011ff;
+      filter: blur(153.48px);
+    }
+
+    /* 2: #FF6652, blur 60, x −157 y 148, 185.62×308.23 */
+    .frame__blob-wrap--2 {
+      left: -157px;
+      top: 148px;
+      width: 359.354px;
+      height: 326.065px;
+    }
+
+    .frame__blob-inner--2 {
+      width: 185.62px;
+      height: 308.23px;
+      background: #ff6652;
+      filter: blur(60px);
+    }
+
+    /* 3: #FF0004, blur 123.48, x 54 y 210, 148.06×199.13 */
+    .frame__blob-wrap--3 {
+      left: 54px;
+      top: 210px;
+      width: 247.866px;
+      height: 234px;
+    }
+
+    .frame__blob-inner--3 {
+      width: 148.06px;
+      height: 199.13px;
+      background: #ff0004;
+      filter: blur(123.48px);
+    }
+
+    /* 4: #FF5100, blur 123.48, x 234 y 210, 148.06×199.13 */
+    .frame__blob-wrap--4 {
+      left: 234px;
+      top: 210px;
+      width: 247.866px;
+      height: 234px;
+    }
+
+    .frame__blob-inner--4 {
+      width: 148.06px;
+      height: 199.13px;
+      background: #ff5100;
+      filter: blur(123.48px);
+    }
+
+    /* Иконка + текст по центру; высота внутри .frame без выхода за 100% */
+    .frame__center {
+      position: relative;
+      z-index: 1;
+      box-sizing: border-box;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 40px calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .frame__main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 31px;
+      flex-shrink: 0;
+    }
+
+    .app-icon {
+      width: 59px;
+      height: 59px;
+      flex-shrink: 0;
+      border-radius: 13.828px;
+      background: rgba(14, 16, 21, 0.2);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app-icon__img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .title {
+      margin: 0;
+      width: 243px;
+      font-weight: 500;
+      font-size: 18px;
+      line-height: 1.32;
+      text-align: center;
+      color: var(--marathon-white);
+    }
+
+    .frame__cta-wrap {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      padding: 0 40px max(28px, calc(12px + env(safe-area-inset-bottom, 0px)));
+      pointer-events: none;
+    }
+
+    .frame__cta-wrap .cta {
+      pointer-events: auto;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 8px 16px;
+      border-radius: 1000px;
+      background: var(--marathon-white);
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      appearance: none;
+      -webkit-appearance: none;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .cta:hover {
+      opacity: 0.92;
+    }
+
+    .cta:active {
+      transform: scale(0.98);
+    }
+
+    .cta__label {
+      font-weight: 700;
+      font-size: 14px;
+      line-height: normal;
+      text-align: center;
+      color: var(--marathon-black);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame" data-node-id="3058:12129">
+    <div class="frame__mesh" aria-hidden="true">
+      <div class="frame__blob-wrap frame__blob-wrap--1">
+        <div class="frame__blob-inner frame__blob-inner--1"></div>
+      </div>
+      <div class="frame__blob-wrap frame__blob-wrap--2">
+        <div class="frame__blob-inner frame__blob-inner--2"></div>
+      </div>
+      <div class="frame__blob-wrap frame__blob-wrap--3">
+        <div class="frame__blob-inner frame__blob-inner--3"></div>
+      </div>
+      <div class="frame__blob-wrap frame__blob-wrap--4">
+        <div class="frame__blob-inner frame__blob-inner--4"></div>
+      </div>
+    </div>
+
+    <div class="frame__center">
+      <div class="frame__main" data-node-id="3058:12134">
+        <div class="app-icon" data-node-id="3058:12139" data-name="app-icon">
+          <img
+            class="app-icon__img"
+            src="https://raw.githubusercontent.com/rafael-mansurov/tg-ws-proxy-android/main/icon.png"
+            alt=""
+            width="59"
+            height="59"
+            decoding="async"
+          />
+        </div>
+        <p class="title" data-node-id="3058:12141">Telegram Proxy для&nbsp;Android</p>
+      </div>
+    </div>
+
+    <div class="frame__cta-wrap" data-node-id="3058:12142">
+      <a
+        class="cta"
+        href="https://t.me/+Wvhxt3_QTusyOWYy"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-node-id="3058:12143"
+      >
+        <span class="cta__label">Скачать бесплатно</span>
+      </a>
+    </div>
+  </div>
+  <script>
+    (function () {
+      function allowInteractive(t) {
+        return t && t.closest && t.closest("a, button, input, textarea, select");
+      }
+      function stopScroll(e) {
+        if (allowInteractive(e.target)) return;
+        e.preventDefault();
+      }
+      document.addEventListener("wheel", stopScroll, { passive: false });
+      document.addEventListener("touchmove", stopScroll, { passive: false });
+    })();
+  </script>
+</body>
+</html>
