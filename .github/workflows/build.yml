@@ -150,15 +150,19 @@ jobs:
           esac
           CAPTION=$(printf $'✅ Новая версия Android. Версия: %s\nРежим: %s\n\n<a href="%s">Скачать APK</a>\n\n<a href="%s">Подпишись на Telegram канал</a>' \
             "${APP_VERSION}" "${BUILD_LABEL}" "${DL_APK}" "${TG_CHANNEL}")
-          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
+          MEDIA_JSON=$(jq -n \
+            --arg cap "$CAPTION" \
+            --arg fn "$APK_FILENAME" \
+            '[
+              {type: "photo", media: "attach://cover", caption: $cap, parse_mode: "HTML"},
+              {type: "document", media: "attach://apk", filename: $fn}
+            ]')
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMediaGroup" \
             -F chat_id="$TELEGRAM_CHAT_ID" \
-            -F photo=@"cover.jpg" \
-            -F caption="$CAPTION" \
-            -F parse_mode="HTML"
-          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
-            -F chat_id="$TELEGRAM_CHAT_ID" \
-            -F document=@"${APK_FILENAME}" \
-            || echo "::warning::Telegram: не удалось отправить APK файл (лимит бота ~50 МБ или сеть)."
+            -F media="$MEDIA_JSON" \
+            -F cover=@cover.jpg \
+            -F apk=@"${APK_FILENAME}" \
+            || echo "::warning::Telegram: не удалось отправить альбом обложка+APK (лимит бота ~50 МБ на файл или сеть)."
 
       - name: Telegram — ошибка
         if: failure()
