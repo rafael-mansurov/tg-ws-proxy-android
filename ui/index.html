@@ -2710,23 +2710,14 @@
     document.getElementById('update-banner').style.display = 'none';
   }
 
-  // ── External proxy list ─────────────────────────────────────────────────────
-  // githubRepo + repoStars: порядок списка — сначала прокси из репо с большим числом ★ (GitHub).
-  // repoStars: null — не GitHub (mtprobe), такие идут после всех с конечным рейтингом.
-  // repoStars: 0 — источник не подключаем (прокси не показываем). Обновляй ★ при изменении на GitHub.
+  // ── External proxy list (источники и порядок как в docs/index.html) ───────
   const EXT_PROXY_SOURCES = [
-    { url: 'https://mtprobe.cyou/search?ee_mask=true&max_ping=350&limit=120&offset=0&search=&no_mask=false&dd_mask=false',
-      type: 'json_mtprobe', githubRepo: null, repoStars: null },
-    { url: 'https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt', type: 'text',
-      githubRepo: 'SoliSpirit/mtproto', repoStars: 991 },
-    { url: 'https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json', type: 'json',
-      githubRepo: 'hookzof/socks5_list', repoStars: 951 },
-    { url: 'https://raw.githubusercontent.com/kort0881/telegram-proxy-collector/main/proxy_all.txt', type: 'text',
-      githubRepo: 'kort0881/telegram-proxy-collector', repoStars: 281 },
-    { url: 'https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt', type: 'text',
-      githubRepo: 'Argh94/Proxy-List', repoStars: 170 },
-    { url: 'https://player1545.github.io/mtproto-proxy-list/proxies.json', type: 'json_player',
-      githubRepo: 'player1545/mtproto-proxy-list', repoStars: 3 },
+    { url: 'https://mtprobe.cyou/search?ee_mask=true&max_ping=350&limit=120&offset=0&search=&no_mask=false&dd_mask=false', type: 'json_mtprobe' },
+    { url: 'https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json', type: 'json' },
+    { url: 'https://raw.githubusercontent.com/Therealwh/MTPproxyLIST/main/verified/proxy_all_verified.json', type: 'json_therealwh' },
+    { url: 'https://player1545.github.io/mtproto-proxy-list/proxies.json', type: 'json_player' },
+    { url: 'https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt', type: 'text' },
+    { url: 'https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt', type: 'text' },
   ];
 
   // _extProxyFavorites: Set of keys (host:port:secret)
@@ -2845,23 +2836,18 @@
     return 0;
   }
 
-  /** Для сортировки: избранное выше всех; иначе GitHub ★ репозитория; null (mtprobe) после конечных ★. */
-  function _repoStarSortKey(s) {
-    if (s === Number.POSITIVE_INFINITY) return 1e15;
-    if (s === null || s === undefined) return -1;
-    return s;
-  }
-
-  function _sourceStarsForSort(p) {
-    if (_extProxyFavorites.has(_proxyKey(p))) return Number.POSITIVE_INFINITY;
-    return p._sourceStars;
-  }
-
-  function _compareProxyFull(a, b) {
-    const ra = _repoStarSortKey(_sourceStarsForSort(a));
-    const rb = _repoStarSortKey(_sourceStarsForSort(b));
-    if (rb !== ra) return rb - ra;
-    return _compareProxyRank(a, b);
+  /** Избранное сверху; далее как в docs: FakeTLS на 443, остальные после, внутри блоков — _compareProxyRank. */
+  function _orderExtProxiesLikeDocs(list) {
+    const favKeys = _extProxyFavorites;
+    const favorites = list.filter(p => favKeys.has(_proxyKey(p)));
+    const nonFav = list.filter(p => !favKeys.has(_proxyKey(p)));
+    const ee443 = nonFav.filter(p => _isLikelyEeProxy(p) && p.port === 443);
+    const rest = nonFav.filter(p => !(_isLikelyEeProxy(p) && p.port === 443));
+    return [
+      ...favorites.sort(_compareProxyRank),
+      ...ee443.sort(_compareProxyRank),
+      ...rest.sort(_compareProxyRank),
+    ];
   }
 
   function _proxyId(p) {
@@ -3022,7 +3008,7 @@
       _extProxyFavObjects.set(key, { host: p.host, port: p.port, secret: p.secret, country: p.country || null, maskType: p.maskType || null });
     }
     _saveExtProxyFavorites();
-    _extProxyList = [..._extProxyList].sort(_compareProxyFull);
+    _extProxyList = _orderExtProxiesLikeDocs(_extProxyList);
     _renderExtProxies(_extProxyList);
     _restoreExtProxyPingLabels(_extProxyList);
   }
@@ -3091,7 +3077,7 @@
     // сетей/WebView все порты «мёртвые» → пустой список. Оставляем все загруженные, сортировка по рангу.
     const container = document.getElementById('ext-proxy-list');
     if (!container) return;
-    const sorted = [...list].sort(_compareProxyFull);
+    const sorted = _orderExtProxiesLikeDocs(list);
     _renderExtProxies(sorted);
     _restoreExtProxyPingLabels(sorted);
   }
@@ -3099,75 +3085,76 @@
   let _extProxiesLoaded = false;
 
   async function _fetchSource(src) {
-    if (src.repoStars === 0) return [];
-    const meta = {
-      _sourceRepo: src.githubRepo ?? null,
-      _sourceStars: Number.isFinite(src.repoStars) ? src.repoStars : null,
-    };
-    const withMeta = (rows) => rows.map((p) => ({ ...p, ...meta }));
-
     try {
       const r = await fetch(src.url, { cache: 'no-store' });
       if (!r.ok) return [];
+
       if (src.type === 'json_mtprobe') {
         const data = await r.json();
         const servers = Array.isArray(data?.servers) ? data.servers : [];
-        return withMeta(
-          servers
-            .filter(p => p.ip && p.port && p.secret)
-            .map(p => ({
-              host: p.ip,
-              port: p.port,
-              secret: p.secret,
-              country: p.country || null,
-              addTime: p.created_at ? Math.floor(new Date(p.created_at).getTime() / 1000) : 0,
-              sourcePing: Number.isFinite(Number(p.last_ping)) ? Number(p.last_ping) : null,
-              maskType: p.mask_type || null,
-              sni: p.sni || null,
-            })),
-        );
+        return servers
+          .filter(p => p.ip && p.port && p.secret)
+          .map(p => ({
+            host: p.ip,
+            port: p.port,
+            secret: p.secret,
+            country: p.country || null,
+            addTime: p.created_at ? Math.floor(new Date(p.created_at).getTime() / 1000) : 0,
+            sourcePing: Number.isFinite(+p.last_ping) ? +p.last_ping : null,
+            maskType: p.mask_type || null,
+          }));
       }
       if (src.type === 'json') {
         const data = await r.json();
-        return withMeta(
-          data
-            .filter(p => p.host && p.port && p.secret)
-            .map(p => ({
-              host: p.host,
-              port: p.port,
-              secret: p.secret,
-              country: p.country || null,
-              addTime: p.addTime || 0,
-              sourcePing: Number.isFinite(Number(p.ping)) ? Number(p.ping) : null,
-              maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
-            })),
-        );
+        return data
+          .filter(p => p.host && p.port && p.secret)
+          .map(p => ({
+            host: p.host,
+            port: p.port,
+            secret: p.secret,
+            country: p.country || null,
+            addTime: p.addTime || 0,
+            sourcePing: Number.isFinite(+p.ping) ? +p.ping : null,
+            maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
+          }));
+      }
+      if (src.type === 'json_therealwh') {
+        const data = await r.json();
+        return data
+          .filter(p => p.host && p.port && p.secret)
+          .map(p => ({
+            host: p.host,
+            port: p.port,
+            secret: p.secret,
+            country: p.region || null,
+            addTime: 0,
+            sourcePing: Number.isFinite(+p.ping) ? +p.ping * 1000 : null,
+            maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
+          }));
       }
       if (src.type === 'json_player') {
         const data = await r.json();
         const proxies = Array.isArray(data?.proxies) ? data.proxies : (Array.isArray(data) ? data : []);
-        return withMeta(
-          proxies
-            .filter(p => p.ip && p.port && p.secret)
-            .map(p => ({
-              host: p.ip,
-              port: p.port,
-              secret: p.secret,
-              country: p.country || null,
-              addTime: 0,
-              sourcePing: Number.isFinite(Number(p.ping)) ? Number(p.ping) : null,
-              maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
-            })),
-        );
+        return proxies
+          .filter(p => p.ip && p.port && p.secret)
+          .map(p => ({
+            host: p.ip,
+            port: p.port,
+            secret: p.secret,
+            country: p.country || null,
+            addTime: 0,
+            sourcePing: Number.isFinite(+p.ping) ? +p.ping : null,
+            maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
+          }));
       }
       const text = await r.text();
-      return withMeta(
-        text.split('\n').map(_parseProxyLine).filter(Boolean).map(p => ({
-          ...p,
-          maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
-        })),
-      );
-    } catch { return []; }
+      return text.split('\n').map(_parseProxyLine).filter(Boolean).map(p => ({
+        ...p,
+        maskType: _isLikelyEeProxy(p) ? 'ee_mask' : null,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async function loadExtProxies() {
@@ -3180,24 +3167,14 @@
       const results = await Promise.allSettled(EXT_PROXY_SOURCES.map(_fetchSource));
       const all = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
 
-      const starKey = (s) => {
-        if (s === Number.POSITIVE_INFINITY) return 1e15;
-        if (s === null || s === undefined) return -1;
-        return s;
-      };
-      const byKey = new Map();
-      for (const p of all) {
+      const seen = new Set();
+      const unique = all.filter(p => {
         const key = _proxyKey(p);
-        const prev = byKey.get(key);
-        if (!prev) {
-          byKey.set(key, p);
-          continue;
-        }
-        if (starKey(p._sourceStars) > starKey(prev._sourceStars)) byKey.set(key, p);
-      }
-
-      const seen = new Set(byKey.keys());
-      const unique = [...byKey.values()];
+        if (seen.has(key)) return false;
+        seen.add(key);
+        p._ping = undefined;
+        return true;
+      });
 
       if (unique.length === 0) {
         container.innerHTML = '<div class="ext-proxy-status">Нет доступных прокси. Проверьте интернет и обновите список.</div>';
@@ -3205,20 +3182,14 @@
         return;
       }
 
-      // Избранное только локально — держим в начале (как и раньше по приоритету внутри «корзины»).
       for (const [key, favP] of _extProxyFavObjects) {
         if (!seen.has(key)) {
-          unique.push({
-            ...favP,
-            _ping: null,
-            _sourceRepo: 'local-favorite',
-            _sourceStars: null,
-          });
+          unique.push({ ...favP, _ping: null });
           seen.add(key);
         }
       }
 
-      const sorted = [...unique].sort(_compareProxyFull);
+      const sorted = _orderExtProxiesLikeDocs(unique);
       _extProxyList = sorted;
       _bindExtProxyVirtualization();
       _renderExtProxies(sorted);

@@ -1392,6 +1392,15 @@
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 18px;
+      color: inherit;
+    }
+
+    .proxy-item-link {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       text-decoration: none;
       color: inherit;
     }
@@ -2381,18 +2390,20 @@
       const ping = _displayPing(p);
       const pingText = p?._ping === undefined && !Number.isFinite(p?.sourcePing) ? 'проверка…' : _pingLabel(ping);
       const cls = _pingClass(ping);
-      return `<a class="proxy-item" href="${_proxyLink(p)}">
-        <div class="proxy-flag">${_flag(p.country)}</div>
-        <div class="proxy-info">
-          <div class="proxy-server">${p.host}:${p.port}</div>
-          <div class="proxy-meta">${p.country || '??'}${_isEe(p) ? ' · FakeTLS' : ''}</div>
-        </div>
-        <div class="proxy-ping ${cls}" id="${id}-ping">${pingText}</div>
-        <button type="button" class="proxy-qr-btn" onclick="event.preventDefault(); event.stopPropagation(); showProxyQr('${p.host}', '${p.port}', '${p.secret}')" aria-label="Показать QR" title="Показать QR">
+      return `<div class="proxy-item">
+        <a class="proxy-item-link" href="${_proxyLink(p)}">
+          <div class="proxy-flag">${_flag(p.country)}</div>
+          <div class="proxy-info">
+            <div class="proxy-server">${p.host}:${p.port}</div>
+            <div class="proxy-meta">${p.country || '??'}${_isEe(p) ? ' · FakeTLS' : ''}</div>
+          </div>
+          <div class="proxy-ping ${cls}" id="${id}-ping">${pingText}</div>
+          <div class="proxy-arrow">›</div>
+        </a>
+        <button type="button" class="proxy-qr-btn" onclick="event.preventDefault(); event.stopPropagation(); showProxyQr(${JSON.stringify(p.host)}, ${p.port}, ${JSON.stringify(p.secret)})" aria-label="Показать QR" title="Показать QR">
           <svg viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
         </button>
-        <div class="proxy-arrow">›</div>
-      </a>`;
+      </div>`;
     }
 
     function _measureProxyRowHeight() {
@@ -2411,7 +2422,9 @@
 
       const rowHeight = _proxyVirtual.rowHeight || 76;
       const overscan = _proxyVirtual.overscan;
-      const viewportTop = Math.max(0, (scrollEl?.scrollTop || 0) - container.offsetTop);
+      const scrollRect = scrollEl.getBoundingClientRect();
+      const listRect = container.getBoundingClientRect();
+      const viewportTop = Math.max(0, scrollRect.top - listRect.top);
       const viewportHeight = scrollEl?.clientHeight || window.innerHeight || 600;
       const start = Math.max(0, Math.floor(viewportTop / rowHeight) - overscan);
       const visibleCount = Math.ceil(viewportHeight / rowHeight) + overscan * 2;
