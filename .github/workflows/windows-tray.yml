@@ -80,31 +80,54 @@ jobs:
       - name: Telegram — успех
         if: success()
         continue-on-error: true
+        shell: bash
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Опционально: ID темы форума для сборок Windows/exe (секрет TELEGRAM_EXE_THREAD_ID).
           TELEGRAM_EXE_THREAD_ID: ${{ secrets.TELEGRAM_EXE_THREAD_ID }}
         run: |
-          if (-not $env:TELEGRAM_BOT_TOKEN -or -not $env:TELEGRAM_CHAT_ID) {
-            Write-Host "Telegram: секреты не заданы, пропуск."
+          set -euo pipefail
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+            echo "Telegram: секреты не заданы, пропуск."
             exit 0
-          }
-          $dl = "${{ github.server_url }}/${{ github.repository }}/releases/download/latest-windows-tray/tg-ws-proxy-windows-tray.zip"
-          $msg = "✅ <b>Для ПК (Windows)</b>`n`nАрхив с программой — в сообщении ниже.`n`nЕсли файл потеряется: <a href=`"$dl`">скачать ещё раз</a>"
-          $send = @{ chat_id = $env:TELEGRAM_CHAT_ID; text = $msg; parse_mode = "HTML"; disable_web_page_preview = $true }
-          $tid = $env:TELEGRAM_EXE_THREAD_ID
-          if (-not [string]::IsNullOrWhiteSpace($tid)) { $send['message_thread_id'] = [int64]$tid }
-          $json = $send | ConvertTo-Json -Compress
-          Invoke-RestMethod -Uri "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendMessage" -Method Post -Body $json -ContentType "application/json; charset=utf-8"
-          $docArgs = @(
-            '-fsS', '-X', 'POST', "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendDocument",
-            '-F', "chat_id=$($env:TELEGRAM_CHAT_ID)",
-            '-F', 'document=@tg-ws-proxy-windows-tray.zip',
-            '-F', 'caption=Распакуй папку и запусти программу — иконка появится рядом с часами.'
-          )
-          if (-not [string]::IsNullOrWhiteSpace($tid)) { $docArgs += '-F'; $docArgs += "message_thread_id=$tid" }
-          & curl.exe @docArgs
+          fi
+          TG_THREAD=()
+          if [ -n "${TELEGRAM_EXE_THREAD_ID:-}" ]; then
+            TG_THREAD=( -F "message_thread_id=${TELEGRAM_EXE_THREAD_ID}" )
+          fi
+          BASE_VERSION=$(awk -F' = ' '/^version = / {print $2}' buildozer.spec | cut -d. -f1-2)
+          if [ -z "${BASE_VERSION}" ]; then
+            BASE_VERSION="1.0"
+          fi
+          APP_VERSION="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"
+          BASE_DL="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-windows-tray"
+          DL_ZIP="${BASE_DL}/tg-ws-proxy-windows-tray.zip"
+          TG_CHANNEL="https://t.me/+zFHFTrH7SBMzMGZi"
+          CAPTION=$(printf $'✅ Новая версия Windows. Версия: %s\nРежим: Release\n\n<a href="%s">Скачать ZIP</a>\n\n<a href="%s">Подпишись на Telegram канал</a>' \
+            "${APP_VERSION}" "${DL_ZIP}" "${TG_CHANNEL}")
+          if [ -f cover.jpg ]; then
+            curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
+              -F chat_id="$TELEGRAM_CHAT_ID" \
+              "${TG_THREAD[@]}" \
+              -F photo=@"cover.jpg" \
+              -F caption="$CAPTION" \
+              -F parse_mode="HTML"
+          else
+            if [ -n "${TELEGRAM_EXE_THREAD_ID:-}" ]; then
+              BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$CAPTION" --arg m "$TELEGRAM_EXE_THREAD_ID" \
+                '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true, message_thread_id: ($m|tonumber)}')
+            else
+              BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$CAPTION" \
+                '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
+            fi
+            curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -H "Content-Type: application/json" -d "$BODY"
+          fi
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            -F chat_id="$TELEGRAM_CHAT_ID" \
+            "${TG_THREAD[@]}" \
+            -F document=@"tg-ws-proxy-windows-tray.zip" \
+            || echo "::warning::Telegram: не удалось отправить ZIP (лимит бота или сеть)."
 
       - name: Telegram — ошибка
         if: failure()
