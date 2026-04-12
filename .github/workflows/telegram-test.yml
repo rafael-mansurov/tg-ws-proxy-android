@@ -7,7 +7,7 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Проверка Telegram
+      - name: Проверка Telegram (Android-тема или общий чат)
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -18,16 +18,40 @@ jobs:
             echo "::error::В runtime пусто: TELEGRAM_BOT_TOKEN или TELEGRAM_CHAT_ID"
             exit 1
           fi
-          MSG="🔔 Тест Actions (без сборки APK). $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
+          MSG="🔔 Тест Actions — <b>Android</b> (ветка APK). $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
           if [ -n "${TELEGRAM_APK_THREAD_ID:-}" ]; then
             BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" --arg m "$TELEGRAM_APK_THREAD_ID" \
-              '{chat_id: $c, text: $t, disable_web_page_preview: true, message_thread_id: ($m|tonumber)}')
+              '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true, message_thread_id: ($m|tonumber)}')
           else
             BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
-              '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+              '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
           fi
           RESP=$(curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
             -d "$BODY")
           echo "$RESP" | jq -e '.ok == true' >/dev/null
-          echo "Telegram OK"
+          echo "Telegram Android OK"
+
+      - name: Проверка Telegram (Windows-тема)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_EXE_THREAD_ID: ${{ secrets.TELEGRAM_EXE_THREAD_ID }}
+        run: |
+          set -e
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::error::В runtime пусто: TELEGRAM_BOT_TOKEN или TELEGRAM_CHAT_ID"
+            exit 1
+          fi
+          if [ -z "${TELEGRAM_EXE_THREAD_ID:-}" ]; then
+            echo "TELEGRAM_EXE_THREAD_ID не задан — шаг Windows пропущен."
+            exit 0
+          fi
+          MSG="🔔 Тест Actions — <b>Windows</b> (ветка EXE). $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
+          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" --arg m "$TELEGRAM_EXE_THREAD_ID" \
+            '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true, message_thread_id: ($m|tonumber)}')
+          RESP=$(curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "$RESP" | jq -e '.ok == true' >/dev/null
+          echo "Telegram Windows OK"
