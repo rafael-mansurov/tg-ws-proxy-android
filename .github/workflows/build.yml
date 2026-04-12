@@ -135,10 +135,16 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Опционально: ID темы форума для сборок Android (секрет TELEGRAM_APK_THREAD_ID).
+          TELEGRAM_APK_THREAD_ID: ${{ secrets.TELEGRAM_APK_THREAD_ID }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "Telegram: секреты не заданы, пропуск."
             exit 0
+          fi
+          TG_THREAD=()
+          if [ -n "${TELEGRAM_APK_THREAD_ID:-}" ]; then
+            TG_THREAD=( -F "message_thread_id=${TELEGRAM_APK_THREAD_ID}" )
           fi
           BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-apk"
           DL_APK="${BASE}/${APK_FILENAME}"
@@ -152,11 +158,13 @@ jobs:
             "${APP_VERSION}" "${BUILD_LABEL}" "${DL_APK}" "${TG_CHANNEL}")
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
             -F chat_id="$TELEGRAM_CHAT_ID" \
+            "${TG_THREAD[@]}" \
             -F photo=@"cover.jpg" \
             -F caption="$CAPTION" \
             -F parse_mode="HTML"
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             -F chat_id="$TELEGRAM_CHAT_ID" \
+            "${TG_THREAD[@]}" \
             -F document=@"${APK_FILENAME}" \
             || echo "::warning::Telegram: не удалось отправить APK файл (лимит бота ~50 МБ или сеть)."
 
@@ -165,6 +173,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_APK_THREAD_ID: ${{ secrets.TELEGRAM_APK_THREAD_ID }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             exit 0
@@ -173,8 +182,13 @@ jobs:
           MSG=$(printf '%s\n\n%s' \
             "❌ <b>Android</b> — сборка не удалась." \
             "<a href=\"${RUN_URL}\">Что пошло не так</a>")
-          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
-            '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
+          if [ -n "${TELEGRAM_APK_THREAD_ID:-}" ]; then
+            BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" --arg m "$TELEGRAM_APK_THREAD_ID" \
+              '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true, message_thread_id: ($m|tonumber)}')
+          else
+            BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
+              '{chat_id: $c, text: $t, parse_mode: "HTML", disable_web_page_preview: true}')
+          fi
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
             -d "$BODY"

@@ -83,6 +83,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Опционально: ID темы форума для сборок Windows/exe (секрет TELEGRAM_EXE_THREAD_ID).
+          TELEGRAM_EXE_THREAD_ID: ${{ secrets.TELEGRAM_EXE_THREAD_ID }}
         run: |
           if (-not $env:TELEGRAM_BOT_TOKEN -or -not $env:TELEGRAM_CHAT_ID) {
             Write-Host "Telegram: секреты не заданы, пропуск."
@@ -91,21 +93,31 @@ jobs:
           $dl = "${{ github.server_url }}/${{ github.repository }}/releases/download/latest-windows-tray/tg-ws-proxy-windows-tray.zip"
           $msg = "✅ <b>Для ПК (Windows)</b>`n`nАрхив с программой — в сообщении ниже.`n`nЕсли файл потеряется: <a href=`"$dl`">скачать ещё раз</a>"
           $send = @{ chat_id = $env:TELEGRAM_CHAT_ID; text = $msg; parse_mode = "HTML"; disable_web_page_preview = $true }
+          $tid = $env:TELEGRAM_EXE_THREAD_ID
+          if (-not [string]::IsNullOrWhiteSpace($tid)) { $send['message_thread_id'] = [int64]$tid }
           $json = $send | ConvertTo-Json -Compress
           Invoke-RestMethod -Uri "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendMessage" -Method Post -Body $json -ContentType "application/json; charset=utf-8"
-          curl.exe -fsS -X POST "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendDocument" `
-            -F "chat_id=$($env:TELEGRAM_CHAT_ID)" -F "document=@tg-ws-proxy-windows-tray.zip" `
-            -F "caption=Распакуй папку и запусти программу — иконка появится рядом с часами."
+          $docArgs = @(
+            '-fsS', '-X', 'POST', "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendDocument",
+            '-F', "chat_id=$($env:TELEGRAM_CHAT_ID)",
+            '-F', 'document=@tg-ws-proxy-windows-tray.zip',
+            '-F', 'caption=Распакуй папку и запусти программу — иконка появится рядом с часами.'
+          )
+          if (-not [string]::IsNullOrWhiteSpace($tid)) { $docArgs += '-F'; $docArgs += "message_thread_id=$tid" }
+          & curl.exe @docArgs
 
       - name: Telegram — ошибка
         if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_EXE_THREAD_ID: ${{ secrets.TELEGRAM_EXE_THREAD_ID }}
         run: |
           if (-not $env:TELEGRAM_BOT_TOKEN -or -not $env:TELEGRAM_CHAT_ID) { exit 0 }
           $url = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           $msg = "❌ <b>Windows</b> — сборка не удалась.`n`n<a href=`"$url`">Что пошло не так</a>"
           $send = @{ chat_id = $env:TELEGRAM_CHAT_ID; text = $msg; parse_mode = "HTML"; disable_web_page_preview = $true }
+          $tid = $env:TELEGRAM_EXE_THREAD_ID
+          if (-not [string]::IsNullOrWhiteSpace($tid)) { $send['message_thread_id'] = [int64]$tid }
           $json = $send | ConvertTo-Json -Compress
           Invoke-RestMethod -Uri "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendMessage" -Method Post -Body $json -ContentType "application/json; charset=utf-8"

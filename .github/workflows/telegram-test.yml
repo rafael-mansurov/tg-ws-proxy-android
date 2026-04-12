@@ -11,6 +11,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_APK_THREAD_ID: ${{ secrets.TELEGRAM_APK_THREAD_ID }}
         run: |
           set -e
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
@@ -18,8 +19,13 @@ jobs:
             exit 1
           fi
           MSG="🔔 Тест Actions (без сборки APK). $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
-          BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
-            '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+          if [ -n "${TELEGRAM_APK_THREAD_ID:-}" ]; then
+            BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" --arg m "$TELEGRAM_APK_THREAD_ID" \
+              '{chat_id: $c, text: $t, disable_web_page_preview: true, message_thread_id: ($m|tonumber)}')
+          else
+            BODY=$(jq -n --arg c "$TELEGRAM_CHAT_ID" --arg t "$MSG" \
+              '{chat_id: $c, text: $t, disable_web_page_preview: true}')
+          fi
           RESP=$(curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
             -d "$BODY")
