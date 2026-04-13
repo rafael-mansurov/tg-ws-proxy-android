@@ -54,12 +54,14 @@ jobs:
 
             echo "BUILD_MODE=release" >> "${GITHUB_ENV}"
             echo "APK_FILENAME=tg-ws-proxy-release.apk" >> "${GITHUB_ENV}"
+            echo "PUBLIC_RELEASE_TAG=latest-apk" >> "${GITHUB_ENV}"
             echo "P4A_RELEASE_KEYSTORE_PASSWD=${ANDROID_KEYSTORE_PASSWORD}" >> "${GITHUB_ENV}"
             echo "P4A_RELEASE_KEYALIAS_PASSWD=${ANDROID_KEY_ALIAS_PASSWORD}" >> "${GITHUB_ENV}"
           else
             echo "::warning::Release signing secrets are missing. Building debug APK (not suitable for stable in-place upgrades)."
             echo "BUILD_MODE=debug" >> "${GITHUB_ENV}"
             echo "APK_FILENAME=tg-ws-proxy-debug.apk" >> "${GITHUB_ENV}"
+            echo "PUBLIC_RELEASE_TAG=latest-apk-debug" >> "${GITHUB_ENV}"
           fi
 
       - name: Cache Buildozer (project + Android SDK home)
@@ -112,19 +114,24 @@ jobs:
           cp -f "$APK" "${APK_FILENAME}"
           echo "${APP_VERSION}" > version.txt
           NOTES="Автосборка ${BUILD_MODE} APK. Версия: ${APP_VERSION}"
-          if gh release view latest-apk --repo "${{ github.repository }}" &>/dev/null; then
-            gh release upload latest-apk "${APK_FILENAME}" version.txt \
+          if [ "${BUILD_MODE}" = "release" ]; then
+            RELEASE_TITLE="Приложение для Android (APK)"
+          else
+            RELEASE_TITLE="Приложение для Android (APK, debug)"
+          fi
+          if gh release view "${PUBLIC_RELEASE_TAG}" --repo "${{ github.repository }}" &>/dev/null; then
+            gh release upload "${PUBLIC_RELEASE_TAG}" "${APK_FILENAME}" version.txt \
               --repo "${{ github.repository }}" \
               --clobber
-            gh release edit latest-apk \
+            gh release edit "${PUBLIC_RELEASE_TAG}" \
               --repo "${{ github.repository }}" \
-              --title "Приложение для Android (APK)" \
+              --title "${RELEASE_TITLE}" \
               --notes "${NOTES}" \
               --latest=false
           else
-            gh release create latest-apk "${APK_FILENAME}" version.txt \
+            gh release create "${PUBLIC_RELEASE_TAG}" "${APK_FILENAME}" version.txt \
               --repo "${{ github.repository }}" \
-              --title "Приложение для Android (APK)" \
+              --title "${RELEASE_TITLE}" \
               --notes "${NOTES}" \
               --latest=false
           fi
@@ -146,7 +153,7 @@ jobs:
           if [ -n "${TELEGRAM_APK_THREAD_ID:-}" ]; then
             TG_THREAD=( -F "message_thread_id=${TELEGRAM_APK_THREAD_ID}" )
           fi
-          BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/latest-apk"
+          BASE="${{ github.server_url }}/${{ github.repository }}/releases/download/${PUBLIC_RELEASE_TAG}"
           DL_APK="${BASE}/${APK_FILENAME}"
           TG_CHANNEL="https://t.me/+zFHFTrH7SBMzMGZi"
           case "${BUILD_MODE}" in
