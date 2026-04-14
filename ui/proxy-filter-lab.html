@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Proxy Filter Lab</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    .sub { margin: 0 0 14px; color: #9fb0c3; }
+    .panel {
+      background: #161b22;
+      border: 1px solid #2a3340;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button {
+      border: 1px solid #2f81f7;
+      background: #1f6feb;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+    .status { color: #9fb0c3; font-size: 14px; }
+    .ok { color: #3fb950; }
+    .warn { color: #d29922; }
+    .bad { color: #f85149; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid #27303d; padding: 8px 6px; text-align: left; }
+    th { color: #9fb0c3; font-weight: 600; }
+    a { color: #7ee787; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { color: #7ee787; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Лаборатория фильтрации MTProto</h1>
+    <p class="sub">Отдельный тестовый стенд: загружает публичные прокси, оценивает стабильность и выводит 50 лучших для ручной проверки в Telegram.</p>
+
+    <div class="panel">
+      <div class="controls">
+        <button id="back-btn" type="button" onclick="window.location.href='index.html'">Назад в приложение</button>
+        <button id="run-btn" type="button">Обновить и отобрать 200</button>
+        <button id="copy-btn" type="button" disabled>Скопировать 200 tg:// ссылок</button>
+        <span id="status" class="status">Готов к запуску.</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div id="summary" class="status">После запуска здесь появится статистика проверки.</div>
+      <div style="overflow:auto; margin-top: 10px;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Proxy</th>
+              <th>Статус</th>
+              <th>success_rate</th>
+              <th>p95</th>
+              <th>connect_avg</th>
+              <th>source_ping</th>
+              <th>Открыть</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="8" class="status">Нет данных.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const EXT_PROXY_SOURCES = [
+      { url: "https://mtprobe.cyou/search?ee_mask=true&max_ping=350&limit=180&offset=0&search=&no_mask=false&dd_mask=false", type: "json_mtprobe" },
+      { url: "https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json", type: "json" },
+      { url: "https://raw.githubusercontent.com/Therealwh/MTPproxyLIST/main/verified/proxy_all_verified.json", type: "json_therealwh" },
+      { url: "https://player1545.github.io/mtproto-proxy-list/proxies.json", type: "json_player" },
+      { url: "https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt", type: "text" },
+      { url: "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt", type: "text" }
+    ];
+
+    const MAX_CANDIDATES = 240;
+    const PROBE_ATTEMPTS = 4;
+    const PROBE_TIMEOUT_MS = 2800;
+    const BATCH_SIZE = 16;
+    const TOP_LIMIT = 200;
+    const REFUSED_MS = 25;
+
+    let lastTop = [];
+
+    function parseProxyLine(line) {
+      try {
+        const url = new URL(line.trim().replace("https://t.me/proxy", "tg://proxy"));
+        const host = url.searchParams.get("server");
+        const port = parseInt(url.searchParams.get("port"), 10);
+        const secret = url.searchParams.get("secret");
+        if (!host || !port || !secret) return null;
+        return { host, port, secret, sourcePing: null, maskType: null };
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function isLikelyEeProxy(p) {
+      if (p?.maskType === "ee_mask") return true;
+      return typeof p?.secret === "string" && p.secret.toLowerCase().startsWith("ee");
+    }
+
+    function proxyKey(p) {
+      return `${p.host}:${p.port}:${p.secret}`;
+    }
+
+    function proxyLink(p) {
+      return `tg://proxy?server=${encodeURIComponent(p.host)}&port=${p.port}&secret=${p.secret}`;
+    }
+
+    function percentile95(values) {
+      if (!values.length) return null;
+      const sorted = [...values].sort((a, b) => a - b);
+      const idx = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1);
+      return sorted[idx];
+    }
+
+    async function fetchSource(src) {
+      try {
+        const r = await fetch(src.url, { cache: "no-store" });
+        if (!r.ok) return [];
+
+        if (src.type === "json_mtprobe") {
+          const data = await r.json();
+          const servers = Array.isArray(data?.servers) ? data.servers : [];
+          return servers
+            .filter((p) => p.ip && p.port && p.secret)
+            .map((p) => ({
+              host: p.ip,
+              port: p.port,
+              secret: p.secret,
+              sourcePing: Number.isFinite(+p.last_ping) ? +p.last_ping : null,
+              maskType: p.mask_type || null
+            }));
+        }
+
+        if (src.type === "json") {
+          const data = await r.json();
+          return (Array.isArray(data) ? data : [])
+            .filter((p) => p.host && p.port && p.secret)
+            .map((p) => ({
+              host: p.host,
+              port: p.port,
+              secret: p.secret,
+              sourcePing: Number.isFinite(+p.ping) ? +p.ping : null,
+              maskType: isLikelyEeProxy(p) ? "ee_mask" : null
+            }));
+        }
+
+        if (src.type === "json_therealwh") {
+          const data = await r.json();
+          return (Array.isArray(data) ? data : [])
+            .filter((p) => p.host && p.port && p.secret)
+            .map((p) => ({
+              host: p.host,
+              port: p.port,
+              secret: p.secret,
+              sourcePing: Number.isFinite(+p.ping) ? +p.ping * 1000 : null,
+              maskType: isLikelyEeProxy(p) ? "ee_mask" : null
+            }));
+        }
+
+        if (src.type === "json_player") {
+          const data = await r.json();
+          const proxies = Array.isArray(data?.proxies) ? data.proxies : (Array.isArray(data) ? data : []);
+          return proxies
+            .filter((p) => p.ip && p.port && p.secret)
+            .map((p) => ({
+              host: p.ip,
+              port: p.port,
+              secret: p.secret,
+              sourcePing: Number.isFinite(+p.ping) ? +p.ping : null,
+              maskType: isLikelyEeProxy(p) ? "ee_mask" : null
+            }));
+        }
+
+        const text = await r.text();
+        return text
+          .split("\n")
+          .map(parseProxyLine)
+          .filter(Boolean)
+          .map((p) => ({ ...p, maskType: isLikelyEeProxy(p) ? "ee_mask" : null }));
+      } catch (_) {
+        return [];
+      }
+    }
+
+    async function probeOnce(host, port) {
+      return new Promise((resolve) => {
+        const start = performance.now();
+        let settled = false;
+        let ws;
+
+        const finish = (ok, kind) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          try { if (ws) ws.close(); } catch (_) {}
+          const ms = Math.round(performance.now() - start);
+          resolve({ ok, ms, kind });
+        };
+
+        const timer = setTimeout(() => finish(false, "timeout"), PROBE_TIMEOUT_MS);
+
+        try {
+          ws = new WebSocket(`ws://${host}:${port}/`);
+          ws.onopen = () => finish(true, "open");
+          ws.onerror = () => {
+            const ms = performance.now() - start;
+            // Быстрый "refused" почти всегда значит, что порт не слушает.
+            if (ms < REFUSED_MS) finish(false, "refused");
+            else finish(true, "responsive_error");
+          };
+        } catch (_) {
+          finish(false, "exception");
+        }
+      });
+    }
+
+    async function probeProxy(p) {
+      const attempts = [];
+      for (let i = 0; i < PROBE_ATTEMPTS; i += 1) {
+        attempts.push(await probeOnce(p.host, p.port));
+      }
+
+      const okAttempts = attempts.filter((a) => a.ok);
+      const okMs = okAttempts.map((a) => a.ms);
+      const successRate = okAttempts.length / attempts.length;
+      const connectAvg = okMs.length ? Math.round(okMs.reduce((s, v) => s + v, 0) / okMs.length) : null;
+      const p95 = okMs.length ? percentile95(okMs) : null;
+      const handshakeOk = successRate >= 0.5;
+
+      // Чем меньше score, тем выше прокси в выдаче.
+      const score =
+        (handshakeOk ? 0 : 4500) +
+        Math.round((1 - successRate) * 1800) +
+        (p95 ?? (p.sourcePing ?? 2000)) +
+        (p.port === 443 ? 0 : 180) +
+        (isLikelyEeProxy(p) ? 0 : 220);
+
+      return {
+        ...p,
+        successRate,
+        connectAvg,
+        p95,
+        handshakeOk,
+        score
+      };
+    }
+
+    function coarsePreSort(a, b) {
+      const aKey = [
+        isLikelyEeProxy(a) ? 0 : 1,
+        a.port === 443 ? 0 : 1,
+        Number.isFinite(a.sourcePing) ? a.sourcePing : 99999
+      ];
+      const bKey = [
+        isLikelyEeProxy(b) ? 0 : 1,
+        b.port === 443 ? 0 : 1,
+        Number.isFinite(b.sourcePing) ? b.sourcePing : 99999
+      ];
+      for (let i = 0; i < aKey.length; i += 1) {
+        if (aKey[i] < bKey[i]) return -1;
+        if (aKey[i] > bKey[i]) return 1;
+      }
+      return 0;
+    }
+
+    function statusLabel(p) {
+      if (!p.handshakeOk) return '<span class="bad">Не подходит</span>';
+      if (p.successRate >= 0.75) return `<span class="ok">Работает (${Math.round(p.successRate * PROBE_ATTEMPTS)}/${PROBE_ATTEMPTS})</span>`;
+      return `<span class="warn">Нестабильно (${Math.round(p.successRate * PROBE_ATTEMPTS)}/${PROBE_ATTEMPTS})</span>`;
+    }
+
+    function renderRows(list) {
+      const rows = document.getElementById("rows");
+      if (!list.length) {
+        rows.innerHTML = '<tr><td colspan="8" class="status">Нет прокси после фильтрации.</td></tr>';
+        return;
+      }
+
+      rows.innerHTML = list.map((p, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><code>${p.host}:${p.port}</code></td>
+          <td>${statusLabel(p)}</td>
+          <td>${Math.round(p.successRate * 100)}%</td>
+          <td>${p.p95 == null ? "—" : `${p.p95}мс`}</td>
+          <td>${p.connectAvg == null ? "—" : `${p.connectAvg}мс`}</td>
+          <td>${Number.isFinite(p.sourcePing) ? `${Math.round(p.sourcePing)}мс` : "—"}</td>
+          <td><a href="${proxyLink(p)}">tg://proxy</a></td>
+        </tr>
+      `).join("");
+    }
+
+    function setStatus(text) {
+      const el = document.getElementById("status");
+      el.textContent = text;
+    }
+
+    async function runLab() {
+      const runBtn = document.getElementById("run-btn");
+      const copyBtn = document.getElementById("copy-btn");
+      const summary = document.getElementById("summary");
+
+      runBtn.disabled = true;
+      copyBtn.disabled = true;
+      setStatus("Загружаю источники...");
+      summary.textContent = "Подготовка...";
+
+      try {
+        const results = await Promise.allSettled(EXT_PROXY_SOURCES.map(fetchSource));
+        const all = results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+
+        const seen = new Set();
+        const unique = [];
+        for (const p of all) {
+          const key = proxyKey(p);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          unique.push(p);
+        }
+
+        if (!unique.length) {
+          summary.innerHTML = '<span class="bad">Не удалось загрузить прокси из источников.</span>';
+          renderRows([]);
+          setStatus("Готово: 0 прокси.");
+          return;
+        }
+
+        const candidates = unique.sort(coarsePreSort).slice(0, MAX_CANDIDATES);
+        setStatus(`Проверяю ${candidates.length} кандидатов (${PROBE_ATTEMPTS} попытки на каждый)...`);
+
+        const scored = [];
+        for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+          const batch = candidates.slice(i, i + BATCH_SIZE);
+          const part = await Promise.all(batch.map(probeProxy));
+          scored.push(...part);
+          setStatus(`Проверено ${Math.min(i + BATCH_SIZE, candidates.length)} / ${candidates.length}...`);
+        }
+
+        const sorted = scored.sort((a, b) => a.score - b.score);
+        const top50 = sorted.slice(0, TOP_LIMIT);
+        lastTop = top50;
+
+        const good = top50.filter((p) => p.handshakeOk && p.successRate >= 0.75).length;
+        const unstable = top50.filter((p) => p.handshakeOk && p.successRate < 0.75).length;
+        const bad = top50.filter((p) => !p.handshakeOk).length;
+
+        summary.innerHTML =
+          `Всего уникальных: <b>${unique.length}</b>, проверено: <b>${candidates.length}</b>, выбрано: <b>${top50.length}</b>. ` +
+          `<span class="ok">Стабильных: ${good}</span>, <span class="warn">нестабильных: ${unstable}</span>, <span class="bad">слабых: ${bad}</span>.`;
+        renderRows(top50);
+        copyBtn.disabled = false;
+        setStatus("Готово.");
+      } catch (e) {
+        summary.innerHTML = `<span class="bad">Ошибка: ${String(e && e.message ? e.message : e)}</span>`;
+        renderRows([]);
+        setStatus("Ошибка выполнения.");
+      } finally {
+        runBtn.disabled = false;
+      }
+    }
+
+    async function copyLinks() {
+      const links = lastTop.map((p) => proxyLink(p)).join("\n");
+      if (!links) return;
+      try {
+        await navigator.clipboard.writeText(links);
+        setStatus("Ссылки скопированы в буфер.");
+      } catch (_) {
+        setStatus("Не удалось скопировать автоматически.");
+      }
+    }
+
+    document.getElementById("run-btn").addEventListener("click", runLab);
+    document.getElementById("copy-btn").addEventListener("click", copyLinks);
+  </script>
+</body>
+</html>
