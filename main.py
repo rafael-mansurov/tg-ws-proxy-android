@@ -175,6 +175,7 @@ SECRET = ""
 SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
+ROUNDED_QR_FILE = Path(__file__).parent / "ui" / "rounded-qr.js"
 
 _running = False
 _ready_notification_shown = False
@@ -702,6 +703,23 @@ class Handler(BaseHTTPRequestHandler):
                 data = cover.read_bytes()
                 self.send_response(200)
                 self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            except OSError:
+                self.send_response(404)
+                self.end_headers()
+
+        elif self.path == "/rounded-qr.js":
+            if not ROUNDED_QR_FILE.is_file():
+                self.send_response(404)
+                self.end_headers()
+                return
+            try:
+                data = ROUNDED_QR_FILE.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/javascript; charset=utf-8")
                 self.send_header("Cache-Control", "public, max-age=86400")
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()

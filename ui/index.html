@@ -355,9 +355,9 @@
         inset 0 1px 0 rgba(255,255,255,1);
       overflow: hidden;
     }
-    .qr-svg-host { display: none; width: 176px; height: 176px; line-height: 0; border-radius: 12px; overflow: hidden; }
+    .qr-svg-host { display: none; width: 220px; height: 220px; line-height: 0; overflow: hidden; }
     .qr-svg-host.visible { display: block; }
-    .qr-svg-host svg { display: block; width: 176px; height: 176px; border-radius: 12px; }
+    .qr-svg-host svg { display: block; width: 220px; height: 220px; }
     .qr-placeholder { font-size: 11px; font-weight: 600; color: rgba(40,45,55,0.65); text-align: center; line-height: 1.35; padding: 0 12px; }
     .qr-placeholder.hidden { display: none !important; visibility: hidden; height: 0; padding: 0; overflow: hidden; }
 
@@ -1716,6 +1716,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="rounded-qr.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 <script>
   let running = false;
@@ -2099,15 +2101,23 @@
     host.innerHTML = '';
     ph.textContent = 'Загрузка QR…';
     ph.classList.remove('hidden');
-    if (typeof QRCode === 'undefined') {
+    if (typeof RoundedQR === 'undefined') {
       ph.textContent = 'QR недоступен';
       return;
     }
-    QRCode.toString(_SHARE_URL, { type: 'svg', width: 176, margin: 2, color: { dark: '#0f172a', light: '#f4f6fa' } }, (err, svg) => {
-      if (err) { ph.textContent = 'Ошибка QR'; return; }
+    RoundedQR.generateSvg({
+      text: _SHARE_URL,
+      size: 220,
+      margin: 0,
+      darkColor: '#0f172a',
+      lightColor: '#f4f6fa',
+      dotsStyle: 'smooth'
+    }).then((svg) => {
       host.innerHTML = svg;
       host.classList.add('visible');
       ph.classList.add('hidden');
+    }).catch(() => {
+      ph.textContent = 'Ошибка QR';
     });
   }
 
@@ -2602,7 +2612,7 @@
     if (!host || !ph) return;
     const qrLink = _qrModalLink;
     if (!qrLink) return;
-    if (typeof QRCode === 'undefined') {
+    if (typeof RoundedQR === 'undefined') {
       ph.textContent = 'QR недоступен';
       ph.classList.remove('hidden');
       host.classList.remove('visible');
@@ -2613,14 +2623,20 @@
     ph.classList.remove('hidden');
     host.classList.remove('visible');
     host.innerHTML = '';
-    QRCode.toString(qrLink, { type:'svg', width:176, margin:2, color:{dark:'#0f172a',light:'#f4f6fa'} },
-      (err, svg) => {
-        if (err) return;
-        ph.classList.add('hidden');
-        host.innerHTML = svg;
-        host.classList.add('visible');
-      }
-    );
+    RoundedQR.generateSvg({
+      text: qrLink,
+      size: 220,
+      margin: 0,
+      darkColor: '#0f172a',
+      lightColor: '#f4f6fa',
+      dotsStyle: 'smooth'
+    }).then((svg) => {
+      ph.classList.add('hidden');
+      host.innerHTML = svg;
+      host.classList.add('visible');
+    }).catch(() => {
+      ph.textContent = 'Ошибка QR';
+    });
   }
 
   function openQrModal(link, title) {
