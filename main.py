@@ -178,7 +178,6 @@ SECRET = ""
 SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
-PROXY_FILTER_LAB_FILE = Path(__file__).parent / "ui" / "proxy-filter-lab.html"
 ROUNDED_QR_FILE = Path(__file__).parent / "ui" / "rounded-qr.js"
 
 _running = False
@@ -869,17 +868,6 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == "/proxy-filter-lab.html":
-            try:
-                html = PROXY_FILTER_LAB_FILE.read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(html)))
-                self.end_headers()
-                self.wfile.write(html)
-            except Exception as e:
-                self._send_json({"error": str(e)}, 500)
-
         elif self.path == "/icon.png":
             icon_path = _icon_png_path()
             if icon_path is None:
@@ -1066,6 +1054,57 @@ class Handler(BaseHTTPRequestHandler):
                         }
 
             self._send_json({"results": results})
+
+        elif self.path == "/api/proxy-lab-stream":
+            body = _read_json_body(self)
+            proxies = body.get("proxies", [])
+            if not isinstance(proxies, list):
+                self._send_json({"error": "bad_proxies"}, 400)
+                return
+
+            limited = proxies[:1000]
+            if not limited:
+                self._send_json({"results": []})
+                return
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+
+            def _write_chunk(data: bytes) -> bool:
+                try:
+                    self.wfile.write(f"{len(data):X}\r\n".encode())
+                    self.wfile.write(data)
+                    self.wfile.write(b"\r\n")
+                    self.wfile.flush()
+                    return True
+                except Exception:
+                    return False
+
+            max_workers = min(24, len(limited))
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                future_map = {pool.submit(_probe_mtproto_proxy, p): p for p in limited}
+                for future in as_completed(future_map):
+                    proxy = future_map[future]
+                    try:
+                        result = future.result()
+                    except Exception as exc:
+                        result = {
+                            "host": proxy.get("host"), "port": proxy.get("port"),
+                            "secret": proxy.get("secret"), "verified": False,
+                            "partial": False, "dc_results": {}, "ok_count": 0,
+                            "error": str(exc),
+                        }
+                    if not _write_chunk((json.dumps(result) + "\n").encode()):
+                        break
+
+            try:
+                self.wfile.write(b"0\r\n\r\n")
+                self.wfile.flush()
+            except Exception:
+                pass
 
         else:
             self.send_response(404)

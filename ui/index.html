@@ -3267,55 +3267,56 @@
       if (container) container.innerHTML = '<div class="ext-proxy-status">Идёт проверка, первые результаты появятся через несколько секунд…</div>';
       _extProxiesLoaded = true;
 
-      // 6. Стриминговый MTProto-зонд
-      const r = await fetch('/api/proxy-lab-stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          proxies: candidates.map(p => ({
-            host: p.host,
-            port: p.port,
-            secret: String(p.secret || '').trim().toLowerCase(),
-          })),
-        }),
-      });
+      // 6. Параллельные батчи через /api/proxy-lab-probe
+      const PROBE_BATCH = 15;
+      const PROBE_CONCURRENCY = 8;
+      const batches = [];
+      for (let i = 0; i < candidates.length; i += PROBE_BATCH) {
+        batches.push(candidates.slice(i, i + PROBE_BATCH));
+      }
 
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-      const reader = r.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        let nl;
-        while ((nl = buf.indexOf('\n')) !== -1) {
-          const line = buf.slice(0, nl).trim();
-          buf = buf.slice(nl + 1);
-          if (!line) continue;
-          let result;
-          try { result = JSON.parse(line); } catch { continue; }
-
-          checkedCount++;
-          if (sub) sub.textContent = `Проверено ${checkedCount} / ${candidates.length} — рабочих: ${liveList.length}`;
-
-          if (result.verified || result.partial) {
-            const key = `${result.host}:${result.port}:${String(result.secret || '').trim().toLowerCase()}`;
-            const candidate = candidateMap.get(key) || {};
-            liveList.push({
-              ...candidate,
-              host: result.host,
-              port: result.port,
-              secret: result.secret || candidate.secret,
-              sourcePing: result.avg_latency_ms ?? candidate.sourcePing ?? null,
-              _ping: result.avg_latency_ms ?? null,
-            });
-            scheduleRender();
+      const queue = [...batches];
+      const runWorker = async () => {
+        while (queue.length > 0) {
+          const batch = queue.shift();
+          const r = await fetch('/api/proxy-lab-probe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              proxies: batch.map(p => ({
+                host: p.host,
+                port: p.port,
+                secret: String(p.secret || '').trim().toLowerCase(),
+              })),
+            }),
+          });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const data = await r.json();
+          const results = Array.isArray(data?.results) ? data.results : [];
+          for (let i = 0; i < batch.length; i++) {
+            checkedCount++;
+            const result = results[i] || {};
+            if (sub) sub.textContent = `Проверено ${checkedCount} / ${candidates.length} — рабочих: ${liveList.length}`;
+            if (result.verified || result.partial) {
+              const key = `${batch[i].host}:${batch[i].port}:${String(batch[i].secret || '').trim().toLowerCase()}`;
+              const candidate = candidateMap.get(key) || batch[i];
+              liveList.push({
+                ...candidate,
+                host: result.host || batch[i].host,
+                port: result.port || batch[i].port,
+                secret: batch[i].secret,
+                sourcePing: result.avg_latency_ms ?? candidate.sourcePing ?? null,
+                _ping: result.avg_latency_ms ?? null,
+              });
+              scheduleRender();
+            }
           }
         }
-      }
+      };
+
+      await Promise.all(
+        Array.from({ length: Math.min(PROBE_CONCURRENCY, batches.length) }, runWorker)
+      );
 
       if (sub) sub.textContent = origSub;
 
