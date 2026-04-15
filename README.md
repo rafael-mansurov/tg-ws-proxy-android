@@ -1,4 +1,4 @@
-# TG WS Proxy
+# TG WS Proxy для Android
 
 ![TG WS Proxy](cover.jpg)
 
