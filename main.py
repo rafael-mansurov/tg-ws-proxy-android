@@ -7,9 +7,12 @@ import logging
 import os
 import re
 import secrets
+import struct
 import socket
 import threading
 import time
+import hashlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Optional, Tuple
@@ -180,6 +183,27 @@ ROUNDED_QR_FILE = Path(__file__).parent / "ui" / "rounded-qr.js"
 
 _running = False
 _ready_notification_shown = False
+
+_MTPROTO_HANDSHAKE_LEN = 64
+_MTPROTO_SKIP_LEN = 8
+_MTPROTO_PREKEY_LEN = 32
+_MTPROTO_IV_LEN = 16
+_MTPROTO_PROTO_TAG_POS = 56
+_MTPROTO_DC_IDX_POS = 60
+_MTPROTO_PROTO_TAG_PADDED = b"\xdd\xdd\xdd\xdd"
+_MTPROTO_REQ_PQ_MULTI = 0xBE7E8EF1
+_MTPROTO_RES_PQ = 0x05162463
+_MTPROTO_RESERVED_STARTS = {
+    b"\x48\x45\x41\x44",  # HEAD
+    b"\x50\x4F\x53\x54",  # POST
+    b"\x47\x45\x54\x20",  # GET
+    b"\xee\xee\xee\xee",
+    b"\xdd\xdd\xdd\xdd",
+    b"\x16\x03\x01\x02",
+}
+_MTPROTO_MAX_PACKET_LEN = 1_000_000
+_MTPROTO_PROBE_TIMEOUT_S = 4.0
+_MTPROTO_PROBE_DCS = (2, 4)
 
 
 def _icon_png_path() -> Optional[Path]:
@@ -649,6 +673,175 @@ def _stop_service() -> None:
     _clear_proxy_ready_notification()
 
 
+def _classify_mtproto_secret(secret: object) -> tuple[str, Optional[str]]:
+    if not isinstance(secret, str):
+        return "invalid", None
+    raw = secret.strip().lower()
+    if not raw:
+        return "invalid", None
+    if not re.fullmatch(r"[0-9a-f]+", raw):
+        return "invalid", None
+    if len(raw) == 32:
+        return "plain", raw
+    if len(raw) == 34 and raw.startswith("dd"):
+        return "dd", raw[2:]
+    if len(raw) >= 34 and len(raw) % 2 == 0 and raw.startswith("ee"):
+        return "ee", None
+    return "invalid", None
+
+
+def _recv_exact(sock: socket.socket, size: int) -> bytes:
+    chunks = bytearray()
+    while len(chunks) < size:
+        chunk = sock.recv(size - len(chunks))
+        if not chunk:
+            raise OSError("connection_closed")
+        chunks.extend(chunk)
+    return bytes(chunks)
+
+
+def _mtproto_probe_init(secret_hex: str, dc_id: int):
+    from cryptography.hazmat.primitives.ciphers import Cipher as _Cipher, algorithms, modes
+
+    def _cipher(key: bytes, iv: bytes):
+        try:
+            from cryptography.hazmat.backends import default_backend as _default_backend
+            try:
+                return _Cipher(algorithms.AES(key), modes.CTR(iv), backend=_default_backend())
+            except TypeError:
+                pass
+        except ImportError:
+            pass
+        return _Cipher(algorithms.AES(key), modes.CTR(iv))
+
+    secret = bytes.fromhex(secret_hex)
+    while True:
+        init_plain = bytearray(os.urandom(_MTPROTO_HANDSHAKE_LEN))
+        if init_plain[0] == 0xEF:
+            continue
+        if bytes(init_plain[:4]) in _MTPROTO_RESERVED_STARTS:
+            continue
+        if init_plain[4:8] == b"\x00\x00\x00\x00":
+            continue
+        init_plain[_MTPROTO_PROTO_TAG_POS:_MTPROTO_PROTO_TAG_POS + 4] = _MTPROTO_PROTO_TAG_PADDED
+        init_plain[_MTPROTO_DC_IDX_POS:_MTPROTO_DC_IDX_POS + 2] = struct.pack("<h", dc_id)
+        break
+
+    init_plain_bytes = bytes(init_plain)
+    init_reversed = init_plain_bytes[::-1]
+
+    enc_key = hashlib.sha256(
+        init_plain_bytes[_MTPROTO_SKIP_LEN:_MTPROTO_SKIP_LEN + _MTPROTO_PREKEY_LEN] + secret
+    ).digest()
+    enc_iv = init_plain_bytes[
+        _MTPROTO_SKIP_LEN + _MTPROTO_PREKEY_LEN:
+        _MTPROTO_SKIP_LEN + _MTPROTO_PREKEY_LEN + _MTPROTO_IV_LEN
+    ]
+    dec_key = hashlib.sha256(
+        init_reversed[_MTPROTO_SKIP_LEN:_MTPROTO_SKIP_LEN + _MTPROTO_PREKEY_LEN] + secret
+    ).digest()
+    dec_iv = init_reversed[
+        _MTPROTO_SKIP_LEN + _MTPROTO_PREKEY_LEN:
+        _MTPROTO_SKIP_LEN + _MTPROTO_PREKEY_LEN + _MTPROTO_IV_LEN
+    ]
+
+    encryptor = _cipher(enc_key, enc_iv).encryptor()
+    decryptor = _cipher(dec_key, dec_iv).encryptor()
+
+    encrypted_init = encryptor.update(init_plain_bytes)
+    final_init = init_plain_bytes[:56] + encrypted_init[56:64]
+    return final_init, encryptor, decryptor
+
+
+def _mtproto_probe_frame() -> bytes:
+    nonce = os.urandom(16)
+    body = struct.pack("<I", _MTPROTO_REQ_PQ_MULTI) + nonce
+    msg_id = (int(time.time()) << 32) & ~0x3
+    payload = b"\x00" * 8 + struct.pack("<qI", msg_id, len(body)) + body
+    return struct.pack("<I", len(payload)) + payload
+
+
+def _mtproto_probe_once(host: str, port: int, secret_hex: str, dc_id: int) -> dict:
+    started = time.perf_counter()
+    try:
+        final_init, encryptor, decryptor = _mtproto_probe_init(secret_hex, dc_id)
+        frame = _mtproto_probe_frame()
+        with socket.create_connection((host, int(port)), timeout=_MTPROTO_PROBE_TIMEOUT_S) as sock:
+            sock.settimeout(_MTPROTO_PROBE_TIMEOUT_S)
+            sock.sendall(final_init)
+            sock.sendall(encryptor.update(frame))
+
+            header = decryptor.update(_recv_exact(sock, 4))
+            packet_len = struct.unpack("<I", header)[0]
+            if packet_len < 20 or packet_len > _MTPROTO_MAX_PACKET_LEN:
+                raise ValueError(f"bad_packet_len:{packet_len}")
+
+            packet = decryptor.update(_recv_exact(sock, packet_len))
+            if packet[:8] != b"\x00" * 8:
+                raise ValueError("nonzero_auth_key_id")
+            body_len = struct.unpack("<I", packet[16:20])[0]
+            if body_len < 4 or 20 + body_len > len(packet):
+                raise ValueError("bad_body_len")
+            constructor = struct.unpack("<I", packet[20:24])[0]
+            if constructor != _MTPROTO_RES_PQ:
+                raise ValueError(f"unexpected_ctor:{constructor:#x}")
+
+        elapsed_ms = round((time.perf_counter() - started) * 1000)
+        return {"ok": True, "latency_ms": elapsed_ms}
+    except Exception as exc:
+        elapsed_ms = round((time.perf_counter() - started) * 1000)
+        return {"ok": False, "latency_ms": elapsed_ms, "reason": str(exc)}
+
+
+def _probe_mtproto_proxy(proxy: dict) -> dict:
+    host = str(proxy.get("host", "")).strip()
+    port = proxy.get("port")
+    secret = proxy.get("secret")
+    secret_type, secret_hex = _classify_mtproto_secret(secret)
+
+    result = {
+        "host": host,
+        "port": port,
+        "secret": secret,
+        "secret_type": secret_type,
+        "supported": secret_type in {"plain", "dd"},
+        "dc_results": {},
+        "ok_count": 0,
+        "avg_latency_ms": None,
+        "verified": False,
+        "partial": False,
+    }
+
+    if not host:
+        result["error"] = "missing_host"
+        return result
+    try:
+        port = int(port)
+    except (TypeError, ValueError):
+        result["error"] = "bad_port"
+        return result
+    if not (1 <= port <= 65535):
+        result["error"] = "bad_port"
+        return result
+    if secret_hex is None:
+        result["error"] = "unsupported_secret"
+        return result
+
+    latencies: list[int] = []
+    for dc_id in _MTPROTO_PROBE_DCS:
+        dc_result = _mtproto_probe_once(host, port, secret_hex, dc_id)
+        result["dc_results"][str(dc_id)] = dc_result
+        if dc_result.get("ok"):
+            result["ok_count"] += 1
+            latencies.append(int(dc_result.get("latency_ms", 0)))
+
+    if latencies:
+        result["avg_latency_ms"] = round(sum(latencies) / len(latencies))
+    result["verified"] = result["ok_count"] == len(_MTPROTO_PROBE_DCS)
+    result["partial"] = 0 < result["ok_count"] < len(_MTPROTO_PROBE_DCS)
+    return result
+
+
 # ── HTTP handler ─────────────────────────────────────────────────────────────
 
 class Handler(BaseHTTPRequestHandler):
@@ -839,6 +1032,40 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/share":
             ok = _share_app()
             self._send_json({"ok": ok})
+
+        elif self.path == "/api/proxy-lab-probe":
+            body = _read_json_body(self)
+            proxies = body.get("proxies", [])
+            if not isinstance(proxies, list):
+                self._send_json({"error": "bad_proxies"}, 400)
+                return
+
+            limited = proxies[:40]
+            if not limited:
+                self._send_json({"results": []})
+                return
+
+            max_workers = min(8, max(1, len(limited)))
+            results: list[Optional[dict]] = [None] * len(limited)
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                future_map = {
+                    pool.submit(_probe_mtproto_proxy, proxy): idx
+                    for idx, proxy in enumerate(limited)
+                }
+                for future in as_completed(future_map):
+                    idx = future_map[future]
+                    try:
+                        results[idx] = future.result()
+                    except Exception as exc:
+                        results[idx] = {
+                            "host": limited[idx].get("host"),
+                            "port": limited[idx].get("port"),
+                            "secret": limited[idx].get("secret"),
+                            "supported": False,
+                            "error": str(exc),
+                        }
+
+            self._send_json({"results": results})
 
         else:
             self.send_response(404)
