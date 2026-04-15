@@ -66,8 +66,9 @@
         <span id="status" class="status">Готов к запуску.</span>
       </div>
       <div class="note">
-        Пока подтверждаем только <code>plain</code> и <code>dd</code> секреты.
-        <code>ee</code>/fake-TLS и битые секреты не считаются рабочими и не попадают в выдачу.
+        Проверяем <code>plain</code> и <code>dd</code> секреты через raw MTProto probe (DC2 + DC4).
+        <b>Подтверждён</b> = оба DC ответили. <b>Частично</b> = один DC ответил — тоже копируется.
+        <code>ee</code>/fake-TLS секреты не проверяются и не попадают в выдачу.
       </div>
     </div>
 
@@ -107,9 +108,9 @@
       { name: "solispirit", url: "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt", type: "text" }
     ];
 
-    const MAX_CANDIDATES = 120;
-    const BATCH_SIZE = 8;
-    const TOP_LIMIT = 80;
+    const MAX_CANDIDATES = 600;
+    const BATCH_SIZE = 24;
+    const TOP_LIMIT = 120;
 
     let lastTop = [];
 
@@ -382,7 +383,7 @@
           .sort((a, b) => scoreProxy(a) - scoreProxy(b))
           .slice(0, TOP_LIMIT);
 
-        lastTop = top.filter((p) => p.verified);
+        lastTop = top.filter((p) => p.verified || p.partial);
         copyBtn.disabled = lastTop.length === 0;
 
         summary.innerHTML =
@@ -394,7 +395,7 @@
 
         note.textContent =
           `Отдельно пропущено ee/fake-TLS: ${counts.ee}, битых или нестандартных секретов: ${counts.invalid}. ` +
-          `Кнопка копирования берёт только подтверждённые proxy, у которых ответили и DC2, и DC4.`;
+          `Кнопка копирования берёт подтверждённые (DC2+DC4) и частичные (один DC) прокси.`;
 
         renderRows(top);
         setStatus(`Готово: подтверждённых ${verified.length}.`);

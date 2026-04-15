@@ -202,7 +202,7 @@ _MTPROTO_RESERVED_STARTS = {
     b"\x16\x03\x01\x02",
 }
 _MTPROTO_MAX_PACKET_LEN = 1_000_000
-_MTPROTO_PROBE_TIMEOUT_S = 4.0
+_MTPROTO_PROBE_TIMEOUT_S = 3.0
 _MTPROTO_PROBE_DCS = (2, 4)
 
 
@@ -1040,12 +1040,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": "bad_proxies"}, 400)
                 return
 
-            limited = proxies[:40]
+            limited = proxies[:60]
             if not limited:
                 self._send_json({"results": []})
                 return
 
-            max_workers = min(8, max(1, len(limited)))
+            max_workers = min(16, max(1, len(limited)))
             results: list[Optional[dict]] = [None] * len(limited)
             with ThreadPoolExecutor(max_workers=max_workers) as pool:
                 future_map = {
