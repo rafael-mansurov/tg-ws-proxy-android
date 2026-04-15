@@ -2743,13 +2743,22 @@
 
   // ── External proxy list (источники и порядок как в docs/index.html) ───────
   const EXT_PROXY_SOURCES = [
-    { url: 'https://mtprobe.cyou/search?ee_mask=true&max_ping=350&limit=120&offset=0&search=&no_mask=false&dd_mask=false', type: 'json_mtprobe' },
+    { url: 'https://mtprobe.cyou/search?ee_mask=false&max_ping=350&limit=180&offset=0&search=&no_mask=true&dd_mask=true', type: 'json_mtprobe' },
     { url: 'https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json', type: 'json' },
     { url: 'https://raw.githubusercontent.com/Therealwh/MTPproxyLIST/main/verified/proxy_all_verified.json', type: 'json_therealwh' },
     { url: 'https://player1545.github.io/mtproto-proxy-list/proxies.json', type: 'json_player' },
     { url: 'https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt', type: 'text' },
     { url: 'https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt', type: 'text' },
   ];
+
+  function _secretType(secret) {
+    const raw = String(secret || '').trim().toLowerCase();
+    if (!raw || !/^[0-9a-f]+$/.test(raw)) return 'invalid';
+    if (raw.length === 32) return 'plain';
+    if (raw.length === 34 && raw.startsWith('dd')) return 'dd';
+    if (raw.length >= 34 && raw.startsWith('ee')) return 'ee';
+    return 'invalid';
+  }
 
   // _extProxyFavorites: Set of keys (host:port:secret)
   // _extProxyFavObjects: Map of key → full proxy object (so favorites survive source changes)
@@ -3190,43 +3199,147 @@
 
   async function loadExtProxies() {
     const container = document.getElementById('ext-proxy-list');
+    const sub = document.querySelector('.ext-proxy-sub');
     const btn = document.getElementById('ext-refresh-btn');
-    if (container) container.innerHTML = '<div class="ext-proxy-status">Загрузка списка прокси…</div>';
+    const origSub = sub ? sub.textContent : '';
+
+    if (container) container.innerHTML = '<div class="ext-proxy-status">Загрузка источников…</div>';
     _updateExtProxyScrollTopButton();
     if (btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
+
     try {
+      // 1. Фетчим все источники
       const results = await Promise.allSettled(EXT_PROXY_SOURCES.map(_fetchSource));
       const all = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
 
+      // 2. Дедупликация
       const seen = new Set();
       const unique = all.filter(p => {
         const key = _proxyKey(p);
         if (seen.has(key)) return false;
         seen.add(key);
-        p._ping = undefined;
         return true;
       });
 
-      if (unique.length === 0) {
-        container.innerHTML = '<div class="ext-proxy-status">Нет доступных прокси. Проверьте интернет и обновите список.</div>';
+      // 3. Оставляем только plain/dd — их можно проверить MTProto-зондом
+      const candidates = unique.filter(p => {
+        const t = _secretType(p.secret);
+        return t === 'plain' || t === 'dd';
+      });
+
+      // Добавляем избранные plain/dd, которых нет в загруженных источниках
+      for (const [key, favP] of _extProxyFavObjects) {
+        if (!seen.has(key)) {
+          const t = _secretType(favP.secret);
+          if (t === 'plain' || t === 'dd') {
+            candidates.push({ ...favP, _ping: null });
+            seen.add(key);
+          }
+        }
+      }
+
+      if (candidates.length === 0) {
+        if (container) container.innerHTML = '<div class="ext-proxy-status">Нет прокси для проверки. Обновите список.</div>';
         _updateExtProxyScrollTopButton();
         return;
       }
 
-      for (const [key, favP] of _extProxyFavObjects) {
-        if (!seen.has(key)) {
-          unique.push({ ...favP, _ping: null });
-          seen.add(key);
+      // 4. Сортируем: dd вперёд, потом по sourcePing
+      candidates.sort((a, b) => {
+        const ta = _secretType(a.secret), tb = _secretType(b.secret);
+        if (ta !== tb) return ta === 'dd' ? -1 : 1;
+        const pa = Number.isFinite(a.sourcePing) ? a.sourcePing : 99999;
+        const pb = Number.isFinite(b.sourcePing) ? b.sourcePing : 99999;
+        return pa - pb;
+      });
+
+      // 5. Lookup map по host:port:secret
+      const candidateMap = new Map();
+      for (const p of candidates) {
+        candidateMap.set(`${p.host}:${p.port}:${String(p.secret || '').trim().toLowerCase()}`, p);
+      }
+
+      let checkedCount = 0;
+      const liveList = [];
+      let renderScheduled = false;
+
+      const scheduleRender = () => {
+        if (renderScheduled) return;
+        renderScheduled = true;
+        requestAnimationFrame(() => {
+          renderScheduled = false;
+          const sorted = _orderExtProxiesLikeDocs([...liveList]);
+          _extProxyList = sorted;
+          _bindExtProxyVirtualization();
+          _renderExtProxies(sorted);
+          _restoreExtProxyPingLabels(sorted);
+          _updateExtProxyScrollTopButton();
+        });
+      };
+
+      if (sub) sub.textContent = `Проверяем ${candidates.length} прокси через MTProto…`;
+      if (container) container.innerHTML = '<div class="ext-proxy-status">Идёт проверка, первые результаты появятся через несколько секунд…</div>';
+      _extProxiesLoaded = true;
+
+      // 6. Стриминговый MTProto-зонд
+      const r = await fetch('/api/proxy-lab-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          proxies: candidates.map(p => ({
+            host: p.host,
+            port: p.port,
+            secret: String(p.secret || '').trim().toLowerCase(),
+          })),
+        }),
+      });
+
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf('\n')) !== -1) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let result;
+          try { result = JSON.parse(line); } catch { continue; }
+
+          checkedCount++;
+          if (sub) sub.textContent = `Проверено ${checkedCount} / ${candidates.length} — рабочих: ${liveList.length}`;
+
+          if (result.verified || result.partial) {
+            const key = `${result.host}:${result.port}:${String(result.secret || '').trim().toLowerCase()}`;
+            const candidate = candidateMap.get(key) || {};
+            liveList.push({
+              ...candidate,
+              host: result.host,
+              port: result.port,
+              secret: result.secret || candidate.secret,
+              sourcePing: result.avg_latency_ms ?? candidate.sourcePing ?? null,
+              _ping: result.avg_latency_ms ?? null,
+            });
+            scheduleRender();
+          }
         }
       }
 
-      const sorted = _orderExtProxiesLikeDocs(unique);
-      _extProxyList = sorted;
-      _bindExtProxyVirtualization();
-      _renderExtProxies(sorted);
-      _extProxiesLoaded = true;
-      _pingAll(sorted);
+      if (sub) sub.textContent = origSub;
+
+      if (liveList.length === 0) {
+        if (container) container.innerHTML = '<div class="ext-proxy-status">Нет рабочих прокси. Попробуйте обновить.</div>';
+        _updateExtProxyScrollTopButton();
+      }
+
     } catch (e) {
+      if (sub) sub.textContent = origSub;
       if (container) container.innerHTML = '<div class="ext-proxy-status">Ошибка загрузки. Проверьте интернет и обновите список.</div>';
       _updateExtProxyScrollTopButton();
     } finally {
