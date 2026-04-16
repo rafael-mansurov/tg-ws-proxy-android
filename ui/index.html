@@ -904,12 +904,28 @@
     }
     .ext-proxy-head-btn:active { opacity: 0.7; }
     .ext-proxy-sub {
-      padding: 18px;
+      padding: 18px 18px 10px;
       font-size: 12px; font-weight: 500;
       color: rgba(255,255,255,0.42);
       line-height: 1.4;
       flex-shrink: 0;
+    }
+    .ext-probe-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px 12px;
+      flex-shrink: 0;
       border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .ext-probe-bar.is-visible { display: flex; }
+    .ext-probe-left {
+      font-size: 12px; font-weight: 500;
+      color: rgba(255,255,255,0.42);
+    }
+    .ext-probe-right {
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.72);
     }
     .ext-proxy-list {
       flex: 1; overflow-y: auto;
@@ -1622,6 +1638,10 @@
       <button class="ext-proxy-head-btn" onclick="closeExtProxies()" aria-label="Закрыть">✕</button>
     </div>
     <div class="ext-proxy-sub">Публичные MTProto-прокси — работают на мобильном интернете и&nbsp;Wi-Fi. Выберите любой, Telegram применит автоматически.</div>
+    <div id="ext-probe-bar" class="ext-probe-bar">
+      <span id="ext-probe-left" class="ext-probe-left"></span>
+      <span id="ext-probe-right" class="ext-probe-right"></span>
+    </div>
     <div id="ext-proxy-tip" class="ext-proxy-tip">
       <div class="ext-proxy-tip-icon">
         <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
@@ -3109,6 +3129,7 @@
   }
 
   let _extProxiesLoaded = false;
+  let _probeTimerInterval = null;
 
   async function _fetchSource(src) {
     try {
@@ -3185,10 +3206,41 @@
 
   async function loadExtProxies() {
     const container = document.getElementById('ext-proxy-list');
-    const sub = document.querySelector('.ext-proxy-sub');
     const btn = document.getElementById('ext-refresh-btn');
-    const origSub = sub ? sub.textContent : '';
+    const probeBar = document.getElementById('ext-probe-bar');
+    const probeLeft = document.getElementById('ext-probe-left');
+    const probeRight = document.getElementById('ext-probe-right');
 
+    let _probeFoundCount = 0;
+
+    const _startProbeBar = () => {
+      _probeFoundCount = 0;
+      if (probeBar) probeBar.classList.add('is-visible');
+      if (probeLeft) probeLeft.textContent = 'Проверяем прокси · 0 с';
+      if (probeRight) probeRight.textContent = '';
+      const start = Date.now();
+      _probeTimerInterval = setInterval(() => {
+        const sec = Math.floor((Date.now() - start) / 1000);
+        if (probeLeft) probeLeft.textContent = `Проверяем прокси · ${sec} с`;
+      }, 1000);
+    };
+
+    const _stopProbeBar = () => {
+      if (_probeTimerInterval) { clearInterval(_probeTimerInterval); _probeTimerInterval = null; }
+      const el = probeLeft;
+      if (el) {
+        const cur = el.textContent.replace('Проверяем прокси', 'Проверено');
+        el.textContent = cur;
+      }
+    };
+
+    const _updateProbeFound = (n) => {
+      _probeFoundCount = n;
+      if (probeRight) probeRight.textContent = n > 0 ? `Найдено ${n}` : '';
+    };
+
+    if (_probeTimerInterval) { clearInterval(_probeTimerInterval); _probeTimerInterval = null; }
+    if (probeBar) probeBar.classList.remove('is-visible');
     if (container) container.innerHTML = '<div class="ext-proxy-status">Загрузка источников…</div>';
     _updateExtProxyScrollTopButton();
     if (btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
@@ -3263,7 +3315,7 @@
         });
       };
 
-      if (sub) sub.textContent = `Проверяем ${candidates.length} прокси через MTProto…`;
+      _startProbeBar();
       if (container) container.innerHTML = '<div class="ext-proxy-status">Идёт проверка, первые результаты появятся через несколько секунд…</div>';
       _extProxiesLoaded = true;
 
@@ -3296,7 +3348,6 @@
           for (let i = 0; i < batch.length; i++) {
             checkedCount++;
             const result = results[i] || {};
-            if (sub) sub.textContent = `Проверено ${checkedCount} / ${candidates.length} — рабочих: ${liveList.length}`;
             if (result.verified || result.partial) {
               const key = `${batch[i].host}:${batch[i].port}:${String(batch[i].secret || '').trim().toLowerCase()}`;
               const candidate = candidateMap.get(key) || batch[i];
@@ -3308,6 +3359,7 @@
                 sourcePing: result.avg_latency_ms ?? candidate.sourcePing ?? null,
                 _ping: result.avg_latency_ms ?? null,
               });
+              _updateProbeFound(liveList.length);
               scheduleRender();
             }
           }
@@ -3318,7 +3370,7 @@
         Array.from({ length: Math.min(PROBE_CONCURRENCY, batches.length) }, runWorker)
       );
 
-      if (sub) sub.textContent = origSub;
+      _stopProbeBar();
 
       if (liveList.length === 0) {
         if (container) container.innerHTML = '<div class="ext-proxy-status">Нет рабочих прокси. Попробуйте обновить.</div>';
@@ -3326,7 +3378,7 @@
       }
 
     } catch (e) {
-      if (sub) sub.textContent = origSub;
+      _stopProbeBar();
       if (container) container.innerHTML = '<div class="ext-proxy-status">Ошибка загрузки. Проверьте интернет и обновите список.</div>';
       _updateExtProxyScrollTopButton();
     } finally {
