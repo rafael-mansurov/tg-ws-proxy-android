@@ -201,7 +201,7 @@ _MTPROTO_RESERVED_STARTS = {
     b"\x16\x03\x01\x02",
 }
 _MTPROTO_MAX_PACKET_LEN = 1_000_000
-_MTPROTO_PROBE_TIMEOUT_S = 3.0
+_MTPROTO_PROBE_TIMEOUT_S = 2.0
 _MTPROTO_PROBE_DCS = (2, 4)
 
 
@@ -827,12 +827,21 @@ def _probe_mtproto_proxy(proxy: dict) -> dict:
         return result
 
     latencies: list[int] = []
-    for dc_id in _MTPROTO_PROBE_DCS:
-        dc_result = _mtproto_probe_once(host, port, secret_hex, dc_id)
-        result["dc_results"][str(dc_id)] = dc_result
-        if dc_result.get("ok"):
-            result["ok_count"] += 1
-            latencies.append(int(dc_result.get("latency_ms", 0)))
+    with ThreadPoolExecutor(max_workers=len(_MTPROTO_PROBE_DCS)) as dc_pool:
+        dc_futures = {
+            dc_pool.submit(_mtproto_probe_once, host, port, secret_hex, dc_id): dc_id
+            for dc_id in _MTPROTO_PROBE_DCS
+        }
+        for fut in as_completed(dc_futures):
+            dc_id = dc_futures[fut]
+            try:
+                dc_result = fut.result()
+            except Exception as exc:
+                dc_result = {"ok": False, "latency_ms": 0, "reason": str(exc)}
+            result["dc_results"][str(dc_id)] = dc_result
+            if dc_result.get("ok"):
+                result["ok_count"] += 1
+                latencies.append(int(dc_result.get("latency_ms", 0)))
 
     if latencies:
         result["avg_latency_ms"] = round(sum(latencies) / len(latencies))
@@ -1028,12 +1037,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": "bad_proxies"}, 400)
                 return
 
-            limited = proxies[:60]
+            limited = proxies[:50]
             if not limited:
                 self._send_json({"results": []})
                 return
 
-            max_workers = min(16, max(1, len(limited)))
+            max_workers = min(24, max(1, len(limited)))
             results: list[Optional[dict]] = [None] * len(limited)
             with ThreadPoolExecutor(max_workers=max_workers) as pool:
                 future_map = {

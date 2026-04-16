@@ -3268,8 +3268,8 @@
       _extProxiesLoaded = true;
 
       // 6. Параллельные батчи через /api/proxy-lab-probe
-      const PROBE_BATCH = 15;
-      const PROBE_CONCURRENCY = 8;
+      const PROBE_BATCH = 25;
+      const PROBE_CONCURRENCY = 12;
       const batches = [];
       for (let i = 0; i < candidates.length; i += PROBE_BATCH) {
         batches.push(candidates.slice(i, i + PROBE_BATCH));
