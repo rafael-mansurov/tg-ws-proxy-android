@@ -29,13 +29,7 @@ p4a.hook = tools/p4a_hook.py
 android.gradle_dependencies = androidx.core:core:1.12.0,androidx.core:core-splashscreen:1.0.1
 
 # Deep link: tgwsproxy://reset-password#access_token=...&type=recovery
-android.manifest.intent_filters =
-    <intent-filter>
-        <action android:name="android.intent.action.VIEW"/>
-        <category android:name="android.intent.category.DEFAULT"/>
-        <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="tgwsproxy" android:host="reset-password"/>
-    </intent-filter>
+android.manifest.intent_filters = intent_filters.xml
 
 [buildozer]
 log_level = 2
