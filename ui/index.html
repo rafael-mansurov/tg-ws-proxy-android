@@ -2067,6 +2067,15 @@
   </div>
 </div><!-- /#acct-backdrop -->
 
+<!-- ── App dialog (замена confirm/alert для Android WebView) ── -->
+<div id="app-dialog-backdrop" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
+  <div style="background:#1c1c1e;border-radius:20px;padding:24px 20px;width:100%;max-width:320px">
+    <div id="app-dialog-title" style="font-size:16px;font-weight:700;color:#fff;margin-bottom:8px"></div>
+    <div id="app-dialog-msg" style="font-size:14px;color:rgba(255,255,255,0.55);line-height:1.5;margin-bottom:20px"></div>
+    <div id="app-dialog-btns" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
 <!-- ── Auth screen ── -->
 <div id="auth-overlay" class="auth-overlay is-hidden" aria-modal="true" role="dialog">
   <div class="auth-logo">
@@ -2269,12 +2278,6 @@
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) { _showAuth(); return; }
 
-    if (!session.user.email_confirmed_at) {
-      await _supa.auth.signOut();
-      _showConfirmationSent(session.user.email);
-      _showAuth();
-      return;
-    }
 
     const { data: profile, error } = await _supa
       .from('profiles')
@@ -2553,7 +2556,16 @@
       const { error } = await _supa.auth.resetPasswordForEmail(email, {
         redirectTo: 'tgwsproxy://reset-password'
       });
-      if (error) { _setAuthError(error.message); btn.disabled = false; btn.textContent = 'Отправить письмо'; return; }
+      if (error) {
+        const msg = error.message || '';
+        const friendly = msg.toLowerCase().includes('rate limit')
+          ? 'Слишком много попыток — подождите немного и попробуйте снова'
+          : msg;
+        _setAuthError(friendly);
+        btn.disabled = false;
+        btn.textContent = 'Отправить письмо';
+        return;
+      }
       document.getElementById('auth-sent').classList.add('is-on');
       return;
     }
@@ -2571,7 +2583,13 @@
       if (_authMode === 'register') {
         const { data, error } = await _supa.auth.signUp({ email, password });
         if (error) throw error;
-        // Supabase не создаёт сессию до подтверждения email
+        // Если identities пустые — email уже зарегистрирован
+        if (data.user?.identities?.length === 0) {
+          _setAuthError('Email уже зарегистрирован — войдите');
+          btn.disabled = false;
+          btn.textContent = 'Зарегистрироваться';
+          return;
+        }
         _showConfirmationSent(email);
         btn.disabled = false;
         btn.textContent = 'Зарегистрироваться';
@@ -2600,8 +2618,35 @@
     }
   }
 
+  function _appDialog(title, msg, buttons) {
+    return new Promise(resolve => {
+      const backdrop = document.getElementById('app-dialog-backdrop');
+      document.getElementById('app-dialog-title').textContent = title;
+      document.getElementById('app-dialog-msg').textContent   = msg;
+      const btnsEl = document.getElementById('app-dialog-btns');
+      btnsEl.innerHTML = '';
+      buttons.forEach(({ label, style, value }) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.style.cssText = `padding:13px;border-radius:13px;border:none;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;${style}`;
+        btn.onclick = () => { backdrop.style.display = 'none'; resolve(value); };
+        btnsEl.appendChild(btn);
+      });
+      backdrop.style.display = 'flex';
+    });
+  }
+  function _appAlert(msg) {
+    return _appDialog('', msg, [{ label: 'OK', style: 'background:rgba(255,255,255,0.1);color:#fff;width:100%', value: true }]);
+  }
+  function _appConfirm(title, msg) {
+    return _appDialog(title, msg, [
+      { label: 'Отмена', style: 'background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);width:100%', value: false },
+      { label: 'Удалить', style: 'background:rgba(255,60,60,0.15);color:#ff6b6b;width:100%', value: true },
+    ]);
+  }
+
   async function deleteAccount() {
-    if (!confirm('Удалить аккаунт? Все данные будут удалены безвозвратно.')) return;
+    if (!await _appConfirm('Удалить аккаунт?', 'Все данные будут удалены безвозвратно.')) return;
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) return;
     await _supa.from('profiles').delete().eq('id', session.user.id);
@@ -3521,19 +3566,19 @@
       } catch (_) {}
       if (!r.ok) {
         if (turningOn) updateUI(false, null, null, null, 0, 0);
-        alert(d.error || `Сервис недоступен (${r.status}). Попробуйте ещё раз.`);
+        _appAlert(d.error || `Сервис недоступен (${r.status}). Попробуйте ещё раз.`);
         return;
       }
       if (!d.ok) {
         updateUI(false, null, null, null, 0, 0);
-        if (d.error) alert(d.error);
+        if (d.error) _appAlert(d.error);
         return;
       }
       updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps, d.last_session_ok_ts);
     } catch (e) {
       console.error(e);
       if (turningOn) updateUI(false, null, null, null, 0, 0);
-      alert('Не удалось связаться с сервисом приложения. Проверьте, что приложение не закрыто, и повторите попытку.');
+      _appAlert('Не удалось связаться с сервисом приложения. Проверьте, что приложение не закрыто, и повторите попытку.');
     } finally {
       if (turningOn) setStartBusy(false);
     }
@@ -4456,11 +4501,21 @@
       triggered = false;
     }, { passive: true });
 
+    function _resetIndicator() {
+      indicator.style.transition = 'height 0.2s';
+      indicator.style.height = '0';
+      cancelAnimationFrame(spinRAF); spinRAF = null;
+      spinner.style.opacity = '0';
+      triggered = false;
+      pulling = false;
+    }
+
     document.addEventListener('touchmove', (e) => {
       if (!pulling) return;
       const dy = e.touches[0].clientY - startY;
-      if (dy <= 0) { pulling = false; return; }
+      if (dy <= 0) { _resetIndicator(); return; }
       const h = Math.min(dy * 0.45, MAX_PULL);
+      indicator.style.transition = '';
       indicator.style.height = h + 'px';
       const progress = Math.min(dy / THRESHOLD, 1);
       spinner.style.opacity = progress;
@@ -4472,16 +4527,19 @@
 
     document.addEventListener('touchend', async () => {
       if (!pulling) return;
-      pulling = false;
-      if (triggered) {
-        indicator.style.transition = 'height 0.15s';
-        indicator.style.height = '44px';
-
+      const wasTriggered = triggered;
+      _resetIndicator();
+      if (wasTriggered) {
         // Затухание контента
         const main = document.getElementById('page-main');
         if (main) { main.style.transition = 'opacity 0.18s'; main.style.opacity = '0.15'; }
 
-        await Promise.all([pollStatus(), checkSubscription(), checkForUpdate()]);
+        // Таймаут 5 сек — чтобы не зависнуть если сеть медленная
+        const timeout = new Promise(r => setTimeout(r, 5000));
+        await Promise.race([
+          Promise.allSettled([pollStatus(), checkSubscription(), checkForUpdate()]),
+          timeout
+        ]);
 
         // Появление контента
         if (main) {
@@ -4489,11 +4547,6 @@
           setTimeout(() => { main.style.transition = ''; }, 250);
         }
       }
-      indicator.style.transition = 'height 0.2s';
-      indicator.style.height = '0';
-      cancelAnimationFrame(spinRAF); spinRAF = null;
-      spinner.style.opacity = '0';
-      triggered = false;
     });
   })();
 
