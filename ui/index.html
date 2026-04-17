@@ -1263,6 +1263,16 @@
 </head>
 <body>
 
+<div id="ptr-indicator" style="
+  position:fixed;top:0;left:0;right:0;z-index:99999;
+  display:flex;align-items:center;justify-content:center;
+  height:0;overflow:hidden;transition:height 0.2s;pointer-events:none;
+">
+  <svg id="ptr-spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5" stroke-linecap="round">
+    <path d="M12 2a10 10 0 1 0 10 10"/>
+  </svg>
+</div>
+
   <div class="header">
     <button type="button" class="header-back-btn" id="header-back" onclick="onHeaderBack()" aria-label="Назад">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -1977,6 +1987,13 @@
   .acct-btn.danger { color: #ff6b6b; }
   .acct-btn svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; }
   .acct-btn + .acct-btn { margin-top: 8px; }
+  .acct-delete-btn {
+    background: none; border: none; padding: 10px 0 4px;
+    width: 100%; text-align: center;
+    font-size: 13px; color: rgba(255,100,100,0.5);
+    font-family: inherit; cursor: pointer;
+  }
+  .acct-delete-btn:active { opacity: 0.6; }
 
   /* Forgot password link */
   .auth-forgot {
@@ -2045,6 +2062,8 @@
       </svg>
       Выйти из аккаунта
     </button>
+    <div class="acct-divider"></div>
+    <button class="acct-delete-btn" onclick="deleteAccount()">Удалить аккаунт</button>
   </div>
 </div><!-- /#acct-backdrop -->
 
@@ -2096,8 +2115,9 @@
         <polyline points="2,4 12,13 22,4"/>
       </svg>
     </div>
-    <div class="auth-sent-title">Письмо отправлено</div>
-    <div class="auth-sent-sub">Ищи письмо от нас в почте — там ссылка для сброса пароля</div>
+    <div class="auth-sent-title" id="auth-sent-title">Письмо отправлено</div>
+    <div class="auth-sent-sub" id="auth-sent-sub">Ищи письмо от нас в почте — там ссылка для сброса пароля</div>
+    <div class="auth-sent-back" id="auth-sent-resend" style="display:none"><span onclick="resendConfirmation()">Отправить повторно</span></div>
     <div class="auth-sent-back"><span onclick="authBackToLogin()">Вернуться ко входу</span></div>
   </div>
 
@@ -2134,7 +2154,7 @@
         <polyline points="12 6 12 12 16 14"/>
       </svg>
     </div>
-    <div class="paywall-title">Триал закончился</div>
+    <div class="paywall-title" id="paywall-title">Бесплатный период закончился</div>
     <div class="paywall-sub">Подпишитесь, чтобы продолжить пользоваться прокси и списком внешних серверов</div>
 
     <div class="paywall-price-card">
@@ -2228,6 +2248,8 @@
     document.getElementById('auth-password').value = '';
   }
   function _showPaywall() {
+    const hadPaidSub = _subProfile && _subProfile.paid_until;
+    document.getElementById('paywall-title').textContent = hadPaidSub ? 'Подписка закончилась' : 'Бесплатный период закончился';
     document.getElementById('paywall-overlay').classList.remove('is-hidden');
     document.getElementById('auth-overlay').classList.add('is-hidden');
     document.querySelectorAll('body > .header, body > .page, body > [class]').forEach(el => {
@@ -2246,6 +2268,13 @@
   async function checkSubscription() {
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) { _showAuth(); return; }
+
+    if (!session.user.email_confirmed_at) {
+      await _supa.auth.signOut();
+      _showConfirmationSent(session.user.email);
+      _showAuth();
+      return;
+    }
 
     const { data: profile, error } = await _supa
       .from('profiles')
@@ -2385,9 +2414,34 @@
     _setAuthError('');
   }
 
+  let _pendingConfirmEmail = '';
+
+  function _showConfirmationSent(email) {
+    _pendingConfirmEmail = email || '';
+    document.getElementById('auth-sent-title').textContent = 'Подтверди email';
+    document.getElementById('auth-sent-sub').textContent   = 'Мы отправили письмо на ' + (_pendingConfirmEmail || 'твой email') + '. Перейди по ссылке в письме — и сразу войдёшь.';
+    document.getElementById('auth-sent-resend').style.display = '';
+    document.getElementById('auth-sent').classList.add('is-on');
+  }
+
+  async function resendConfirmation() {
+    if (!_pendingConfirmEmail) return;
+    const link = document.querySelector('#auth-sent-resend span');
+    if (link) { link.textContent = 'Отправляем…'; }
+    const { error } = await _supa.auth.resend({ type: 'signup', email: _pendingConfirmEmail });
+    if (link) {
+      link.textContent = error ? 'Ошибка — попробуй ещё раз' : 'Отправлено!';
+      setTimeout(() => { if (link) link.textContent = 'Отправить повторно'; }, 3000);
+    }
+  }
+
   function authBackToLogin() {
     _authMode = 'login';
+    _pendingConfirmEmail = '';
     document.getElementById('auth-sent').classList.remove('is-on');
+    document.getElementById('auth-sent-resend').style.display = 'none';
+    document.getElementById('auth-sent-title').textContent = 'Письмо отправлено';
+    document.getElementById('auth-sent-sub').textContent   = 'Ищи письмо от нас в почте — там ссылка для сброса пароля';
     document.getElementById('auth-pw-wrap').style.display = '';
     document.getElementById('auth-title').textContent = 'Вход';
     document.getElementById('auth-sub').textContent   = 'Введите email и пароль';
@@ -2409,7 +2463,10 @@
 
     let statusText = '';
     if (paidUntil && paidUntil > new Date()) {
-      statusText = 'Подписка активна до ' + paidUntil.toLocaleDateString('ru', { day: 'numeric', month: 'long' });
+      const puOpts = paidUntil.getFullYear() !== new Date().getFullYear()
+        ? { day: 'numeric', month: 'long', year: 'numeric' }
+        : { day: 'numeric', month: 'long' };
+      statusText = 'Подписка активна до ' + paidUntil.toLocaleDateString('ru', puOpts);
     } else if (now < trialEnd) {
       const days = Math.ceil((trialEnd - now) / 86400000);
       statusText = `Триал (${_daysWord(days)} осталось)`;
@@ -2512,8 +2569,13 @@
 
     try {
       if (_authMode === 'register') {
-        const { error } = await _supa.auth.signUp({ email, password });
+        const { data, error } = await _supa.auth.signUp({ email, password });
         if (error) throw error;
+        // Supabase не создаёт сессию до подтверждения email
+        _showConfirmationSent(email);
+        btn.disabled = false;
+        btn.textContent = 'Зарегистрироваться';
+        return;
       } else {
         const { error } = await _supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -2525,12 +2587,28 @@
         _setAuthError('Email уже зарегистрирован — войдите');
       } else if (msg.includes('Invalid login') || msg.includes('Invalid credentials')) {
         _setAuthError('Неверный email или пароль');
+      } else if (msg.toLowerCase().includes('email not confirmed')) {
+        _showConfirmationSent(email);
+        btn.disabled = false;
+        btn.textContent = 'Войти';
+        return;
       } else {
         _setAuthError(msg);
       }
       btn.disabled = false;
       btn.textContent = _authMode === 'register' ? 'Зарегистрироваться' : 'Войти';
     }
+  }
+
+  async function deleteAccount() {
+    if (!confirm('Удалить аккаунт? Все данные будут удалены безвозвратно.')) return;
+    const { data: { session } } = await _supa.auth.getSession();
+    if (!session) return;
+    await _supa.from('profiles').delete().eq('id', session.user.id);
+    await _supa.auth.signOut();
+    _subProfile = null;
+    _subStatus  = null;
+    _showAuth();
   }
 
   async function authLogout() {
@@ -4357,8 +4435,62 @@
 
   _loadExtProxyFavorites();
 
+  // ── Pull-to-refresh ───────────────────────────────────────────────────────
+  (function() {
+    const THRESHOLD = 72;   // px для срабатывания
+    const MAX_PULL  = 96;
+    let startY = 0, pulling = false, triggered = false;
+    const indicator = document.getElementById('ptr-indicator');
+    const spinner   = document.getElementById('ptr-spinner');
+    let spinAngle = 0, spinRAF = null;
+
+    function _spin() {
+      spinAngle = (spinAngle + 6) % 360;
+      spinner.style.transform = `rotate(${spinAngle}deg)`;
+      spinRAF = requestAnimationFrame(_spin);
+    }
+
+    document.addEventListener('touchstart', (e) => {
+      if (window.scrollY > 0) return;
+      // не реагируем если касание в sheet/modal/overlay
+      if (e.target.closest('.bs-panel, .ext-proxy-panel, #auth-overlay, #paywall-overlay, #onboarding-coach')) return;
+      startY = e.touches[0].clientY;
+      pulling = true;
+      triggered = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!pulling) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy <= 0) { pulling = false; return; }
+      const h = Math.min(dy * 0.45, MAX_PULL);
+      indicator.style.height = h + 'px';
+      const progress = Math.min(dy / THRESHOLD, 1);
+      spinner.style.opacity = progress;
+      if (!triggered && dy >= THRESHOLD) {
+        triggered = true;
+        if (!spinRAF) _spin();
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', async () => {
+      if (!pulling) return;
+      pulling = false;
+      if (triggered) {
+        indicator.style.transition = 'height 0.15s';
+        indicator.style.height = '44px';
+        await Promise.all([pollStatus(), checkSubscription()]);
+      }
+      indicator.style.height = '0';
+      cancelAnimationFrame(spinRAF); spinRAF = null;
+      spinner.style.opacity = '0';
+      triggered = false;
+    });
+  })();
+
   initHeaderIcon();
   initAuth().then(() => {
+    setTimeout(checkForUpdate, 4000); // показывать всем, независимо от подписки
     if (_subStatus === 'expired') return; // paywall уже показан
     pollStatus();
     const _fastPoll = setInterval(pollStatus, 600);
@@ -4367,7 +4499,6 @@
     fetchRestartInterval();
     checkBatteryOpt();
     setInterval(checkBatteryOpt, 10000);
-    setTimeout(checkForUpdate, 4000);
     if (shouldShowOnboardingInProd()) {
       setTimeout(onboardingOpen, 280);
     }
