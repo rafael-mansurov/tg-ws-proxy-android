@@ -2032,7 +2032,7 @@
     line-height: 1.6; max-width: 260px; margin-bottom: 32px;
   }
   .auth-sent-back {
-    font-size: 13px; color: rgba(255,255,255,0.4);
+    font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 16px;
   }
   .auth-sent-back span { color: #229ED9; font-weight: 600; cursor: pointer; }
 </style>
@@ -2339,8 +2339,8 @@
 
   // Бэдж в хедере (показывает «Триал · N дн» или «Активна»)
   function _updateSubBadge() {
-    let badge = document.getElementById('sub-status-badge');
-    if (!badge || !_subProfile) return;
+    if (!_subProfile) return;
+    const badge = document.getElementById('sub-status-badge');
 
     const now = Date.now();
     const trialEnd = new Date(_subProfile.trial_start).getTime() + 7 * 24 * 60 * 60 * 1000;
@@ -2687,14 +2687,6 @@
 
   // ── Инициализация ──────────────────────────────────────────────────────────
   async function initAuth() {
-    // Скрытый элемент для совместимости (бэдж теперь внутри контента)
-    if (!document.getElementById('sub-status-badge')) {
-      const badge = document.createElement('div');
-      badge.id = 'sub-status-badge';
-      badge.style.display = 'none';
-      document.body.appendChild(badge);
-    }
-
     // Слушаем изменения сессии
     _supa.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT') {
@@ -4484,8 +4476,20 @@
       if (triggered) {
         indicator.style.transition = 'height 0.15s';
         indicator.style.height = '44px';
-        await Promise.all([pollStatus(), checkSubscription()]);
+
+        // Затухание контента
+        const main = document.getElementById('page-main');
+        if (main) { main.style.transition = 'opacity 0.18s'; main.style.opacity = '0.15'; }
+
+        await Promise.all([pollStatus(), checkSubscription(), checkForUpdate()]);
+
+        // Появление контента
+        if (main) {
+          main.style.opacity = '1';
+          setTimeout(() => { main.style.transition = ''; }, 250);
+        }
       }
+      indicator.style.transition = 'height 0.2s';
       indicator.style.height = '0';
       cancelAnimationFrame(spinRAF); spinRAF = null;
       spinner.style.opacity = '0';
