@@ -2050,7 +2050,7 @@
       </svg>
       Оформить / продлить подписку
     </button>
-    <button class="acct-btn" onclick="window.open('https://app.lava.top/my-purchases','_blank');">
+    <button class="acct-btn" onclick="window.location.href='https://app.lava.top/my-purchases';">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
       </svg>
@@ -2634,7 +2634,7 @@
     const { data: { session } } = await _supa.auth.getSession();
     const email = session?.user?.email || '';
     const url = `https://app.lava.top/products/${LAVA_PRODUCT_ID}/${LAVA_OFFER_ID}?email=${encodeURIComponent(email)}`;
-    window.open(url, '_blank');
+    window.location.href = url;
     _startLavaPayPoll(session);
   }
 
@@ -2733,9 +2733,14 @@
       });
       if (error) return;
 
+      // Немедленно инвалидируем старый пароль — ставим случайный временный
+      const tempPw = crypto.randomUUID() + crypto.randomUUID();
+      await _supa.auth.updateUser({ password: tempPw });
+
       _authMode = 'reset';
       document.getElementById('auth-overlay').classList.remove('is-hidden');
       document.getElementById('paywall-overlay').classList.add('is-hidden');
+      document.getElementById('auth-sent').classList.remove('is-on'); // убираем экран "письмо отправлено" если он был
       document.getElementById('auth-newpw-screen').classList.add('is-on');
     } catch (e) {
       // /api/deep-link недоступен (браузер/desktop) — игнорируем
