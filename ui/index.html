@@ -2227,10 +2227,19 @@
     _setAuthError('');
     document.getElementById('auth-password').value = '';
   }
-  function _showPaywall() { document.getElementById('paywall-overlay').classList.remove('is-hidden'); document.getElementById('auth-overlay').classList.add('is-hidden'); }
+  function _showPaywall() {
+    document.getElementById('paywall-overlay').classList.remove('is-hidden');
+    document.getElementById('auth-overlay').classList.add('is-hidden');
+    document.querySelectorAll('body > .header, body > .page, body > [class]').forEach(el => {
+      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay') el.style.display = 'none';
+    });
+  }
   function _hideAllOverlays() {
     document.getElementById('auth-overlay').classList.add('is-hidden');
     document.getElementById('paywall-overlay').classList.add('is-hidden');
+    document.querySelectorAll('body > .header, body > .page, body > [class]').forEach(el => {
+      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay') el.style.display = '';
+    });
   }
 
   // Проверить статус подписки и показать нужный экран
