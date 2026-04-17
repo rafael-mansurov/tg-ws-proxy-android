@@ -1889,6 +1889,14 @@
     transition: opacity 0.2s, transform 0.15s;
   }
   .paywall-btn:active { opacity: 0.9; transform: scale(0.985); }
+  .paywall-check-btn {
+    width: 100%; padding: 13px 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7);
+    font-size: 14px; font-weight: 500; font-family: inherit;
+    cursor: pointer; margin-top: 10px; transition: opacity 0.2s;
+  }
+  .paywall-check-btn:disabled { opacity: 0.5; cursor: default; }
+  .paywall-check-btn:not(:disabled):active { opacity: 0.75; }
   .paywall-note {
     font-size: 12px; color: rgba(255,255,255,0.3); text-align: center;
     margin-top: 10px; line-height: 1.5;
@@ -2163,6 +2171,8 @@
       </button>
     </div>
 
+    <button class="paywall-check-btn" id="paywall-check-btn" onclick="checkPaymentManually()" style="display:none">Я уже оплатил — проверить</button>
+
     <div class="paywall-note">
       Оплата через lava.top · защищённое соединение<br>
       Доступ откроется сразу после оплаты
@@ -2257,8 +2267,8 @@
     }
 
     const now = Date.now();
-    const trialEnd = new Date(profile.trial_start).getTime() + 7 * 24 * 60 * 60 * 1000;
-    const paidUntil = profile.paid_until ? new Date(profile.paid_until).getTime() : 0;
+    const trialEnd = new Date(_subProfile.trial_start).getTime() + 7 * 24 * 60 * 60 * 1000;
+    const paidUntil = _subProfile.paid_until ? new Date(_subProfile.paid_until).getTime() : 0;
 
     if (paidUntil > now) {
       _subStatus = 'active';
@@ -2266,8 +2276,9 @@
       _updateSubBadge();
       return;
     }
-    if (profile.status === 'expired') {
+    if (_subProfile.status === 'expired') {
       // Явно отозван администратором — не пускать даже если триал ещё идёт
+      if (_subStatus !== 'expired') _stopProxyOnExpiry();
       _subStatus = 'expired';
       _showPaywall();
       return;
@@ -2280,9 +2291,10 @@
     }
 
     // Обновляем статус в БД если ещё не expired
-    if (profile.status !== 'expired') {
+    if (_subProfile.status !== 'expired') {
       await _supa.from('profiles').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', session.user.id);
     }
+    if (_subStatus !== 'expired') _stopProxyOnExpiry();
     _subStatus = 'expired';
     _showPaywall();
   }
@@ -2520,35 +2532,69 @@
     _showAuth();
   }
 
+  // ── Остановить прокси при истечении подписки ──────────────────────────────
+  function _stopProxyOnExpiry() {
+    if (running) {
+      fetch('/api/stop', { method: 'POST' }).catch(() => {});
+      updateUI(false, null, null, null, 0, 0);
+    }
+  }
+
   // ── Lava.top payment ───────────────────────────────────────────────────────
+  let _lavaPayPoll = null;
+
   async function openLavaPayment() {
     const { data: { session } } = await _supa.auth.getSession();
     const email = session?.user?.email || '';
-    // Открываем ссылку на продукт lava.top — заменить URL после создания продукта
     const url = `https://app.lava.top/products/${LAVA_PRODUCT_ID}/${LAVA_OFFER_ID}?email=${encodeURIComponent(email)}`;
     window.open(url, '_blank');
+    _startLavaPayPoll(session);
+  }
 
-    // Запускаем поллинг: проверяем статус каждые 5 сек пока пользователь платит
-    const poll = setInterval(async () => {
+  function _startLavaPayPoll(session) {
+    if (_lavaPayPoll) clearInterval(_lavaPayPoll);
+    const checkBtn = document.getElementById('paywall-check-btn');
+    if (checkBtn) { checkBtn.style.display = 'block'; checkBtn.disabled = false; checkBtn.textContent = 'Я уже оплатил — проверить'; }
+    _lavaPayPoll = setInterval(async () => {
       const { data: profile } = await _supa.from('profiles').select('status,paid_until').eq('id', session.user.id).single();
       if (profile && profile.paid_until && new Date(profile.paid_until) > new Date()) {
-        clearInterval(poll);
+        clearInterval(_lavaPayPoll);
+        _lavaPayPoll = null;
+        if (checkBtn) checkBtn.style.display = 'none';
         _subProfile = { ..._subProfile, ...profile };
         _subStatus = 'active';
         _hideAllOverlays();
         _updateSubBadge();
       }
     }, 5000);
-    // Останавливаем поллинг через 10 минут
-    setTimeout(() => clearInterval(poll), 600000);
+  }
+
+  async function checkPaymentManually() {
+    const checkBtn = document.getElementById('paywall-check-btn');
+    if (checkBtn) { checkBtn.disabled = true; checkBtn.textContent = 'Проверяем…'; }
+    const { data: { session } } = await _supa.auth.getSession();
+    if (!session) { if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = 'Я уже оплатил — проверить'; } return; }
+    const { data: profile } = await _supa.from('profiles').select('status,paid_until').eq('id', session.user.id).single();
+    if (profile && profile.paid_until && new Date(profile.paid_until) > new Date()) {
+      if (_lavaPayPoll) { clearInterval(_lavaPayPoll); _lavaPayPoll = null; }
+      if (checkBtn) checkBtn.style.display = 'none';
+      _subProfile = { ..._subProfile, ...profile };
+      _subStatus = 'active';
+      _hideAllOverlays();
+      _updateSubBadge();
+    } else {
+      if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = 'Оплата не найдена — попробовать снова'; }
+      // запускаем автополлинг если ещё не идёт
+      if (!_lavaPayPoll) _startLavaPayPoll(session);
+    }
   }
 
   // ── Подписка: проверять каждый час пока приложение открыто ────────────────
   function _startSubPolling() {
+    // Проверяем для всех статусов: active/trial — чтобы поймать истечение,
+    // expired — чтобы поймать продление без перезапуска приложения
     setInterval(async () => {
-      if (_subStatus === 'active' || _subStatus === 'trial') {
-        await checkSubscription();
-      }
+      await checkSubscription();
     }, 60 * 60 * 1000);
   }
 
@@ -2661,20 +2707,6 @@
   const APP_MIN_ANDROID = '7.0+';
   const SERVER_PLACEHOLDER = '––––––––';
 
-  /* Режимы предпросмотра (без сервера):
-     ?demo=1 — прокси запущен, тумблер работает   (default при file://)
-     ?demo=2 — процесс запуска (стартовая панель)
-     ?demo=3 — баннер оптимизации батареи
-     ?demo=4 — баннер доступного обновления
-     ?demo=6 — интерактивный анбординг с подсветкой элементов
-     ?demo=0 — отключить демо (чтобы открыть файл напрямую без демо) */
-  const _demoQ = new URLSearchParams(location.search);
-  const DEMO_MODE = _demoQ.has('demo')
-    ? (parseInt(_demoQ.get('demo')) || 0)
-    : (location.protocol === 'file:' ? 1 : 0);
-  const DESIGN_DEMO = DEMO_MODE === 1;  // только режим 1 имеет живой тумблер
-  const DEMO_SECRET = 'a1b2c3d4e5f6789012345678901234abcd5678901234567890abcdefaa';
-  const DEMO_HOST = '192.168.1.42';
   const ONBOARDING_SEEN_KEY = 'tgws_onboarding_seen_v1';
 
   const _ONB_ICON = {
@@ -2968,9 +3000,7 @@
   function onboardingClose() {
     const modal = document.getElementById('onboarding-coach');
     if (!modal) return;
-    if (DEMO_MODE !== 6) {
-      try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch (e) {}
-    }
+    try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch (e) {}
     modal.classList.remove('is-visible');
     setTimeout(() => {
       modal.classList.remove('is-open');
@@ -3004,7 +3034,6 @@
   }
 
   function shouldShowOnboardingInProd() {
-    if (DEMO_MODE > 0) return false;
     try {
       return localStorage.getItem(ONBOARDING_SEEN_KEY) !== '1';
     } catch (e) {
@@ -3396,11 +3425,7 @@
   }
 
   async function onToggle() {
-    if (DESIGN_DEMO) {
-      if (running) updateUI(false, null, null, null, 0, 0);
-      else updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
-      return;
-    }
+    if (!running && _subStatus === 'expired') { _showPaywall(); return; }
     const endpoint = running ? '/api/stop' : '/api/start';
     const turningOn = !running;
     if (turningOn) setStartBusy(true);
@@ -3461,21 +3486,6 @@
   }
 
   let logsVisible = false;
-  function buildDemoLog() {
-    const out = [];
-    const now = Date.now();
-    const rows = 220;
-    for (let i = 0; i < rows; i++) {
-      const t = new Date(now - (rows - i) * 1700);
-      const hh = String(t.getHours()).padStart(2, '0');
-      const mm = String(t.getMinutes()).padStart(2, '0');
-      const ss = String(t.getSeconds()).padStart(2, '0');
-      const lvl = (i % 11 === 0) ? 'WARN ' : (i % 17 === 0) ? 'ERROR' : 'INFO ';
-      out.push(`${hh}:${mm}:${ss}  ${lvl}  [demo] proxy event #${String(i + 1).padStart(3, '0')} dc=${i % 2 ? 2 : 4} latency=${30 + (i % 90)}ms`);
-    }
-    return out.join('\n');
-  }
-
   async function toggleLogs() {
     logsVisible = !logsVisible;
     const box = document.getElementById('log-box');
@@ -3490,12 +3500,6 @@
     box.classList.add('is-open');
     if (chevron) chevron.style.transform = 'rotate(180deg)';
     if (copyBtn) copyBtn.style.display = 'inline-block';
-    if (DEMO_MODE > 0) {
-      const box = document.getElementById('log-box');
-      box.textContent = buildDemoLog();
-      box.scrollTop = box.scrollHeight;
-      return;
-    }
     try {
       const r = await fetch('/api/logs');
       const d = await r.json();
@@ -3599,7 +3603,6 @@
 
   // Poll status every 3s to stay in sync with the service
   async function pollStatus() {
-    if (DESIGN_DEMO) return;
     if (uiBusy) return;
     try {
       const r = await fetch('/api/status');
@@ -4345,46 +4348,21 @@
 
   _loadExtProxyFavorites();
 
-  if (DEMO_MODE === 1) {
-    initHeaderIcon();
-    updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
-  } else if (DEMO_MODE === 2) {
-    initHeaderIcon();
-    updateUI(false, null, null, null, 0, 0);
-    setStartBusy(true);
-  } else if (DEMO_MODE === 3) {
-    initHeaderIcon();
-    updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
-    document.getElementById('battery-banner').style.display = 'block';
-    document.getElementById('battery-banner-settings').style.display = 'block';
-  } else if (DEMO_MODE === 4) {
-    initHeaderIcon();
-    updateUI(true, DEMO_SECRET, DEMO_HOST, 3723, 1.7 * 1024 * 1024, 240 * 1024);
-    document.getElementById('update-version-label').textContent = 'v1.0.99';
-    document.getElementById('update-download-link').href = '#';
-    document.getElementById('update-banner').style.display = 'block';
-  } else if (DEMO_MODE === 6) {
-    initHeaderIcon();
-    updateUI(false, null, null, null, 0, 0);
-    onboardingOpen();
-  } else {
-    initHeaderIcon();
-    // Сначала проверяем авторизацию и подписку, потом запускаем приложение
-    initAuth().then(() => {
-      if (_subStatus === 'expired') return; // paywall уже показан
-      pollStatus();
-      const _fastPoll = setInterval(pollStatus, 600);
-      setTimeout(() => { clearInterval(_fastPoll); setInterval(pollStatus, 3000); }, 5000);
-      fetchAutostart();
-      fetchRestartInterval();
-      checkBatteryOpt();
-      setInterval(checkBatteryOpt, 10000);
-      setTimeout(checkForUpdate, 4000);
-      if (shouldShowOnboardingInProd()) {
-        setTimeout(onboardingOpen, 280);
-      }
-    });
-  }
+  initHeaderIcon();
+  initAuth().then(() => {
+    if (_subStatus === 'expired') return; // paywall уже показан
+    pollStatus();
+    const _fastPoll = setInterval(pollStatus, 600);
+    setTimeout(() => { clearInterval(_fastPoll); setInterval(pollStatus, 3000); }, 5000);
+    fetchAutostart();
+    fetchRestartInterval();
+    checkBatteryOpt();
+    setInterval(checkBatteryOpt, 10000);
+    setTimeout(checkForUpdate, 4000);
+    if (shouldShowOnboardingInProd()) {
+      setTimeout(onboardingOpen, 280);
+    }
+  });
 </script>
 </body>
 </html>
