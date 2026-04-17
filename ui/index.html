@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>TG WS Proxy</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -840,51 +841,12 @@
     #onb-next-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ── External proxy modal ── */
-    .ext-proxy-modal {
-      position: fixed; inset: 0; z-index: 10500;
-      align-items: flex-end;
-      display: flex;
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity .24s ease, visibility .24s ease;
-    }
-    .ext-proxy-modal.is-open {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-    .ext-proxy-backdrop {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.72);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      opacity: 0;
-      transition: opacity .24s ease;
-    }
-    .ext-proxy-modal.is-open .ext-proxy-backdrop { opacity: 1; }
-    .ext-proxy-panel {
-      position: relative; z-index: 1;
-      width: 100%;
-      max-height: 80dvh;
-      background: linear-gradient(180deg, rgba(16,18,24,0.99) 0%, rgba(10,11,15,1) 100%);
-      border-top: 1px solid rgba(255,255,255,0.10);
-      border-radius: 24px 24px 0 0;
-      display: flex; flex-direction: column;
-      transform: translateY(100%);
-      opacity: 0.96;
-      transition: transform .32s cubic-bezier(0.32,0.72,0,1), opacity .24s ease;
-    }
-    .ext-proxy-modal.is-open .ext-proxy-panel { transform: translateY(0); opacity: 1; }
-    .ext-proxy-handle {
-      width: 36px; height: 4px; border-radius: 2px;
-      background: rgba(255,255,255,0.18);
-      margin: 12px auto 0;
-      flex-shrink: 0;
-    }
+    .ext-proxy-modal { z-index: 10500; }
+    .ext-proxy-panel { max-height: 80dvh; position: relative; z-index: 1; }
+    .ext-proxy-handle { margin: 12px auto 0; }
     .ext-proxy-head {
       display: flex; align-items: center; gap: 10px;
-      padding: 14px 18px 0;
+      padding: 0;
       flex-shrink: 0;
     }
     .ext-proxy-head-title {
@@ -904,7 +866,7 @@
     }
     .ext-proxy-head-btn:active { opacity: 0.7; }
     .ext-proxy-sub {
-      padding: 18px 18px 10px;
+      padding: 18px 0 10px;
       font-size: 12px; font-weight: 500;
       color: rgba(255,255,255,0.42);
       line-height: 1.4;
@@ -929,7 +891,7 @@
     }
     .ext-proxy-list {
       flex: 1; overflow-y: auto;
-      padding: 8px 12px max(16px, env(safe-area-inset-bottom));
+      padding: 8px 0 max(16px, env(safe-area-inset-bottom));
       display: flex; flex-direction: column; gap: 6px;
     }
 
@@ -1041,7 +1003,7 @@
     .ext-proxy-ping.slow  { color: rgba(255,100,80,0.9); }
     .ext-proxy-ping.dead  { color: rgba(255,255,255,0.18); }
     .ext-proxy-tip {
-      margin: 8px 16px 8px;
+      margin: 8px 0 8px;
       padding: 13px 14px;
       border-radius: 14px;
       background: rgba(8,95,80,0.18);
@@ -1371,6 +1333,15 @@
       <div class="cvalue secret dim" id="secret-val">––––––––</div>
     </div>
 
+    <!-- Плашка подписки под SECRET -->
+    <div id="sub-badge-main" style="display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.04)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="sub-badge-dot" style="width:7px;height:7px;border-radius:50%;background:#229ED9;flex-shrink:0"></div>
+        <span id="sub-badge-text" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.65)">Триал · 7 дн</span>
+      </div>
+      <button onclick="openAcctModal()" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.55);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">Профиль</button>
+    </div>
+
     <div class="spacer"></div>
 
     <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;color:rgba(255,255,255,0.28)">
@@ -1454,6 +1425,34 @@
                 <span class="sett-select-arrow"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Аккаунт (+ Администрирование если is_admin) -->
+      <div class="sett-section">
+        <div class="sett-section-title">Аккаунт</div>
+        <div class="sett-card">
+          <div class="sett-row" onclick="openAcctModal()" style="cursor:pointer">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.07)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Личный кабинет</div>
+              <div class="sett-row-sub" id="sett-acct-sub">Подписка и выход из аккаунта</div>
+            </div>
+            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+          </div>
+          <!-- Панель управления (только для is_admin) -->
+          <div class="sett-row sett-row-divider" id="sett-admin-row" style="display:none" onclick="window.location.href='admin.html'" style="cursor:pointer">
+            <div class="sett-row-icon" style="background:rgba(255,255,255,0.07)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="sett-row-body">
+              <div class="sett-row-label">Панель управления</div>
+              <div class="sett-row-sub">Пользователи, подписки, статистика</div>
+            </div>
+            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
           </div>
         </div>
       </div>
@@ -1628,10 +1627,9 @@
   </div>
 </div>
 
-<div id="ext-proxy-modal" class="ext-proxy-modal" aria-hidden="true">
-  <div class="ext-proxy-backdrop" onclick="closeExtProxies()"></div>
-  <div class="ext-proxy-panel">
-    <div class="ext-proxy-handle"></div>
+<div id="ext-proxy-modal" class="ext-proxy-modal bs-backdrop" aria-hidden="true" onclick="(e.target===this)&&closeExtProxies()">
+  <div class="ext-proxy-panel bs-panel">
+    <div class="ext-proxy-handle bs-handle" id="ext-proxy-handle"></div>
     <div class="ext-proxy-head">
       <div class="ext-proxy-head-title">Внешние прокси</div>
       <button class="ext-proxy-head-btn" id="ext-refresh-btn" onclick="loadExtProxies()" title="Обновить">Обновить</button>
@@ -1735,11 +1733,919 @@
   </div>
 </div>
 
+<style>
+  /* ── Auth / Paywall overlay ── */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 10000;
+    background: #0f0f11;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 24px env(safe-area-inset-bottom, 24px);
+    overflow-y: auto;
+  }
+  .auth-overlay.is-hidden { display: none !important; }
+
+  .auth-logo {
+    width: 64px; height: 64px; border-radius: 18px; margin-bottom: 20px;
+    background: rgba(34,158,217,0.15); border: 1px solid rgba(34,158,217,0.25);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .auth-logo svg { width: 32px; height: 32px; stroke: #229ED9; }
+
+.auth-title {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.035em;
+    color: #ffffff; text-align: center; margin-bottom: 6px;
+  }
+  .auth-sub {
+    font-size: 13px; color: rgba(255,255,255,0.45); text-align: center;
+    margin-bottom: 28px; line-height: 1.5; max-width: 280px;
+  }
+  .auth-form { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; }
+  .auth-input {
+    width: 100%; padding: 14px 16px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; color: #ffffff; font-size: 15px; font-family: inherit;
+    outline: none; transition: border-color 0.2s, background 0.2s;
+    -webkit-appearance: none;
+  }
+  .auth-pw-wrap { position: relative; width: 100%; }
+  .auth-pw-wrap .auth-input { padding-right: 48px; }
+  .auth-pw-toggle {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; padding: 4px;
+    color: rgba(255,255,255,0.35); display: flex; align-items: center;
+    transition: color 0.15s;
+  }
+  .auth-pw-toggle:hover { color: rgba(255,255,255,0.65); }
+  .auth-pw-toggle svg { width: 18px; height: 18px; stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .auth-input::placeholder { color: rgba(255,255,255,0.3); }
+  .auth-input:focus { border-color: rgba(34,158,217,0.5); background: rgba(255,255,255,0.08); }
+  .auth-btn {
+    width: 100%; padding: 15px 18px; border-radius: 14px; border: none;
+    background: #229ED9; color: #ffffff; font-size: 15px; font-weight: 700;
+    font-family: inherit; cursor: pointer; letter-spacing: -0.02em;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .auth-btn:active { opacity: 0.88; transform: scale(0.985); }
+  .auth-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .auth-toggle {
+    text-align: center; font-size: 13px; color: rgba(255,255,255,0.45);
+    margin-top: 18px; cursor: pointer;
+  }
+  .auth-toggle span { color: #229ED9; font-weight: 600; cursor: pointer; }
+  .auth-error {
+    font-size: 13px; color: #ff6b6b; text-align: center; margin-top: 4px;
+    display: none;
+  }
+  .auth-error.is-on { display: block; }
+
+  /* Trial badge */
+    background: rgba(34,158,217,0.12); border: 1px solid rgba(34,158,217,0.22);
+    border-radius: 12px; padding: 10px 14px; margin-bottom: 20px;
+    font-size: 12px; color: rgba(34,158,217,0.9); text-align: center;
+    font-weight: 600; max-width: 340px; width: 100%;
+  }
+
+  /* ── Paywall overlay ── */
+  .paywall-overlay {
+    position: fixed; inset: 0; z-index: 10000;
+    background: #0f0f11;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 0;
+    overflow-y: auto;
+  }
+  .paywall-overlay.is-hidden { display: none !important; }
+
+  .paywall-header {
+    width: 100%; display: flex; align-items: center; justify-content: flex-end;
+    padding: 14px 16px 0;
+    flex-shrink: 0;
+  }
+  .paywall-logout-btn {
+    padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5);
+    font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+  }
+
+  .paywall-body {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; padding: 24px 24px env(safe-area-inset-bottom, 32px);
+    width: 100%; max-width: 400px;
+  }
+
+  .paywall-icon {
+    width: 72px; height: 72px; border-radius: 22px; margin-bottom: 20px;
+    background: rgba(255,80,40,0.12); border: 1px solid rgba(255,80,40,0.22);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .paywall-icon svg { width: 36px; height: 36px; stroke: #ff5028; }
+
+  .paywall-title {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.035em;
+    color: #ffffff; text-align: center; margin-bottom: 8px;
+  }
+  .paywall-sub {
+    font-size: 14px; color: rgba(255,255,255,0.5); text-align: center;
+    margin-bottom: 28px; line-height: 1.55; max-width: 300px;
+  }
+
+  .paywall-price-card {
+    width: 100%; border-radius: 20px;
+    background: rgba(18,18,22,0.9); border: 1px solid rgba(255,255,255,0.09);
+    padding: 20px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .paywall-price-main { flex: 1; }
+  .paywall-price-amount {
+    font-size: 32px; font-weight: 700; letter-spacing: -0.04em; color: #ffffff;
+  }
+  .paywall-price-period { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .paywall-price-badge {
+    background: rgba(34,158,217,0.15); border: 1px solid rgba(34,158,217,0.25);
+    border-radius: 10px; padding: 6px 12px;
+    font-size: 12px; font-weight: 700; color: #229ED9;
+    white-space: nowrap;
+  }
+
+  .paywall-features {
+    width: 100%; margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .paywall-feature {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; color: rgba(255,255,255,0.75); font-weight: 500;
+  }
+  .paywall-feature svg { width: 18px; height: 18px; stroke: #5fffd4; flex-shrink: 0; }
+
+  .paywall-widget-wrap { width: 100%; margin-bottom: 16px; }
+  .paywall-btn {
+    width: 100%; padding: 16px 18px; border-radius: 16px; border: none;
+    background: linear-gradient(135deg, #229ED9 0%, #1a7ab5 100%);
+    color: #ffffff; font-size: 16px; font-weight: 700;
+    font-family: inherit; cursor: pointer; letter-spacing: -0.02em;
+    box-shadow: 0 8px 32px rgba(34,158,217,0.3);
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .paywall-btn:active { opacity: 0.9; transform: scale(0.985); }
+  .paywall-note {
+    font-size: 12px; color: rgba(255,255,255,0.3); text-align: center;
+    margin-top: 10px; line-height: 1.5;
+  }
+
+  /* Subscription badge in header */
+  .sub-status-badge {
+    display: none; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+    cursor: pointer;
+  }
+  .sub-status-badge.trial {
+    display: flex;
+    background: rgba(34,158,217,0.12); border: 1px solid rgba(34,158,217,0.22);
+    color: #229ED9;
+  }
+  .sub-status-badge.active {
+    display: flex;
+    background: rgba(0,200,140,0.1); border: 1px solid rgba(0,200,140,0.2);
+    color: #00c88c;
+  }
+  .sub-status-badge.expiring {
+    display: flex;
+    background: rgba(255,160,0,0.1); border: 1px solid rgba(255,160,0,0.2);
+    color: #ffa000;
+  }
+
+  /* ── Общие классы bottom-sheet (переиспользуются в acct-modal и др.) ── */
+  .bs-backdrop {
+    position: fixed; inset: 0; z-index: 10001;
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    transition: opacity .24s ease, visibility .24s ease;
+  }
+  .bs-backdrop.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
+  .bs-panel {
+    width: 100%; max-width: 480px;
+    background: linear-gradient(180deg, rgba(16,18,24,0.99) 0%, rgba(10,11,15,1) 100%);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px 24px 0 0;
+    padding: 20px 20px calc(32px + env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column;
+    transform: translateY(100%);
+    transition: transform .32s cubic-bezier(0.32,0.72,0,1);
+  }
+  .bs-backdrop.is-open .bs-panel { transform: translateY(0); }
+  .bs-handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.18); margin: 0 auto 20px; cursor: grab;
+  }
+
+  /* ── Account modal ── */
+  .acct-handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.18); margin: 0 auto 20px;
+  }
+  .acct-email {
+    font-size: 15px; font-weight: 600; color: #fff;
+    margin-bottom: 4px; letter-spacing: -0.01em;
+  }
+  .acct-status-line {
+    font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 20px;
+  }
+  .acct-divider {
+    height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 16px;
+  }
+  .acct-btn {
+    width: 100%; padding: 14px 16px; border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.7);
+    font-size: 15px; font-weight: 400; font-family: inherit; cursor: pointer;
+    text-align: left; display: flex; align-items: center; gap: 12px;
+    transition: background 0.15s;
+  }
+  .acct-btn:active { background: rgba(255,255,255,0.08); }
+  .acct-btn.danger { color: #ff6b6b; }
+  .acct-btn svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; }
+  .acct-btn + .acct-btn { margin-top: 8px; }
+
+  /* Forgot password link */
+  .auth-forgot {
+    text-align: center; font-size: 13px; color: rgba(255,255,255,0.35);
+    margin-top: 10px; cursor: pointer; display: none;
+  }
+  .auth-forgot.is-on { display: block; }
+  .auth-forgot span { color: rgba(34,158,217,0.8); }
+  /* Полноэкранный экран после отправки письма */
+  .auth-sent {
+    display: none;
+    position: absolute; inset: 0;
+    flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 40px 32px;
+    background: linear-gradient(180deg, rgba(16,18,24,0.99) 0%, rgba(10,11,15,1) 100%);
+    border-radius: inherit;
+    gap: 0;
+  }
+  .auth-sent.is-on { display: flex; }
+  .auth-sent-icon {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(34,158,217,0.12);
+    border: 1px solid rgba(34,158,217,0.25);
+    display: flex; align-items: center; justify-content: center;
+    color: #229ED9; margin-bottom: 24px;
+  }
+  .auth-sent-icon svg { width: 32px; height: 32px; }
+  .auth-sent-title {
+    font-size: 22px; font-weight: 700; color: #fff;
+    letter-spacing: -0.03em; margin-bottom: 12px;
+  }
+  .auth-sent-sub {
+    font-size: 14px; color: rgba(255,255,255,0.45);
+    line-height: 1.6; max-width: 260px; margin-bottom: 32px;
+  }
+  .auth-sent-back {
+    font-size: 13px; color: rgba(255,255,255,0.4);
+  }
+  .auth-sent-back span { color: #229ED9; font-weight: 600; cursor: pointer; }
+</style>
+
+<!-- ── Account modal ── -->
+<div class="bs-backdrop" id="acct-backdrop" onclick="closeAcctModal(event)">
+  <div class="bs-panel" role="dialog" aria-modal="true">
+    <div class="bs-handle" id="acct-handle"></div>
+    <div class="acct-email" id="acct-email">—</div>
+    <div class="acct-status-line" id="acct-status-line">—</div>
+    <div class="acct-divider"></div>
+    <button class="acct-btn" onclick="closeAcctModal(); openLavaPayment();">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+      </svg>
+      Оформить / продлить подписку
+    </button>
+    <button class="acct-btn" onclick="window.open('https://app.lava.top/my-purchases','_blank');">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+      Управление подпиской
+    </button>
+    <button class="acct-btn danger" onclick="authLogout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Выйти из аккаунта
+    </button>
+  </div>
+</div><!-- /#acct-backdrop -->
+
+<!-- ── Auth screen ── -->
+<div id="auth-overlay" class="auth-overlay is-hidden" aria-modal="true" role="dialog">
+  <div class="auth-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  </div>
+  <div class="auth-title" id="auth-title">Регистрация</div>
+  <div class="auth-sub" id="auth-sub"></div>
+
+
+  <form class="auth-form" id="auth-form" onsubmit="return false">
+    <input
+      class="auth-input" id="auth-email" type="email"
+      placeholder="Email" autocomplete="email" inputmode="email"
+    />
+    <div class="auth-pw-wrap" id="auth-pw-wrap">
+      <input
+        class="auth-input" id="auth-password" type="password"
+        placeholder="Пароль (минимум 6 символов)" autocomplete="current-password"
+      />
+      <button type="button" class="auth-pw-toggle" onclick="toggleAuthPw()" id="auth-pw-eye" aria-label="Показать пароль">
+        <!-- eye icon -->
+        <svg id="auth-pw-icon-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <!-- eye-off icon (hidden by default) -->
+        <svg id="auth-pw-icon-eyeoff" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <button class="auth-btn" id="auth-submit-btn" type="submit" onclick="authSubmit()">
+      Зарегистрироваться
+    </button>
+  </form>
+
+  <div class="auth-toggle" id="auth-toggle-row">
+    Уже есть аккаунт? <span onclick="authSwitchMode()">Войти</span>
+  </div>
+  <div class="auth-forgot" id="auth-forgot">
+    <span onclick="authForgotPassword()">Забыли пароль?</span>
+  </div>
+  <!-- Полноэкранный экран "письмо отправлено" -->
+  <div class="auth-sent" id="auth-sent">
+    <div class="auth-sent-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2"/>
+        <polyline points="2,4 12,13 22,4"/>
+      </svg>
+    </div>
+    <div class="auth-sent-title">Письмо отправлено</div>
+    <div class="auth-sent-sub">Ищи письмо от нас в почте — там ссылка для сброса пароля</div>
+    <div class="auth-sent-back"><span onclick="authBackToLogin()">Вернуться ко входу</span></div>
+  </div>
+
+  <!-- Экран "придумай новый пароль" (после deep link) -->
+  <div class="auth-sent" id="auth-newpw-screen">
+    <div class="auth-sent-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <div class="auth-sent-title">Новый пароль</div>
+    <div class="auth-sent-sub" style="margin-bottom:20px">Придумайте новый пароль для входа</div>
+    <div class="auth-pw-wrap" style="width:100%;max-width:320px;margin-bottom:8px">
+      <input class="auth-input" id="newpw-input" type="password" placeholder="Новый пароль (мин. 6 символов)" style="width:100%"/>
+      <button type="button" class="auth-pw-toggle" onclick="toggleNewPw()" id="newpw-eye" aria-label="Показать пароль">
+        <svg id="newpw-icon-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="newpw-icon-eyeoff" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
+    <div class="auth-error" id="newpw-error" style="margin-bottom:8px"></div>
+    <button class="auth-btn" id="newpw-btn" onclick="saveNewPassword()" style="width:100%;max-width:320px">Сохранить пароль</button>
+  </div>
+</div>
+
+<!-- ── Paywall screen ── -->
+<div id="paywall-overlay" class="paywall-overlay is-hidden" aria-modal="true" role="dialog">
+  <div class="paywall-header">
+    <button class="paywall-logout-btn" onclick="authLogout()">Выйти</button>
+  </div>
+  <div class="paywall-body">
+    <div class="paywall-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </div>
+    <div class="paywall-title">Триал закончился</div>
+    <div class="paywall-sub">Подпишитесь, чтобы продолжить пользоваться прокси и списком внешних серверов</div>
+
+    <div class="paywall-price-card">
+      <div class="paywall-price-main">
+        <div class="paywall-price-amount">от 108 ₽</div>
+        <div class="paywall-price-period">в месяц · при оплате за год</div>
+      </div>
+      <div class="paywall-price-badge">Подписка</div>
+    </div>
+
+    <div class="paywall-features">
+      <div class="paywall-feature">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Локальный MTProto прокси
+      </div>
+      <div class="paywall-feature">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Список внешних серверов
+      </div>
+      <div class="paywall-feature">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Автозапуск и фоновая работа
+      </div>
+      <div class="paywall-feature">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Все обновления включены
+      </div>
+    </div>
+
+    <!-- lava.top Web-Widget (заменить PRODUCT_ID на реальный после создания продукта) -->
+    <div class="paywall-widget-wrap" id="paywall-widget-wrap">
+      <button class="paywall-btn" id="paywall-pay-btn" onclick="openLavaPayment()">
+        Оформить подписку — от 108 ₽/мес
+      </button>
+    </div>
+
+    <div class="paywall-note">
+      Оплата через lava.top · защищённое соединение<br>
+      Доступ откроется сразу после оплаты
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="rounded-qr.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 <script>
+  // ── Supabase / Subscription ────────────────────────────────────────────────
+  const SUPA_URL  = 'https://fahpfsterakqentqqazz.supabase.co';
+  const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg';
+  const LAVA_PUBLISHABLE = 'sb_publishable_AdNjeo9XjfEYwIp27WQFKw_wHTWm9h1';
+  // ВАЖНО: заменить на реальный ID продукта после создания в lava.top
+  const LAVA_PRODUCT_ID  = 'd64db378-a328-4b86-ba8e-0a0f4b9f4eb3';
+  const LAVA_OFFER_ID    = '353bf7ea-ae02-4633-9cac-92c2d3806f21';
+
+  const _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+  let _subProfile   = null;   // текущий профиль из БД
+  let _authMode     = 'register'; // 'register' | 'login'
+  let _subStatus    = null;   // 'trial' | 'active' | 'expired'
+
+  // Показать/скрыть экраны
+  function _showScreen(name) {
+    document.getElementById('auth-overlay').classList.toggle('is-hidden',    name !== 'auth');
+    document.getElementById('paywall-overlay').classList.toggle('is-hidden', name !== 'paywall');
+    // Основной UI: всё что не overlay
+    const appRoot = document.querySelector('body > :not(#auth-overlay):not(#paywall-overlay):not(style):not(script)');
+    // скрываем body-children кроме overlays
+    document.querySelectorAll('body > .header, body > .page, body > [class]').forEach(el => {
+      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay') {
+        el.style.display = (name === 'app') ? '' : 'none';
+      }
+    });
+  }
+
+  function _showApp()     { _hideAllOverlays(); }
+  function _showAuth() {
+    document.getElementById('auth-overlay').classList.remove('is-hidden');
+    document.getElementById('paywall-overlay').classList.add('is-hidden');
+    // Сбрасываем в режим регистрации
+    if (_authMode === 'forgot') { _authMode = 'register'; }
+    document.getElementById('auth-sent').classList.remove('is-on');
+    document.getElementById('auth-pw-wrap').style.display = '';
+    document.getElementById('auth-title').textContent     = _authMode === 'register' ? 'Регистрация' : 'Вход';
+    document.getElementById('auth-sub').textContent       = _authMode === 'register' ? '' : 'Введите email и пароль';
+    const btn = document.getElementById('auth-submit-btn');
+    if (btn) { btn.disabled = false; btn.textContent = _authMode === 'register' ? 'Зарегистрироваться' : 'Войти'; }
+    _setAuthError('');
+    document.getElementById('auth-password').value = '';
+  }
+  function _showPaywall() { document.getElementById('paywall-overlay').classList.remove('is-hidden'); document.getElementById('auth-overlay').classList.add('is-hidden'); }
+  function _hideAllOverlays() {
+    document.getElementById('auth-overlay').classList.add('is-hidden');
+    document.getElementById('paywall-overlay').classList.add('is-hidden');
+  }
+
+  // Проверить статус подписки и показать нужный экран
+  async function checkSubscription() {
+    const { data: { session } } = await _supa.auth.getSession();
+    if (!session) { _showAuth(); return; }
+
+    const { data: profile, error } = await _supa
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile) {
+      // Профиль не существует — создаём при первом входе
+      const { data: newProfile, error: insertError } = await _supa
+        .from('profiles')
+        .insert({
+          id: session.user.id,
+          email: session.user.email,
+          status: 'trial',
+          trial_start: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      if (insertError || !newProfile) { _showAuth(); return; }
+      _subProfile = newProfile;
+    } else if (error) {
+      _showAuth(); return;
+    } else {
+      _subProfile = profile;
+    }
+
+    const now = Date.now();
+    const trialEnd = new Date(profile.trial_start).getTime() + 7 * 24 * 60 * 60 * 1000;
+    const paidUntil = profile.paid_until ? new Date(profile.paid_until).getTime() : 0;
+
+    if (paidUntil > now) {
+      _subStatus = 'active';
+      _hideAllOverlays();
+      _updateSubBadge();
+      return;
+    }
+    if (profile.status === 'expired') {
+      // Явно отозван администратором — не пускать даже если триал ещё идёт
+      _subStatus = 'expired';
+      _showPaywall();
+      return;
+    }
+    if (now < trialEnd) {
+      _subStatus = 'trial';
+      _hideAllOverlays();
+      _updateSubBadge();
+      return;
+    }
+
+    // Обновляем статус в БД если ещё не expired
+    if (profile.status !== 'expired') {
+      await _supa.from('profiles').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', session.user.id);
+    }
+    _subStatus = 'expired';
+    _showPaywall();
+  }
+
+  // Бэдж в хедере (показывает «Триал · N дн» или «Активна»)
+  function _updateSubBadge() {
+    let badge = document.getElementById('sub-status-badge');
+    if (!badge || !_subProfile) return;
+
+    const now = Date.now();
+    const trialEnd = new Date(_subProfile.trial_start).getTime() + 7 * 24 * 60 * 60 * 1000;
+    const paidUntil = _subProfile.paid_until ? new Date(_subProfile.paid_until).getTime() : 0;
+
+    badge.className = 'sub-status-badge';
+    let settSub = '';
+    if (paidUntil > now) {
+      const days = Math.ceil((paidUntil - now) / 86400000);
+      badge.classList.add(days <= 3 ? 'expiring' : 'active');
+      badge.textContent = days <= 3 ? `Активна (${_daysWord(days)} осталось)` : 'Активна';
+      settSub = days <= 3 ? `Подписка активна (${_daysWord(days)} осталось)` : 'Подписка активна';
+    } else if (now < trialEnd) {
+      const days = Math.ceil((trialEnd - now) / 86400000);
+      badge.classList.add('trial');
+      badge.textContent = `Триал (${_daysWord(days)} осталось)`;
+      settSub = `Триал (${_daysWord(days)} осталось)`;
+    }
+    const settAcctSub = document.getElementById('sett-acct-sub');
+    if (settAcctSub && settSub) settAcctSub.textContent = settSub;
+
+    // Показываем пункт админки если is_admin
+    if (_subProfile?.is_admin) {
+      const adminRow = document.getElementById('sett-admin-row');
+      if (adminRow) adminRow.style.display = '';
+    }
+
+    // Обновляем карточку под SECRET
+    const badgeMain = document.getElementById('sub-badge-main');
+    const badgeText = document.getElementById('sub-badge-text');
+    const badgeDot  = document.getElementById('sub-badge-dot');
+    if (badgeMain && badgeText) {
+      badgeMain.style.display = 'flex';
+      if (paidUntil > now) {
+        const days = Math.ceil((paidUntil - now) / 86400000);
+        badgeText.textContent = days <= 3 ? `Подписка активна (${_daysWord(days)} осталось)` : 'Подписка активна';
+        badgeDot.style.background = days <= 3 ? '#ffa000' : '#00c88c';
+        badgeMain.style.borderColor = days <= 3 ? 'rgba(255,160,0,0.2)' : 'rgba(0,200,140,0.2)';
+      } else if (now < trialEnd) {
+        const days = Math.ceil((trialEnd - now) / 86400000);
+        badgeText.textContent = `Триал (${_daysWord(days)} осталось)`;
+        badgeDot.style.background = '#229ED9';
+        badgeMain.style.borderColor = 'rgba(34,158,217,0.2)';
+      }
+    }
+  }
+
+  // ── Auth form ──────────────────────────────────────────────────────────────
+  function authSwitchMode() {
+    _authMode = _authMode === 'register' ? 'login' : 'register';
+    const isReg = _authMode === 'register';
+    document.getElementById('auth-title').textContent      = isReg ? 'Регистрация' : 'Вход';
+    document.getElementById('auth-sub').textContent        = isReg ? 'затем от 108 ₽/мес' : 'Введите email и пароль';
+    document.getElementById('auth-submit-btn').textContent = isReg ? 'Зарегистрироваться' : 'Войти';
+    document.getElementById('auth-toggle-row').innerHTML   = isReg
+      ? 'Уже есть аккаунт? <span onclick="authSwitchMode()">Войти</span>'
+      : 'Нет аккаунта? <span onclick="authSwitchMode()">Зарегистрироваться</span>';
+    document.getElementById('auth-forgot').classList.toggle('is-on', !isReg);
+    document.getElementById('auth-reset-msg').classList.remove('is-on');
+    _setAuthError('');
+  }
+
+  function authForgotPassword() {
+    _authMode = 'forgot';
+    document.getElementById('auth-title').textContent = 'Сброс пароля';
+    document.getElementById('auth-sub').textContent   = 'Введите email — пришлём ссылку для сброса';
+    document.getElementById('auth-submit-btn').textContent = 'Отправить письмо';
+    document.getElementById('auth-pw-wrap').style.display  = 'none';
+    document.getElementById('auth-toggle-row').innerHTML   = '<span onclick="authBackToLogin()">← Назад ко входу</span>';
+    document.getElementById('auth-forgot').classList.remove('is-on');
+    _setAuthError('');
+  }
+
+  function authBackToLogin() {
+    _authMode = 'login';
+    document.getElementById('auth-sent').classList.remove('is-on');
+    document.getElementById('auth-pw-wrap').style.display = '';
+    document.getElementById('auth-title').textContent = 'Вход';
+    document.getElementById('auth-sub').textContent   = 'Введите email и пароль';
+    document.getElementById('auth-submit-btn').textContent = 'Войти';
+    document.getElementById('auth-submit-btn').disabled    = false;
+    document.getElementById('auth-toggle-row').innerHTML   = 'Нет аккаунта? <span onclick="authSwitchMode()">Зарегистрироваться</span>';
+    document.getElementById('auth-forgot').classList.add('is-on');
+    _setAuthError('');
+  }
+
+  // ── Account modal ──────────────────────────────────────────────────────────
+  function openAcctModal() {
+    if (!_subProfile) return;
+    const now = Date.now();
+    const trialEnd  = new Date(_subProfile.trial_start).getTime() + 7 * 86400000;
+    const paidUntil = _subProfile.paid_until ? new Date(_subProfile.paid_until) : null;
+
+    document.getElementById('acct-email').textContent = _subProfile.email || '—';
+
+    let statusText = '';
+    if (paidUntil && paidUntil > new Date()) {
+      statusText = 'Подписка активна до ' + paidUntil.toLocaleDateString('ru', { day: 'numeric', month: 'long' });
+    } else if (now < trialEnd) {
+      const days = Math.ceil((trialEnd - now) / 86400000);
+      statusText = `Триал (${_daysWord(days)} осталось)`;
+    } else {
+      statusText = 'Подписка не активна';
+    }
+    document.getElementById('acct-status-line').textContent = statusText;
+    document.getElementById('acct-backdrop').classList.add('is-open');
+  }
+
+  function closeAcctModal(e) {
+    if (!e || e.target === document.getElementById('acct-backdrop')) {
+      document.getElementById('acct-backdrop').classList.remove('is-open');
+    }
+  }
+
+  _initSheetSwipe(
+    document.querySelector('#acct-backdrop .bs-panel'),
+    () => document.getElementById('acct-backdrop').classList.remove('is-open')
+  );
+
+  // ── Общая функция свайп-закрытия для bottom sheet ──────────────────────────
+  function _initSheetSwipe(panel, closeFn) {
+    if (!panel || panel._swipeInited) return;
+    panel._swipeInited = true;
+    let startY = 0, curY = 0, dragging = false;
+
+    panel.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      const rect = panel.getBoundingClientRect();
+      if (touch.clientY - rect.top > 64) return; // только верхняя зона (ручка + шапка)
+      startY = touch.clientY; curY = 0; dragging = true;
+      panel.style.transition = 'none';
+    }, { passive: true });
+
+    panel.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      curY = e.touches[0].clientY - startY;
+      if (curY > 0) panel.style.transform = `translateY(${curY}px)`;
+    }, { passive: true });
+
+    panel.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      panel.style.transition = '';
+      if (curY > 80) { panel.style.transform = ''; closeFn(); }
+      else panel.style.transform = 'translateY(0)';
+    });
+  }
+
+  function _daysWord(n) {
+    const abs = Math.abs(n);
+    const mod10 = abs % 10, mod100 = abs % 100;
+    if (mod100 >= 11 && mod100 <= 19) return `${n} дней`;
+    if (mod10 === 1) return `${n} день`;
+    if (mod10 >= 2 && mod10 <= 4) return `${n} дня`;
+    return `${n} дней`;
+  }
+
+  function _setAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.classList.toggle('is-on', !!msg);
+  }
+
+  function toggleAuthPw() {
+    const inp  = document.getElementById('auth-password');
+    const eye  = document.getElementById('auth-pw-icon-eye');
+    const eoff = document.getElementById('auth-pw-icon-eyeoff');
+    const show = inp.type === 'password';
+    inp.type       = show ? 'text' : 'password';
+    eye.style.display  = show ? 'none' : '';
+    eoff.style.display = show ? '' : 'none';
+  }
+
+  async function authSubmit() {
+    const email = document.getElementById('auth-email').value.trim();
+    const btn   = document.getElementById('auth-submit-btn');
+
+    if (_authMode === 'forgot') {
+      if (!email) { _setAuthError('Введите email'); return; }
+      btn.disabled = true; btn.textContent = 'Отправляем...';
+      _setAuthError('');
+      const { error } = await _supa.auth.resetPasswordForEmail(email, {
+        redirectTo: 'tgwsproxy://reset-password'
+      });
+      if (error) { _setAuthError(error.message); btn.disabled = false; btn.textContent = 'Отправить письмо'; return; }
+      document.getElementById('auth-sent').classList.add('is-on');
+      return;
+    }
+
+    const password = document.getElementById('auth-password').value;
+
+    if (!email || !password) { _setAuthError('Заполните все поля'); return; }
+    if (password.length < 6) { _setAuthError('Пароль минимум 6 символов'); return; }
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    _setAuthError('');
+
+    try {
+      if (_authMode === 'register') {
+        const { error } = await _supa.auth.signUp({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await _supa.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+      await checkSubscription();
+    } catch (e) {
+      const msg = e.message || 'Ошибка';
+      if (msg.includes('already registered') || msg.includes('User already registered')) {
+        _setAuthError('Email уже зарегистрирован — войдите');
+      } else if (msg.includes('Invalid login') || msg.includes('Invalid credentials')) {
+        _setAuthError('Неверный email или пароль');
+      } else {
+        _setAuthError(msg);
+      }
+      btn.disabled = false;
+      btn.textContent = _authMode === 'register' ? 'Зарегистрироваться' : 'Войти';
+    }
+  }
+
+  async function authLogout() {
+    document.getElementById('acct-backdrop').classList.remove('is-open');
+    await _supa.auth.signOut();
+    _subProfile = null;
+    _subStatus  = null;
+    _showAuth();
+  }
+
+  // ── Lava.top payment ───────────────────────────────────────────────────────
+  async function openLavaPayment() {
+    const { data: { session } } = await _supa.auth.getSession();
+    const email = session?.user?.email || '';
+    // Открываем ссылку на продукт lava.top — заменить URL после создания продукта
+    const url = `https://app.lava.top/products/${LAVA_PRODUCT_ID}/${LAVA_OFFER_ID}?email=${encodeURIComponent(email)}`;
+    window.open(url, '_blank');
+
+    // Запускаем поллинг: проверяем статус каждые 5 сек пока пользователь платит
+    const poll = setInterval(async () => {
+      const { data: profile } = await _supa.from('profiles').select('status,paid_until').eq('id', session.user.id).single();
+      if (profile && profile.paid_until && new Date(profile.paid_until) > new Date()) {
+        clearInterval(poll);
+        _subProfile = { ..._subProfile, ...profile };
+        _subStatus = 'active';
+        _hideAllOverlays();
+        _updateSubBadge();
+      }
+    }, 5000);
+    // Останавливаем поллинг через 10 минут
+    setTimeout(() => clearInterval(poll), 600000);
+  }
+
+  // ── Подписка: проверять каждый час пока приложение открыто ────────────────
+  function _startSubPolling() {
+    setInterval(async () => {
+      if (_subStatus === 'active' || _subStatus === 'trial') {
+        await checkSubscription();
+      }
+    }, 60 * 60 * 1000);
+  }
+
+  // ── Инициализация ──────────────────────────────────────────────────────────
+  async function initAuth() {
+    // Скрытый элемент для совместимости (бэдж теперь внутри контента)
+    if (!document.getElementById('sub-status-badge')) {
+      const badge = document.createElement('div');
+      badge.id = 'sub-status-badge';
+      badge.style.display = 'none';
+      document.body.appendChild(badge);
+    }
+
+    // Слушаем изменения сессии
+    _supa.auth.onAuthStateChange(async (event) => {
+      if (event === 'SIGNED_OUT') {
+        _showAuth();
+      }
+    });
+
+    // Проверяем deep link (сброс пароля через tgwsproxy://)
+    await _checkDeepLink();
+    if (_authMode === 'reset') return; // покажем форму нового пароля
+
+    await checkSubscription();
+    _startSubPolling();
+  }
+
+  // ── Deep link: сброс пароля ────────────────────────────────────────────────
+  async function _checkDeepLink() {
+    try {
+      const res = await fetch('/api/deep-link');
+      if (!res.ok) return;
+      const { url } = await res.json();
+      if (!url || !url.startsWith('tgwsproxy://reset-password')) return;
+
+      // Парсим фрагмент: tgwsproxy://reset-password#access_token=...&type=recovery
+      const fragment = url.split('#')[1] || '';
+      const params = new URLSearchParams(fragment);
+      const accessToken  = params.get('access_token');
+      const refreshToken = params.get('refresh_token') || '';
+      const type         = params.get('type');
+
+      if (type !== 'recovery' || !accessToken) return;
+
+      // Устанавливаем временную сессию с recovery-токеном
+      const { error } = await _supa.auth.setSession({
+        access_token: accessToken, refresh_token: refreshToken
+      });
+      if (error) return;
+
+      _authMode = 'reset';
+      document.getElementById('auth-overlay').classList.remove('is-hidden');
+      document.getElementById('paywall-overlay').classList.add('is-hidden');
+      document.getElementById('auth-newpw-screen').classList.add('is-on');
+    } catch (e) {
+      // /api/deep-link недоступен (браузер/desktop) — игнорируем
+    }
+  }
+
+  function toggleNewPw() {
+    const inp  = document.getElementById('newpw-input');
+    const eye  = document.getElementById('newpw-icon-eye');
+    const eoff = document.getElementById('newpw-icon-eyeoff');
+    const show = inp.type === 'password';
+    inp.type        = show ? 'text' : 'password';
+    eye.style.display  = show ? 'none' : '';
+    eoff.style.display = show ? '' : 'none';
+  }
+
+  async function saveNewPassword() {
+    const pw  = document.getElementById('newpw-input').value;
+    const err = document.getElementById('newpw-error');
+    const btn = document.getElementById('newpw-btn');
+    if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
+    err.textContent = '';
+    btn.disabled = true; btn.textContent = 'Сохраняем...';
+    const { error } = await _supa.auth.updateUser({ password: pw });
+    if (error) {
+      err.textContent = error.message;
+      btn.disabled = false; btn.textContent = 'Сохранить пароль';
+      return;
+    }
+    // Пароль изменён — продолжаем как обычный вход
+    _authMode = 'login';
+    document.getElementById('auth-newpw-screen').classList.remove('is-on');
+    await checkSubscription();
+    _startSubPolling();
+  }
+
+  // Блокировка внешних прокси если expired
+  function _canUseExtProxies() {
+    return _subStatus === 'active' || _subStatus === 'trial';
+  }
+
+  // ── Конец блока Supabase / Subscription ───────────────────────────────────
+
   let running = false;
   let secret = null;
   let linkHost = null;
@@ -3227,11 +4133,7 @@
 
     const _stopProbeBar = () => {
       if (_probeTimerInterval) { clearInterval(_probeTimerInterval); _probeTimerInterval = null; }
-      const el = probeLeft;
-      if (el) {
-        const cur = el.textContent.replace('Проверяем прокси', 'Проверено');
-        el.textContent = cur;
-      }
+      if (probeLeft) probeLeft.textContent = '';
     };
 
     const _updateProbeFound = (n) => {
@@ -3393,6 +4295,10 @@
   }
 
   function openExtProxies() {
+    if (!_canUseExtProxies()) {
+      _showPaywall();
+      return;
+    }
     const modal = document.getElementById('ext-proxy-modal');
     if (!modal) return;
     modal.setAttribute('aria-hidden', 'false');
@@ -3421,44 +4327,10 @@
   }
 
   function _initExtPanelSwipe() {
-    const panel = document.querySelector('.ext-proxy-panel');
-    if (!panel || panel._swipeInited) return;
-    panel._swipeInited = true;
-
-    let startY = 0;
-    let curY = 0;
-    let dragging = false;
-
-    panel.addEventListener('touchstart', (e) => {
-      // только если тянем за верхнюю зону (полоска + шапка, ~60px)
-      const touch = e.touches[0];
-      const rect = panel.getBoundingClientRect();
-      if (touch.clientY - rect.top > 64) return;
-      startY = touch.clientY;
-      curY = 0;
-      dragging = true;
-      panel.style.transition = 'none';
-    }, { passive: true });
-
-    panel.addEventListener('touchmove', (e) => {
-      if (!dragging) return;
-      const dy = e.touches[0].clientY - startY;
-      if (dy < 0) return; // вверх не тянем
-      curY = dy;
-      panel.style.transform = `translateY(${dy}px)`;
-    }, { passive: true });
-
-    panel.addEventListener('touchend', () => {
-      if (!dragging) return;
-      dragging = false;
-      panel.style.transition = '';
-      if (curY > 80) {
-        closeExtProxies();
-        history.back();
-      } else {
-        panel.style.transform = 'translateY(0)';
-      }
-    });
+    _initSheetSwipe(
+      document.querySelector('.ext-proxy-panel'),
+      () => { closeExtProxies(); history.back(); }
+    );
   }
 
   window.addEventListener('popstate', (e) => {
@@ -3497,17 +4369,21 @@
     onboardingOpen();
   } else {
     initHeaderIcon();
-    pollStatus();
-    const _fastPoll = setInterval(pollStatus, 600);
-    setTimeout(() => { clearInterval(_fastPoll); setInterval(pollStatus, 3000); }, 5000);
-    fetchAutostart();
-    fetchRestartInterval();
-    checkBatteryOpt();
-    setInterval(checkBatteryOpt, 10000);
-    setTimeout(checkForUpdate, 4000);
-    if (shouldShowOnboardingInProd()) {
-      setTimeout(onboardingOpen, 280);
-    }
+    // Сначала проверяем авторизацию и подписку, потом запускаем приложение
+    initAuth().then(() => {
+      if (_subStatus === 'expired') return; // paywall уже показан
+      pollStatus();
+      const _fastPoll = setInterval(pollStatus, 600);
+      setTimeout(() => { clearInterval(_fastPoll); setInterval(pollStatus, 3000); }, 5000);
+      fetchAutostart();
+      fetchRestartInterval();
+      checkBatteryOpt();
+      setInterval(checkBatteryOpt, 10000);
+      setTimeout(checkForUpdate, 4000);
+      if (shouldShowOnboardingInProd()) {
+        setTimeout(onboardingOpen, 280);
+      }
+    });
   }
 </script>
 </body>

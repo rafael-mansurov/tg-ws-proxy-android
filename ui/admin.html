@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin · TG WS Proxy</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0a0c;
+      color: #e8e8ec;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── App shell ── */
+    #app { display: none; }
+
+    .topbar {
+      background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 14px 24px; display: flex; align-items: center; gap: 16px;
+    }
+    .topbar-user { font-size: 12px; color: rgba(255,255,255,0.4); }
+    .topbar-logout {
+      padding: 7px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+      background: transparent; color: rgba(255,255,255,0.5); font-size: 12px;
+      font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+    .topbar-back {
+      padding: 7px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+      background: transparent; color: rgba(255,255,255,0.5); font-size: 12px;
+      font-weight: 600; font-family: inherit; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+    }
+    .topbar-back svg { width: 13px; height: 13px; }
+
+    .main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+
+    /* ── Stats row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .stat-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 16px 18px;
+    }
+    .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: rgba(255,255,255,0.35); margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -0.04em; color: #fff; }
+    .stat-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+
+    /* ── Toolbar ── */
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 7px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.55);
+      font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .filter-btn.active {
+      background: rgba(34,158,217,0.15); border-color: rgba(34,158,217,0.3); color: #229ED9;
+    }
+    .search-input {
+      padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04); color: #fff; font-size: 13px; font-family: inherit;
+      outline: none; width: 220px;
+    }
+    .search-input::placeholder { color: rgba(255,255,255,0.25); }
+    .search-input:focus { border-color: rgba(34,158,217,0.4); }
+    .refresh-btn {
+      margin-left: auto; padding: 7px 16px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6);
+      font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+
+    /* ── Cards ── */
+    .cards-list { display: flex; flex-direction: column; gap: 10px; }
+    .user-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .user-card-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .user-card-email {
+      font-size: 14px; font-weight: 600; color: #fff;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+    }
+    .user-card-meta {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      font-size: 12px; color: rgba(255,255,255,0.4);
+    }
+    .user-card-meta span { display: flex; align-items: center; gap: 4px; }
+    .user-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .user-card-actions-row2 { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 9px; border-radius: 20px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-trial   { background: rgba(34,158,217,0.12); color: #229ED9; border: 1px solid rgba(34,158,217,0.2); }
+    .badge-active  { background: rgba(0,200,140,0.1);  color: #00c88c; border: 1px solid rgba(0,200,140,0.2); }
+    .badge-expired { background: rgba(255,80,50,0.1);  color: #ff6b50; border: 1px solid rgba(255,80,50,0.2); }
+    .badge-admin   { background: rgba(255,208,96,0.1); color: #ffd060; border: 1px solid rgba(255,208,96,0.2); }
+
+    .action-btn {
+      padding: 5px 11px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6);
+      font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+      margin-right: 4px; transition: background 0.15s;
+    }
+    .action-btn:hover { background: rgba(255,255,255,0.08); }
+    .action-btn.danger { color: #ff6b50; border-color: rgba(255,80,50,0.2); }
+    .action-btn.success { color: #00c88c; border-color: rgba(0,200,140,0.2); }
+    .action-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .action-btn { display: inline-flex; align-items: center; gap: 5px; }
+    .user-card-meta svg { width: 12px; height: 12px; flex-shrink: 0; opacity: 0.6; }
+    .user-card-meta span { display: inline-flex; align-items: center; gap: 3px; }
+    .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; flex: 1; display: inline-flex; align-items: center; gap: 7px; }
+    .topbar-title svg { width: 16px; height: 16px; flex-shrink: 0; color: #229ED9; }
+    .refresh-btn { display: inline-flex; align-items: center; gap: 6px; }
+    .refresh-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .empty-state {
+      text-align: center; padding: 48px 24px;
+      color: rgba(255,255,255,0.25); font-size: 14px;
+    }
+
+    .loading { text-align: center; padding: 40px; color: rgba(255,255,255,0.3); font-size: 14px; }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px); z-index: 1000;
+      display: none; align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #16161a; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 28px; width: 100%; max-width: 380px;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.02em; }
+    .modal-label { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 6px; font-weight: 600; }
+    .modal-input {
+      width: 100%; padding: 11px 14px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06); color: #fff; font-size: 14px;
+      font-family: inherit; outline: none; margin-bottom: 16px;
+    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal-cancel {
+      padding: 9px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+      background: transparent; color: rgba(255,255,255,0.5); font-size: 14px;
+      font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+    .modal-confirm {
+      padding: 9px 18px; border-radius: 10px; border: none;
+      background: #229ED9; color: #fff; font-size: 14px;
+      font-weight: 700; font-family: inherit; cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .main { padding: 16px; }
+      .topbar { padding: 12px 16px; }
+      th:nth-child(3), td:nth-child(3),
+      th:nth-child(4), td:nth-child(4) { display: none; }
+      .search-input { width: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── App ── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title"><i data-lucide="shield-check"></i> Admin · TG WS Proxy</div>
+    <div class="topbar-user" id="adm-user-email"></div>
+    <a class="topbar-back" href="index.html"><i data-lucide="arrow-left"></i> Назад</a>
+  </div>
+  <div class="main">
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><div class="stat-label">Всего</div><div class="stat-value" id="stat-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">Активных</div><div class="stat-value" id="stat-active" style="color:#00c88c">—</div></div>
+      <div class="stat-card"><div class="stat-label">Триал</div><div class="stat-value" id="stat-trial" style="color:#229ED9">—</div></div>
+      <div class="stat-card"><div class="stat-label">Истёкших</div><div class="stat-value" id="stat-expired" style="color:#ff6b50">—</div></div>
+      <div class="stat-card" style="grid-column: 1 / -1;">
+        <div class="stat-label">MRR (расч.)</div>
+        <div class="stat-value" id="stat-mrr" style="color:#ffd060">—</div>
+        <div class="stat-sub" id="stat-mrr-sub">активных × тариф</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Все</button>
+      <button class="filter-btn" data-filter="trial"   onclick="setFilter('trial', this)">Триал</button>
+      <button class="filter-btn" data-filter="active"  onclick="setFilter('active', this)">Активные</button>
+      <button class="filter-btn" data-filter="expired" onclick="setFilter('expired', this)">Истёкшие</button>
+      <input class="search-input" id="search-input" placeholder="Поиск по email…" oninput="renderTable()" />
+      <button class="refresh-btn" onclick="loadUsers()"><i data-lucide="refresh-cw"></i> Обновить</button>
+    </div>
+
+    <!-- Cards -->
+    <div>
+      <div class="loading" id="table-loading">Загрузка…</div>
+      <div class="cards-list" id="users-tbody"></div>
+      <div class="empty-state" id="table-empty" style="display:none">Нет пользователей</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: продлить подписку ── -->
+<div class="modal-backdrop" id="extend-modal">
+  <div class="modal">
+    <div class="modal-title">Продлить подписку</div>
+    <div class="modal-label">Email</div>
+    <div id="modal-email" style="font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:16px;"></div>
+    <div class="modal-label">Дней добавить</div>
+    <input class="modal-input" id="modal-days" type="number" value="31" min="1" max="366" oninput="updateModalHint()" />
+    <div id="modal-hint" style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:16px;margin-top:-10px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Отмена</button>
+      <button class="modal-confirm" onclick="confirmExtend()">Продлить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPA_URL  = 'https://fahpfsterakqentqqazz.supabase.co';
+  const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg';
+
+  const _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+  let _allUsers = [];
+  let _currentFilter = 'all';
+  let _modalUserId = null;
+  let _modalUserEmail = null;
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  async function adminLogout() {
+    await _supa.auth.signOut();
+    location.href = 'index.html';
+  }
+
+  // ── Load users ────────────────────────────────────────────────────────────
+  async function loadUsers() {
+    document.getElementById('table-loading').style.display = 'block';
+    document.getElementById('users-tbody').innerHTML = '';
+    document.getElementById('table-empty').style.display = 'none';
+
+    const { data, error } = await _supa.functions.invoke('admin-profiles');
+    if (error) { alert('Ошибка загрузки: ' + error.message); return; }
+
+    _allUsers = (data || []).map(u => {
+      const now = Date.now();
+      const trialEnd  = new Date(u.trial_start).getTime() + 7 * 86400000;
+      const paidUntil = u.paid_until ? new Date(u.paid_until).getTime() : 0;
+      let status = u.status;
+      if (paidUntil > now) status = 'active';
+      else if (status === 'expired') status = 'expired'; // явно отозван — не переопределять
+      else if (now < trialEnd) status = 'trial';
+      else status = 'expired';
+      return { ...u, _computed_status: status };
+    });
+
+    updateStats();
+    renderTable();
+    document.getElementById('table-loading').style.display = 'none';
+  }
+
+  function updateStats() {
+    const total   = _allUsers.length;
+    const active  = _allUsers.filter(u => u._computed_status === 'active').length;
+    const trial   = _allUsers.filter(u => u._computed_status === 'trial').length;
+    const expired = _allUsers.filter(u => u._computed_status === 'expired').length;
+    document.getElementById('stat-total').textContent   = total;
+    document.getElementById('stat-active').textContent  = active;
+    document.getElementById('stat-trial').textContent   = trial;
+    document.getElementById('stat-expired').textContent = expired;
+
+    // MRR: диапазон от годового (108₽/мес) до месячного (150₽/мес) тарифа
+    const mrrMin = Math.round(active * 108);
+    const mrrMax = active * 150;
+    const mrrEl    = document.getElementById('stat-mrr');
+    const mrrSubEl = document.getElementById('stat-mrr-sub');
+    if (active === 0) {
+      mrrEl.textContent    = '0 ₽';
+      mrrSubEl.textContent = 'нет активных';
+    } else if (mrrMin === mrrMax) {
+      mrrEl.textContent    = mrrMax.toLocaleString('ru') + ' ₽';
+      mrrSubEl.textContent = active + ' × 150 ₽/мес';
+    } else {
+      mrrEl.textContent    = mrrMin.toLocaleString('ru') + '–' + mrrMax.toLocaleString('ru') + ' ₽';
+      mrrSubEl.textContent = 'от годового до месячного тарифа';
+    }
+  }
+
+  function setFilter(f, btn) {
+    _currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  }
+
+  function renderTable() {
+    const search = (document.getElementById('search-input').value || '').toLowerCase();
+    let users = _allUsers;
+
+    if (_currentFilter !== 'all') {
+      users = users.filter(u => u._computed_status === _currentFilter);
+    }
+    if (search) {
+      users = users.filter(u => (u.email || '').toLowerCase().includes(search));
+    }
+
+    const tbody = document.getElementById('users-tbody');
+    const empty = document.getElementById('table-empty');
+
+    if (!users.length) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    tbody.innerHTML = users.map(u => {
+      const status = u._computed_status;
+      const badgeCls = `badge badge-${status}`;
+      const badgeTxt = status === 'trial' ? 'Триал' : status === 'active' ? 'Активна' : 'Истёк';
+      const trialEnd = new Date(new Date(u.trial_start).getTime() + 7 * 86400000);
+      const paidUntil = u.paid_until ? new Date(u.paid_until) : null;
+      const regDate  = new Date(u.created_at);
+
+      const metaParts = [
+        `<span><i data-lucide="calendar"></i>Регистрация ${fmtDate(regDate)}</span>`,
+        status === 'trial' ? `<span><i data-lucide="clock"></i>Триал до ${fmtDate(trialEnd)}</span>` : '',
+        paidUntil ? `<span><i data-lucide="credit-card"></i>Оплачен до ${fmtDate(paidUntil)}</span>` : ''
+      ].filter(Boolean).join('');
+
+      return `<div class="user-card">
+        <div class="user-card-top">
+          <div class="user-card-email">${esc(u.email || '—')}</div>
+          <div style="display:flex;gap:5px;align-items:center;">
+            ${u.is_admin ? '<span class="badge badge-admin">Admin</span>' : ''}
+            <span class="${badgeCls}">${badgeTxt}</span>
+          </div>
+        </div>
+        <div class="user-card-meta">${metaParts}</div>
+        <div class="user-card-actions">
+          <button class="action-btn success" onclick="openExtendModal('${u.id}','${esc(u.email)}')"><i data-lucide="plus-circle"></i> Продлить</button>
+          <button class="action-btn danger"  onclick="revokeUser('${u.id}','${esc(u.email)}')"><i data-lucide="x-circle"></i> Отозвать</button>
+        </div>
+        <div class="user-card-actions-row2">
+          <button class="action-btn" onclick="resetPassword('${esc(u.email)}')"><i data-lucide="key-round"></i> Сбросить пароль</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    lucide.createIcons();
+  }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  function openExtendModal(userId, email) {
+    _modalUserId    = userId;
+    _modalUserEmail = email;
+    document.getElementById('modal-email').textContent = email;
+    document.getElementById('modal-days').value = '31';
+    document.getElementById('extend-modal').classList.add('open');
+    updateModalHint();
+  }
+
+  function updateModalHint() {
+    const raw = document.getElementById('modal-days').value;
+    const days = raw === '' ? 31 : Math.max(0, parseInt(raw) || 0);
+    const user = _allUsers.find(u => u.id === _modalUserId);
+    const base = user?.paid_until && new Date(user.paid_until) > new Date()
+      ? new Date(user.paid_until)
+      : new Date();
+    const result = new Date(base);
+    result.setDate(result.getDate() + days);
+    const fromLabel = user?.paid_until && new Date(user.paid_until) > new Date()
+      ? 'от текущей даты оплаты'
+      : 'от сегодня';
+    const baseLabel = base.toLocaleDateString('ru', { day: 'numeric', month: 'long' });
+    document.getElementById('modal-hint').textContent =
+      `${baseLabel} + ${days} дн = доступ до ${result.toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  }
+
+  function closeModal() {
+    document.getElementById('extend-modal').classList.remove('open');
+  }
+
+  async function _adminAction(body) {
+    const { data, error } = await _supa.functions.invoke('admin-action', { body });
+    if (error) { alert('Ошибка: ' + error.message); return false; }
+    return true;
+  }
+
+  async function confirmExtend() {
+    const days = parseInt(document.getElementById('modal-days').value) ?? 31;
+    const ok = await _adminAction({ action: 'extend', userId: _modalUserId, days });
+    if (!ok) return;
+    closeModal();
+    loadUsers();
+  }
+
+  async function revokeUser(userId, email) {
+    if (!confirm(`Отозвать доступ у ${email}?`)) return;
+    const ok = await _adminAction({ action: 'revoke', userId });
+    if (ok) loadUsers();
+  }
+
+  async function activateUser(userId, email) {
+    if (!confirm(`Активировать подписку на 31 день для ${email}?`)) return;
+    const ok = await _adminAction({ action: 'activate', userId });
+    if (ok) loadUsers();
+  }
+
+  async function resetPassword(email) {
+    if (!confirm(`Отправить письмо сброса пароля на ${email}?`)) return;
+    const ok = await _adminAction({ action: 'reset-password', email });
+    if (ok) alert(`Письмо отправлено на ${email}`);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function fmtDate(d) {
+    return d.toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Закрыть модал по клику на backdrop
+  document.getElementById('extend-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  lucide.createIcons();
+
+  // Проверяем сессию — если не админ, редирект на главную
+  (async () => {
+    const { data: { session } } = await _supa.auth.getSession();
+    if (!session) { location.href = 'index.html'; return; }
+
+    const { data: profile } = await _supa
+      .from('profiles')
+      .select('is_admin, email')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile?.is_admin) { location.href = 'index.html'; return; }
+
+    document.getElementById('adm-user-email').textContent = session.user.email;
+    document.getElementById('app').style.display = 'block';
+    loadUsers();
+  })();
+</script>
+</body>
+</html>

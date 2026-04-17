@@ -212,6 +212,7 @@ def _icon_png_path() -> Optional[Path]:
             return p
     return None
 _app_ready = False   # True after _init_app_state() completes
+_deep_link_url: Optional[str] = None  # tgwsproxy:// URL from intent
 
 
 def _secret_storage_path() -> Path:
@@ -323,11 +324,59 @@ def _probe_proxy_port_open() -> bool:
         return False
 
 
+def _extract_deep_link_from_intent(intent) -> Optional[str]:
+    """Extract tgwsproxy:// URL from an Android Intent."""
+    try:
+        data = intent.getDataString()
+        if data and data.startswith("tgwsproxy://"):
+            return data
+    except Exception:
+        pass
+    return None
+
+
+def _init_deep_link() -> None:
+    """Check if the app was launched via deep link and store the URL."""
+    global _deep_link_url
+    try:
+        from jnius import autoclass
+        PythonActivity = autoclass("org.kivy.android.PythonActivity")
+        activity = PythonActivity.mActivity
+        if activity is None:
+            return
+        intent = activity.getIntent()
+        url = _extract_deep_link_from_intent(intent)
+        if url:
+            _deep_link_url = url
+            # Clear intent data so it's not re-read on resume
+            intent.setData(None)
+    except Exception:
+        pass
+
+
+def _bind_new_intent_handler() -> None:
+    """Handle deep links when the app is already running (onNewIntent)."""
+    try:
+        from android.activity import bind as activity_bind
+
+        def _on_new_intent(intent):
+            global _deep_link_url
+            url = _extract_deep_link_from_intent(intent)
+            if url:
+                _deep_link_url = url
+
+        activity_bind(on_new_intent=_on_new_intent)
+    except Exception:
+        pass
+
+
 def _init_app_state() -> None:
     global SECRET, _running, _app_ready
     SECRET = _ensure_secret()
     if _probe_proxy_port_open():
         _running = True
+    _init_deep_link()
+    _bind_new_intent_handler()
     _app_ready = True
 
 
@@ -929,6 +978,12 @@ class Handler(BaseHTTPRequestHandler):
             except OSError:
                 self.send_response(404)
                 self.end_headers()
+
+        elif self.path == "/api/deep-link":
+            global _deep_link_url
+            url = _deep_link_url
+            _deep_link_url = None  # consume once
+            self._send_json({"url": url})
 
         elif self.path == "/api/version":
             self._send_json({"version": APP_VERSION, "serve_port": SERVE_PORT})
