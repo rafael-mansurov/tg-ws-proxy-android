@@ -2606,17 +2606,16 @@
         // Если identities пустые — email уже зарегистрирован
         if (data.user?.identities?.length === 0) {
           _setAuthError('Email уже зарегистрирован — войдите');
-          _btnReady(btn, 'Зарегистрироваться');
           return;
         }
         _showConfirmationSent(email);
-        _btnReady(btn, 'Зарегистрироваться');
         return;
       } else {
         const { error } = await _supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        await checkSubscription();
+        return; // если checkSubscription скрыл overlay — кнопку не трогаем
       }
-      await checkSubscription();
     } catch (e) {
       const msg = e.message || 'Ошибка';
       if (msg.includes('already registered') || msg.includes('User already registered')) {
@@ -2625,11 +2624,11 @@
         _setAuthError('Неверный email или пароль');
       } else if (msg.toLowerCase().includes('email not confirmed')) {
         _showConfirmationSent(email);
-        _btnReady(btn, 'Войти');
-        return;
       } else {
         _setAuthError(msg);
       }
+    } finally {
+      // Всегда восстанавливаем кнопку — если overlay скрыт, пользователь её не видит
       _btnReady(btn, isReg ? 'Зарегистрироваться' : 'Войти');
     }
   }
