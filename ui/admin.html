@@ -469,7 +469,12 @@
 
   async function _adminAction(body) {
     const { data, error } = await _supa.functions.invoke('admin-action', { body });
-    if (error) { await _admAlert('Ошибка: ' + error.message); return false; }
+    if (error) {
+      let msg = error.message || 'Ошибка сервера';
+      try { const j = await error.context?.json(); if (j?.error) msg = j.error; } catch(_) {}
+      await _admAlert('Ошибка: ' + msg);
+      return false;
+    }
     return true;
   }
 

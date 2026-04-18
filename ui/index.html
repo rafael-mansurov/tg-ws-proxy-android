@@ -2236,6 +2236,18 @@
   let _subProfile   = null;   // текущий профиль из БД
   let _authMode     = 'register'; // 'register' | 'login'
   let _subStatus    = null;   // 'trial' | 'active' | 'expired'
+  let _deepLinkPollTimer = null;
+
+  function _startDeepLinkPolling() {
+    if (_deepLinkPollTimer) return;
+    _deepLinkPollTimer = setInterval(async () => {
+      if (_authMode === 'reset') { _stopDeepLinkPolling(); return; }
+      await _checkDeepLink();
+    }, 2000);
+  }
+  function _stopDeepLinkPolling() {
+    if (_deepLinkPollTimer) { clearInterval(_deepLinkPollTimer); _deepLinkPollTimer = null; }
+  }
 
   // Показать/скрыть экраны
   function _showScreen(name) {
@@ -2253,6 +2265,7 @@
 
   function _showApp()     { _hideAllOverlays(); }
   function _showAuth() {
+    _stopDeepLinkPolling();
     document.getElementById('auth-overlay').classList.remove('is-hidden');
     document.getElementById('paywall-overlay').classList.add('is-hidden');
     // Сбрасываем в режим регистрации
@@ -2451,6 +2464,7 @@
   }
 
   function authBackToLogin() {
+    _stopDeepLinkPolling();
     _authMode = 'login';
     _pendingConfirmEmail = '';
     document.getElementById('auth-sent').classList.remove('is-on');
@@ -2593,6 +2607,7 @@
         }
         document.getElementById('auth-sent-resend').style.display = 'none';
         document.getElementById('auth-sent').classList.add('is-on');
+        _startDeepLinkPolling();
         _btnReady(btn, 'Отправить письмо');
       } catch (e) {
         _setAuthError(e.message || 'Ошибка — попробуйте позже');
@@ -2677,10 +2692,14 @@
     try {
       const { data: { session } } = await _supa.auth.getSession();
       if (!session) { _showAuth(); return; }
-      const { error } = await _supa.functions.invoke('admin-action', {
+      const { data: fnData, error } = await _supa.functions.invoke('admin-action', {
         body: { action: 'delete-self' }
       });
-      if (error) throw new Error(error.message || 'Ошибка сервера');
+      if (error) {
+        let msg = error.message || 'Ошибка сервера';
+        try { const j = await error.context?.json(); if (j?.error) msg = j.error; } catch(_) {}
+        throw new Error(msg);
+      }
       await _supa.auth.signOut();
     } catch (e) {
       await _appAlert('Не удалось удалить аккаунт: ' + (e.message || 'Попробуйте позже'));
@@ -2693,12 +2712,8 @@
 
   async function authLogout() {
     document.getElementById('acct-backdrop').classList.remove('is-open');
-    try {
-      await _supa.auth.signOut();
-    } catch (_) {}
-    _subProfile = null;
-    _subStatus  = null;
-    _showAuth();
+    try { await _supa.auth.signOut(); } catch (_) {}
+    window.location.reload();
   }
 
   // ── Остановить прокси при истечении подписки ──────────────────────────────
@@ -2828,6 +2843,7 @@
       const tempPw = crypto.randomUUID() + crypto.randomUUID();
       await _supa.auth.updateUser({ password: tempPw });
 
+      _stopDeepLinkPolling();
       _authMode = 'reset';
       document.getElementById('auth-overlay').classList.remove('is-hidden');
       document.getElementById('paywall-overlay').classList.add('is-hidden');
