@@ -165,6 +165,35 @@
       background: #229ED9; color: #fff; font-size: 14px;
       font-weight: 700; font-family: inherit; cursor: pointer;
     }
+    .modal-confirm.danger-confirm {
+      background: #e03d2f;
+    }
+
+    /* ── Custom confirm/alert dialog ── */
+    .app-dialog-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px); z-index: 2000;
+      display: none; align-items: center; justify-content: center; padding: 24px;
+    }
+    .app-dialog-backdrop.open { display: flex; }
+    .app-dialog {
+      background: #1a1a1f; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 320px;
+    }
+    .app-dialog-title { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .app-dialog-msg   { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.5; margin-bottom: 24px; }
+    .app-dialog-btns  { display: flex; gap: 8px; justify-content: flex-end; }
+    .app-dialog-cancel {
+      padding: 9px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+      background: transparent; color: rgba(255,255,255,0.5); font-size: 14px;
+      font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+    .app-dialog-ok {
+      padding: 9px 18px; border-radius: 10px; border: none;
+      background: #229ED9; color: #fff; font-size: 14px;
+      font-weight: 700; font-family: inherit; cursor: pointer;
+    }
+    .app-dialog-ok.danger { background: #e03d2f; }
 
     @media (max-width: 600px) {
       .main { padding: 16px; }
@@ -233,6 +262,15 @@
   </div>
 </div>
 
+<!-- ── Custom confirm/alert ── -->
+<div class="app-dialog-backdrop" id="adm-dialog">
+  <div class="app-dialog">
+    <div class="app-dialog-title" id="adm-dialog-title"></div>
+    <div class="app-dialog-msg"   id="adm-dialog-msg"></div>
+    <div class="app-dialog-btns" id="adm-dialog-btns"></div>
+  </div>
+</div>
+
 <script>
   const SUPA_URL  = 'https://fahpfsterakqentqqazz.supabase.co';
   const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg';
@@ -242,6 +280,36 @@
   let _currentFilter = 'all';
   let _modalUserId = null;
   let _modalUserEmail = null;
+
+  // ── Custom dialogs (confirm/alert не работают в Android WebView) ───────────
+  function _admDialog(title, msg, buttons) {
+    return new Promise(resolve => {
+      document.getElementById('adm-dialog-title').textContent = title;
+      document.getElementById('adm-dialog-msg').textContent   = msg;
+      const btnsEl = document.getElementById('adm-dialog-btns');
+      btnsEl.innerHTML = '';
+      buttons.forEach(({ label, value, cls }) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.className   = cls || 'app-dialog-ok';
+        btn.onclick = () => {
+          document.getElementById('adm-dialog').classList.remove('open');
+          resolve(value);
+        };
+        btnsEl.appendChild(btn);
+      });
+      document.getElementById('adm-dialog').classList.add('open');
+    });
+  }
+  function _admConfirm(title, msg, danger) {
+    return _admDialog(title, msg, [
+      { label: 'Отмена', value: false, cls: 'app-dialog-cancel' },
+      { label: 'Да',     value: true,  cls: danger ? 'app-dialog-ok danger' : 'app-dialog-ok' }
+    ]);
+  }
+  function _admAlert(msg) {
+    return _admDialog('', msg, [{ label: 'OK', value: true, cls: 'app-dialog-ok' }]);
+  }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   async function adminLogout() {
@@ -360,6 +428,7 @@
         </div>
         <div class="user-card-actions-row2">
           <button class="action-btn" onclick="resetPassword('${esc(u.email)}')"><i data-lucide="key-round"></i> Сбросить пароль</button>
+          <button class="action-btn danger" onclick="deleteUser('${u.id}','${esc(u.email)}')"><i data-lucide="trash-2"></i> Удалить</button>
         </div>
       </div>`;
     }).join('');
@@ -400,7 +469,7 @@
 
   async function _adminAction(body) {
     const { data, error } = await _supa.functions.invoke('admin-action', { body });
-    if (error) { alert('Ошибка: ' + error.message); return false; }
+    if (error) { await _admAlert('Ошибка: ' + error.message); return false; }
     return true;
   }
 
@@ -413,21 +482,27 @@
   }
 
   async function revokeUser(userId, email) {
-    if (!confirm(`Отозвать доступ у ${email}?`)) return;
+    if (!await _admConfirm('Отозвать доступ?', email, false)) return;
     const ok = await _adminAction({ action: 'revoke', userId });
     if (ok) loadUsers();
   }
 
   async function activateUser(userId, email) {
-    if (!confirm(`Активировать подписку на 31 день для ${email}?`)) return;
+    if (!await _admConfirm('Активировать на 31 день?', email, false)) return;
     const ok = await _adminAction({ action: 'activate', userId });
     if (ok) loadUsers();
   }
 
   async function resetPassword(email) {
-    if (!confirm(`Отправить письмо сброса пароля на ${email}?`)) return;
+    if (!await _admConfirm('Сбросить пароль?', `Письмо с инструкцией отправится на\n${email}`, false)) return;
     const ok = await _adminAction({ action: 'reset-password', email });
-    if (ok) alert(`Письмо отправлено на ${email}`);
+    if (ok) await _admAlert(`Письмо отправлено на ${email}`);
+  }
+
+  async function deleteUser(userId, email) {
+    if (!await _admConfirm('Удалить аккаунт?', `${email}\n\nПользователь будет удалён из базы и не сможет войти.`, true)) return;
+    const ok = await _adminAction({ action: 'delete-user', userId });
+    if (ok) loadUsers();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

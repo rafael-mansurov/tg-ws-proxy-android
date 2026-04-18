@@ -1454,7 +1454,7 @@
             <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
           </div>
           <!-- Панель управления (только для is_admin) -->
-          <div class="sett-row sett-row-divider" id="sett-admin-row" style="display:none" onclick="window.location.href='admin.html'" style="cursor:pointer">
+          <div class="sett-row sett-row-divider" id="sett-admin-row" style="display:none;cursor:pointer" onclick="window.location.href='admin.html'">
             <div class="sett-row-icon" style="background:rgba(255,255,255,0.07)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
@@ -1799,7 +1799,17 @@
     transition: opacity 0.2s, transform 0.15s;
   }
   .auth-btn:active { opacity: 0.88; transform: scale(0.985); }
-  .auth-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .auth-btn .btn-spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-spin 0.7s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes btn-spin { to { transform: rotate(360deg); } }
   .auth-toggle {
     text-align: center; font-size: 13px; color: rgba(255,255,255,0.45);
     margin-top: 18px; cursor: pointer;
@@ -1874,9 +1884,8 @@
   }
   .paywall-price-period { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 2px; }
   .paywall-price-badge {
-    background: rgba(34,158,217,0.15); border: 1px solid rgba(34,158,217,0.25);
-    border-radius: 10px; padding: 6px 12px;
-    font-size: 12px; font-weight: 700; color: #229ED9;
+    font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3);
+    text-transform: uppercase; letter-spacing: 0.08em;
     white-space: nowrap;
   }
 
@@ -2307,6 +2316,10 @@
       _subProfile = profile;
     }
 
+    // Показываем пункт админки сразу после загрузки профиля — независимо от статуса подписки
+    const _admRow = document.getElementById('sett-admin-row');
+    if (_admRow) _admRow.style.display = _subProfile.is_admin ? 'flex' : 'none';
+
     const now = Date.now();
     const trialEnd = new Date(_subProfile.trial_start).getTime() + 7 * 24 * 60 * 60 * 1000;
     const paidUntil = _subProfile.paid_until ? new Date(_subProfile.paid_until).getTime() : 0;
@@ -2543,13 +2556,22 @@
     eoff.style.display = show ? '' : 'none';
   }
 
+  function _btnLoading(btn, label) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="btn-spinner"></span>${label}`;
+  }
+  function _btnReady(btn, label) {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+
   async function authSubmit() {
     const email = document.getElementById('auth-email').value.trim();
     const btn   = document.getElementById('auth-submit-btn');
 
     if (_authMode === 'forgot') {
       if (!email) { _setAuthError('Введите email'); return; }
-      btn.disabled = true; btn.textContent = 'Отправляем...';
+      _btnLoading(btn, 'Отправляем…');
       _setAuthError('');
       const { error } = await _supa.auth.resetPasswordForEmail(email, {
         redirectTo: 'tgwsproxy://reset-password'
@@ -2560,11 +2582,11 @@
           ? 'Слишком много попыток — подождите немного и попробуйте снова'
           : msg;
         _setAuthError(friendly);
-        btn.disabled = false;
-        btn.textContent = 'Отправить письмо';
+        _btnReady(btn, 'Отправить письмо');
         return;
       }
       document.getElementById('auth-sent').classList.add('is-on');
+      _btnReady(btn, 'Отправить письмо');
       return;
     }
 
@@ -2573,24 +2595,22 @@
     if (!email || !password) { _setAuthError('Заполните все поля'); return; }
     if (password.length < 6) { _setAuthError('Пароль минимум 6 символов'); return; }
 
-    btn.disabled = true;
-    btn.textContent = '...';
+    const isReg = _authMode === 'register';
+    _btnLoading(btn, isReg ? 'Регистрируем…' : 'Входим…');
     _setAuthError('');
 
     try {
-      if (_authMode === 'register') {
+      if (isReg) {
         const { data, error } = await _supa.auth.signUp({ email, password });
         if (error) throw error;
         // Если identities пустые — email уже зарегистрирован
         if (data.user?.identities?.length === 0) {
           _setAuthError('Email уже зарегистрирован — войдите');
-          btn.disabled = false;
-          btn.textContent = 'Зарегистрироваться';
+          _btnReady(btn, 'Зарегистрироваться');
           return;
         }
         _showConfirmationSent(email);
-        btn.disabled = false;
-        btn.textContent = 'Зарегистрироваться';
+        _btnReady(btn, 'Зарегистрироваться');
         return;
       } else {
         const { error } = await _supa.auth.signInWithPassword({ email, password });
@@ -2605,14 +2625,12 @@
         _setAuthError('Неверный email или пароль');
       } else if (msg.toLowerCase().includes('email not confirmed')) {
         _showConfirmationSent(email);
-        btn.disabled = false;
-        btn.textContent = 'Войти';
+        _btnReady(btn, 'Войти');
         return;
       } else {
         _setAuthError(msg);
       }
-      btn.disabled = false;
-      btn.textContent = _authMode === 'register' ? 'Зарегистрироваться' : 'Войти';
+      _btnReady(btn, isReg ? 'Зарегистрироваться' : 'Войти');
     }
   }
 
@@ -2818,11 +2836,11 @@
     const btn = document.getElementById('newpw-btn');
     if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
     err.textContent = '';
-    btn.disabled = true; btn.textContent = 'Сохраняем...';
+    _btnLoading(btn, 'Сохраняем…');
     const { error } = await _supa.auth.updateUser({ password: pw });
     if (error) {
       err.textContent = error.message;
-      btn.disabled = false; btn.textContent = 'Сохранить пароль';
+      _btnReady(btn, 'Сохранить пароль');
       return;
     }
     // Пароль изменён — продолжаем как обычный вход
@@ -3477,6 +3495,9 @@
     const settEl = document.getElementById('page-settings');
     settEl.classList.add('is-active');
     settEl.scrollTop = 0;
+    // Синхронизируем видимость строки Admin при каждом открытии настроек
+    const _ar = document.getElementById('sett-admin-row');
+    if (_ar) _ar.style.display = _subProfile?.is_admin ? 'flex' : 'none';
     document.getElementById('page-faq').classList.remove('is-active');
     document.getElementById('header-back').classList.add('is-on');
     document.getElementById('header-app-icon').classList.add('is-hidden');
