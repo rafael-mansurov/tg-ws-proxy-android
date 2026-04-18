@@ -2477,10 +2477,7 @@
 
     let statusText = '';
     if (paidUntil && paidUntil > new Date()) {
-      const puOpts = paidUntil.getFullYear() !== new Date().getFullYear()
-        ? { day: 'numeric', month: 'long', year: 'numeric' }
-        : { day: 'numeric', month: 'long' };
-      statusText = 'Подписка активна до ' + paidUntil.toLocaleDateString('ru', puOpts);
+      statusText = 'Подписка активна до ' + paidUntil.toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' });
     } else if (now < trialEnd) {
       const days = Math.ceil((trialEnd - now) / 86400000);
       statusText = `Триал (${_daysWord(days)} осталось)`;
@@ -2663,12 +2660,18 @@
   async function deleteAccount() {
     if (!await _appConfirm('Удалить аккаунт?', 'Все данные будут удалены безвозвратно.')) return;
     document.getElementById('acct-backdrop').classList.remove('is-open');
-    const { data: { session } } = await _supa.auth.getSession();
-    if (!session) return;
-    await _supa.functions.invoke('admin-action', {
-      body: { action: 'delete-self' }
-    });
-    await _supa.auth.signOut();
+    try {
+      const { data: { session } } = await _supa.auth.getSession();
+      if (!session) { _showAuth(); return; }
+      const { error } = await _supa.functions.invoke('admin-action', {
+        body: { action: 'delete-self' }
+      });
+      if (error) throw new Error(error.message || 'Ошибка сервера');
+      await _supa.auth.signOut();
+    } catch (e) {
+      await _appAlert('Не удалось удалить аккаунт: ' + (e.message || 'Попробуйте позже'));
+      return;
+    }
     _subProfile = null;
     _subStatus  = null;
     _showAuth();
@@ -2676,7 +2679,9 @@
 
   async function authLogout() {
     document.getElementById('acct-backdrop').classList.remove('is-open');
-    await _supa.auth.signOut();
+    try {
+      await _supa.auth.signOut();
+    } catch (_) {}
     _subProfile = null;
     _subStatus  = null;
     _showAuth();
@@ -4567,27 +4572,40 @@
       }
     }, { passive: true });
 
+    let _ptrBusy = false;
+
     document.addEventListener('touchend', async () => {
       if (!pulling) return;
       const wasTriggered = triggered;
       _resetIndicator();
-      if (wasTriggered) {
-        // Затухание контента
-        const main = document.getElementById('page-main');
-        if (main) { main.style.transition = 'opacity 0.18s'; main.style.opacity = '0.15'; }
+      if (!wasTriggered || _ptrBusy) return;
+      _ptrBusy = true;
 
+      // Блокируем все касания на странице
+      const main = document.getElementById('page-main');
+      if (main) {
+        main.style.transition = 'opacity 0.18s';
+        main.style.opacity = '0.25';
+        main.style.pointerEvents = 'none';
+      }
+      document.body.style.pointerEvents = 'none';
+
+      try {
         // Таймаут 5 сек — чтобы не зависнуть если сеть медленная
         const timeout = new Promise(r => setTimeout(r, 5000));
         await Promise.race([
           Promise.allSettled([pollStatus(), checkSubscription(), checkForUpdate()]),
           timeout
         ]);
-
-        // Появление контента
+      } finally {
+        // Всегда восстанавливаем — даже если что-то упало
         if (main) {
+          main.style.pointerEvents = '';
           main.style.opacity = '1';
           setTimeout(() => { main.style.transition = ''; }, 250);
         }
+        document.body.style.pointerEvents = '';
+        _ptrBusy = false;
       }
     });
   })();
