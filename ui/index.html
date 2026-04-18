@@ -2072,8 +2072,6 @@
       </svg>
       Выйти из аккаунта
     </button>
-    <div class="acct-divider"></div>
-    <button class="acct-delete-btn" onclick="deleteAccount()">Удалить аккаунт</button>
   </div>
 </div><!-- /#acct-backdrop -->
 
@@ -2238,9 +2236,6 @@
   let _subStatus    = null;   // 'trial' | 'active' | 'expired'
   let _deepLinkPollTimer = null;
 
-  function _logActivity(event_type) {
-    _supa.functions.invoke('log-activity', { body: { event_type } }).catch(() => {});
-  }
 
   function _startDeepLinkPolling() {
     if (_deepLinkPollTimer) return;
@@ -2643,7 +2638,6 @@
       } else {
         const { error } = await _supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        _logActivity('login');
         await checkSubscription();
         return; // если checkSubscription скрыл overlay — кнопку не трогаем
       }
@@ -2691,33 +2685,8 @@
     ]);
   }
 
-  async function deleteAccount() {
-    if (!await _appConfirm('Удалить аккаунт?', 'Все данные будут удалены безвозвратно.')) return;
-    document.getElementById('acct-backdrop').classList.remove('is-open');
-    try {
-      const { data: { session } } = await _supa.auth.getSession();
-      if (!session) { _showAuth(); return; }
-      const { data: fnData, error } = await _supa.functions.invoke('admin-action', {
-        body: { action: 'delete-self' }
-      });
-      if (error) {
-        let msg = error.message || 'Ошибка сервера';
-        try { const j = await error.context?.json(); if (j?.error) msg = j.error; } catch(_) {}
-        throw new Error(msg);
-      }
-      await _supa.auth.signOut();
-    } catch (e) {
-      await _appAlert('Не удалось удалить аккаунт: ' + (e.message || 'Попробуйте позже'));
-      return;
-    }
-    _subProfile = null;
-    _subStatus  = null;
-    _showAuth();
-  }
-
   async function authLogout() {
     document.getElementById('acct-backdrop').classList.remove('is-open');
-    try { _logActivity('logout'); } catch (_) {}
     try { await _supa.auth.signOut(); } catch (_) {}
     window.location.reload();
   }
