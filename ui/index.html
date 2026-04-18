@@ -2238,6 +2238,10 @@
   let _subStatus    = null;   // 'trial' | 'active' | 'expired'
   let _deepLinkPollTimer = null;
 
+  function _logActivity(event_type) {
+    _supa.functions.invoke('log-activity', { body: { event_type } }).catch(() => {});
+  }
+
   function _startDeepLinkPolling() {
     if (_deepLinkPollTimer) return;
     _deepLinkPollTimer = setInterval(async () => {
@@ -2639,6 +2643,7 @@
       } else {
         const { error } = await _supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        _logActivity('login');
         await checkSubscription();
         return; // если checkSubscription скрыл overlay — кнопку не трогаем
       }
@@ -2712,6 +2717,7 @@
 
   async function authLogout() {
     document.getElementById('acct-backdrop').classList.remove('is-open');
+    try { _logActivity('logout'); } catch (_) {}
     try { await _supa.auth.signOut(); } catch (_) {}
     window.location.reload();
   }
