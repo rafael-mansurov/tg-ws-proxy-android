@@ -2021,6 +2021,7 @@
     background: linear-gradient(180deg, rgba(16,18,24,0.99) 0%, rgba(10,11,15,1) 100%);
     border-radius: inherit;
     gap: 0;
+    overflow: hidden;
   }
   .auth-sent.is-on { display: flex; }
   .auth-sent-icon {
@@ -2570,20 +2571,33 @@
       if (!email) { _setAuthError('Введите email'); return; }
       _btnLoading(btn, 'Отправляем…');
       _setAuthError('');
-      const { error } = await _supa.auth.resetPasswordForEmail(email, {
-        redirectTo: 'tgwsproxy://reset-password'
-      });
-      if (error) {
-        const msg = error.message || '';
-        const friendly = msg.toLowerCase().includes('rate limit')
-          ? 'Слишком много попыток — подождите немного и попробуйте снова'
-          : msg;
-        _setAuthError(friendly);
+      try {
+        const { data: emailExists, error: rpcErr } = await _supa.rpc('check_email_registered', { p_email: email });
+        if (rpcErr) throw rpcErr;
+        if (!emailExists) {
+          _setAuthError('Аккаунт не найден — сначала зарегистрируйся');
+          _btnReady(btn, 'Отправить письмо');
+          return;
+        }
+        const { error } = await _supa.auth.resetPasswordForEmail(email, {
+          redirectTo: 'tgwsproxy://reset-password'
+        });
+        if (error) {
+          const msg = error.message || '';
+          const friendly = msg.toLowerCase().includes('rate limit')
+            ? 'Слишком много попыток — подождите немного и попробуйте снова'
+            : msg;
+          _setAuthError(friendly);
+          _btnReady(btn, 'Отправить письмо');
+          return;
+        }
+        document.getElementById('auth-sent-resend').style.display = 'none';
+        document.getElementById('auth-sent').classList.add('is-on');
         _btnReady(btn, 'Отправить письмо');
-        return;
+      } catch (e) {
+        _setAuthError(e.message || 'Ошибка — попробуйте позже');
+        _btnReady(btn, 'Отправить письмо');
       }
-      document.getElementById('auth-sent').classList.add('is-on');
-      _btnReady(btn, 'Отправить письмо');
       return;
     }
 
@@ -4609,6 +4623,14 @@
       }
     });
   })();
+
+  // Когда приложение возвращается на передний план — проверяем новый deep link
+  // (пользователь нажал ссылку из письма пока приложение уже было открыто)
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+    if (_authMode === 'reset') return; // уже на форме нового пароля
+    await _checkDeepLink();
+  });
 
   initHeaderIcon();
   initAuth().then(() => {
