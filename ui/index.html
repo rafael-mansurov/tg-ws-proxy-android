@@ -2349,17 +2349,15 @@
     const trialEnd = new Date(_subProfile.trial_start).getTime() + 7 * 24 * 60 * 60 * 1000;
     const paidUntil = _subProfile.paid_until ? new Date(_subProfile.paid_until).getTime() : 0;
 
-    badge.className = 'sub-status-badge';
+    if (badge) badge.className = 'sub-status-badge';
     let settSub = '';
     if (paidUntil > now) {
       const days = Math.ceil((paidUntil - now) / 86400000);
-      badge.classList.add(days <= 3 ? 'expiring' : 'active');
-      badge.textContent = days <= 3 ? `Активна (${_daysWord(days)} осталось)` : 'Активна';
+      if (badge) { badge.classList.add(days <= 3 ? 'expiring' : 'active'); badge.textContent = days <= 3 ? `Активна (${_daysWord(days)} осталось)` : 'Активна'; }
       settSub = days <= 3 ? `Подписка активна (${_daysWord(days)} осталось)` : 'Подписка активна';
     } else if (now < trialEnd) {
       const days = Math.ceil((trialEnd - now) / 86400000);
-      badge.classList.add('trial');
-      badge.textContent = `Триал (${_daysWord(days)} осталось)`;
+      if (badge) { badge.classList.add('trial'); badge.textContent = `Триал (${_daysWord(days)} осталось)`; }
       settSub = `Триал (${_daysWord(days)} осталось)`;
     }
     const settAcctSub = document.getElementById('sett-acct-sub');
@@ -2647,9 +2645,12 @@
 
   async function deleteAccount() {
     if (!await _appConfirm('Удалить аккаунт?', 'Все данные будут удалены безвозвратно.')) return;
+    document.getElementById('acct-backdrop').classList.remove('is-open');
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) return;
-    await _supa.from('profiles').delete().eq('id', session.user.id);
+    await _supa.functions.invoke('admin-action', {
+      body: { action: 'delete-self' }
+    });
     await _supa.auth.signOut();
     _subProfile = null;
     _subStatus  = null;
@@ -2755,20 +2756,37 @@
       const { url } = await res.json();
       if (!url || !url.startsWith('tgwsproxy://reset-password')) return;
 
-      // Парсим фрагмент: tgwsproxy://reset-password#access_token=...&type=recovery
-      const fragment = url.split('#')[1] || '';
-      const params = new URLSearchParams(fragment);
-      const accessToken  = params.get('access_token');
-      const refreshToken = params.get('refresh_token') || '';
-      const type         = params.get('type');
+      let gotSession = false;
 
-      if (type !== 'recovery' || !accessToken) return;
+      // ── PKCE flow (Supabase JS v2 по умолчанию): ?code=XXXXX ──
+      const qIdx = url.indexOf('?');
+      if (qIdx !== -1) {
+        const qStr = url.slice(qIdx + 1).split('#')[0]; // убираем fragment если есть
+        const code = new URLSearchParams(qStr).get('code');
+        if (code) {
+          const { data, error } = await _supa.auth.exchangeCodeForSession(code);
+          if (!error && data?.session) gotSession = true;
+        }
+      }
 
-      // Устанавливаем временную сессию с recovery-токеном
-      const { error } = await _supa.auth.setSession({
-        access_token: accessToken, refresh_token: refreshToken
-      });
-      if (error) return;
+      // ── Legacy implicit flow: #access_token=...&type=recovery ──
+      if (!gotSession) {
+        const hIdx = url.indexOf('#');
+        if (hIdx !== -1) {
+          const params       = new URLSearchParams(url.slice(hIdx + 1));
+          const accessToken  = params.get('access_token');
+          const refreshToken = params.get('refresh_token') || '';
+          const type         = params.get('type');
+          if (type === 'recovery' && accessToken) {
+            const { data, error } = await _supa.auth.setSession({
+              access_token: accessToken, refresh_token: refreshToken
+            });
+            if (!error && data?.session) gotSession = true;
+          }
+        }
+      }
+
+      if (!gotSession) return;
 
       // Немедленно инвалидируем старый пароль — ставим случайный временный
       const tempPw = crypto.randomUUID() + crypto.randomUUID();
@@ -2777,7 +2795,7 @@
       _authMode = 'reset';
       document.getElementById('auth-overlay').classList.remove('is-hidden');
       document.getElementById('paywall-overlay').classList.add('is-hidden');
-      document.getElementById('auth-sent').classList.remove('is-on'); // убираем экран "письмо отправлено" если он был
+      document.getElementById('auth-sent').classList.remove('is-on');
       document.getElementById('auth-newpw-screen').classList.add('is-on');
     } catch (e) {
       // /api/deep-link недоступен (браузер/desktop) — игнорируем
@@ -3432,7 +3450,9 @@
   function openFaq() {
     if (uiBusy) return;
     document.getElementById('page-settings').classList.remove('is-active');
-    document.getElementById('page-faq').classList.add('is-active');
+    const faqEl = document.getElementById('page-faq');
+    faqEl.classList.add('is-active');
+    faqEl.scrollTop = 0;
     currentPage = 'faq';
     history.pushState({ page: 'faq' }, '');
     document.getElementById('header-title').textContent = 'Частые вопросы';
@@ -3454,7 +3474,9 @@
     currentPage = 'settings';
     history.pushState({ page: 'settings' }, '');
     document.getElementById('page-main').classList.remove('is-active');
-    document.getElementById('page-settings').classList.add('is-active');
+    const settEl = document.getElementById('page-settings');
+    settEl.classList.add('is-active');
+    settEl.scrollTop = 0;
     document.getElementById('page-faq').classList.remove('is-active');
     document.getElementById('header-back').classList.add('is-on');
     document.getElementById('header-app-icon').classList.add('is-hidden');

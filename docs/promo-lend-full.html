@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telegram Proxy для Android</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/rafael-mansurov/tg-ws-proxy-android/main/icon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --marathon-black: #0e1015;
+      --marathon-white: #ffffff;
+      --site-gutter: 24px;
+      --block-gap: 150px;
+      /* Общий сдвиг «пятен» к низу экрана */
+      --blobs-offset-y: clamp(168px, 46dvh, 480px);
+      /* Фикс-шапка: сверху и снизу одинаковый отступ (--hero-topbar-pad-bottom) + safe-top + строка */
+      --hero-topbar-pad-bottom: 12px;
+      --hero-topbar-slot-h: calc(
+        env(safe-area-inset-top, 0px) + (36px + var(--hero-topbar-pad-bottom) * 2)
+      );
+
+      /* Тексты: правь значения здесь — селекторы ниже их подхватывают */
+      --text-h1-weight: 600;
+      --text-h1-size: 40px;
+      --text-h1-lh: 120%;
+      --text-h1-ls: -0.02em;
+      --text-h1-color: #fff;
+
+      --text-h2-weight: 600;
+      --text-h2-size: 18px;
+      --text-h2-lh: 132%;
+      --text-h2-ls: -0.03em;
+      --text-h2-width: 243px;
+
+      --text-h3-weight: 700;
+      --text-h3-size: 14px;
+      --text-h3-lh: 132%;
+      --text-h3-ls: -0.03em;
+
+      --text-h4-weight: 500;
+      --text-h4-size: 12px;
+      --text-h4-lh: 132%;
+      --text-h4-ls: -0.02em;
+      --text-h4-color: rgba(255, 255, 255, 0.5);
+
+      --text-cta-weight: 600;
+      --text-cta-size: 14px;
+      --text-cta-lh: 110%;
+      --text-cta-ls: 0;
+      --text-cta-color: var(--marathon-black);
+
+      /* Кнопка CTA (форма + тень; текст — --text-cta-*) */
+      --cta-pad-y: 8px;
+      --cta-pad-x: 16px;
+      --cta-radius: 1000px;
+      --cta-bg: var(--marathon-white);
+      --cta-transition-bg: 0.22s ease;
+      --cta-transition-shadow: 0.22s ease;
+      --cta-transition-transform: 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      --cta-hover-ty: -3px;
+      --cta-hover-scale: 1.04;
+      --cta-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 6px 14px rgba(0, 0, 0, 0.32);
+      --cta-active-scale: 0.98;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    /*
+     * Скролл на body: на iOS/WebKit связка html overflow-x + scroll часто ломает колесо/тач.
+     * html = фиксированный вьюпорт, прокрутка — только у body.
+     */
+    html {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--marathon-black);
+    }
+
+    body {
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      overflow-x: clip;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: none;
+      scroll-behavior: smooth;
+      scroll-padding-top: var(--hero-topbar-slot-h);
+      font-family: "Inter Tight", system-ui, sans-serif;
+      background-color: var(--marathon-black);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ----- Тексты + кнопка CTA: селекторы рядом; цифры в :root ----- */
+    h1.promo-block-2__text {
+      margin: 0;
+      width: 100%;
+      max-width: 100%;
+      font-weight: var(--text-h1-weight);
+      font-size: var(--text-h1-size);
+      line-height: var(--text-h1-lh);
+      letter-spacing: var(--text-h1-ls);
+      color: var(--text-h1-color);
+      white-space: pre-wrap;
+    }
+
+    h2.title {
+      margin: 0;
+      width: var(--text-h2-width);
+      font-weight: var(--text-h2-weight);
+      font-size: var(--text-h2-size);
+      line-height: var(--text-h2-lh);
+      letter-spacing: var(--text-h2-ls);
+      text-align: center;
+      color: var(--marathon-white);
+    }
+
+    h3.hero__brand-title {
+      margin: 0;
+      font-weight: var(--text-h3-weight);
+      font-size: var(--text-h3-size);
+      line-height: var(--text-h3-lh);
+      letter-spacing: var(--text-h3-ls);
+      color: var(--marathon-white);
+    }
+
+    h4.hero__brand-sub {
+      margin: 0;
+      font-weight: var(--text-h4-weight);
+      font-size: var(--text-h4-size);
+      line-height: var(--text-h4-lh);
+      letter-spacing: var(--text-h4-ls);
+      color: var(--text-h4-color);
+    }
+
+    .cta__label {
+      font-weight: var(--text-cta-weight);
+      font-size: var(--text-cta-size);
+      line-height: var(--text-cta-lh);
+      letter-spacing: var(--text-cta-ls);
+      text-align: center;
+      color: var(--text-cta-color);
+      white-space: nowrap;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: var(--cta-pad-y) var(--cta-pad-x);
+      border-radius: var(--cta-radius);
+      background: var(--cta-bg);
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      appearance: none;
+      -webkit-appearance: none;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        background-color var(--cta-transition-bg),
+        box-shadow var(--cta-transition-shadow),
+        transform var(--cta-transition-transform);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .cta:hover {
+        background: var(--cta-bg);
+        transform: translateY(var(--cta-hover-ty)) scale(var(--cta-hover-scale));
+        box-shadow: var(--cta-shadow);
+      }
+    }
+
+    .cta:active {
+      transform: scale(var(--cta-active-scale));
+    }
+
+    /*
+     * Блоковый поток (не grid): иначе minmax(100vh, auto) у корня давал высоту ≈1 экран
+     * и обрезал документ — скролл к блокам 2–3 пропадал.
+     */
+    .page-stack {
+      display: block;
+      width: 100%;
+    }
+
+    .page-stack__first {
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-height: 100vh;
+      height: 100vh;
+      min-height: 100dvh;
+      height: 100dvh;
+    }
+
+    @supports (height: 1svh) {
+      .page-stack__first {
+        min-height: 100svh;
+        height: 100svh;
+      }
+    }
+
+    /* Второй блок: отступ от первого экрана — padding (margin ломал якорь/скролл) */
+    .promo-block-2 {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+      padding: var(--block-gap) var(--site-gutter) calc(48px + env(safe-area-inset-bottom, 0px));
+      margin: 0;
+      background-color: var(--marathon-black);
+      scroll-margin-top: env(safe-area-inset-top, 0px);
+    }
+
+    .promo-block-2__char {
+      display: inline;
+      color: #fff;
+      opacity: 0.2;
+      will-change: opacity;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .promo-block-2__char {
+        opacity: 1 !important;
+        will-change: auto;
+      }
+    }
+
+    .frame {
+      position: relative;
+      width: 100%;
+      min-height: 100%;
+      height: 100%;
+      padding: 0;
+      background-color: var(--marathon-black);
+      /* Мягче стыки: два слоя вместо одного резкого перехода */
+      background-image:
+        radial-gradient(
+          ellipse 160% 100% at 50% 124%,
+          rgba(32, 22, 48, 0.22) 0%,
+          transparent 52%
+        ),
+        radial-gradient(
+          ellipse 130% 95% at 50% 182%,
+          rgba(32, 22, 48, 0.45) 0%,
+          transparent 62%
+        );
+      overflow: visible;
+    }
+
+    .page-stack__first > .frame {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    /*
+     * Фоновые пятна: как в Figma — обёртка (x, y + bounding box поворота),
+     * внутри эллипс заданного размера, rotate −56.07°, layer blur.
+     * Размеры обёрток — AABB повёрнутого прямоугольника (из экспорта макета).
+     */
+    .frame__mesh {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      /* visible: иначе filter: blur() обрезается по прямоугольнику — «пятна» с резким срезом снизу */
+      overflow: visible;
+      /* translateY отдельно от scaleX: иначе при невалидном calc весь transform отбрасывается */
+      transform: translateY(var(--blobs-offset-y));
+    }
+
+    .frame__mesh-scaler {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 82%;
+    }
+
+    @media (max-width: 767px) {
+      .frame__mesh {
+        transform: translateY(
+          calc(var(--blobs-offset-y) + clamp(100px, 14dvh, 188px))
+        );
+      }
+    }
+
+    /* Десктоп / планшет: пятна и туман на всю ширину; до 767px — как в макете */
+    @media (min-width: 768px) {
+      .frame {
+        background-image:
+          radial-gradient(
+            ellipse 240% 115% at 50% 124%,
+            rgba(32, 22, 48, 0.22) 0%,
+            transparent 52%
+          ),
+          radial-gradient(
+            ellipse 220% 100% at 50% 182%,
+            rgba(32, 22, 48, 0.45) 0%,
+            transparent 62%
+          );
+      }
+
+      /*
+       * Холст пятен = ширина макета, строго по центру экрана.
+       * scaleX от середины — при росте окна расширяется симметрично, не «ползёт» влево.
+       */
+      .frame__mesh {
+        inset: 0;
+        width: auto;
+        margin-left: 0;
+        transform: translateY(
+          calc(var(--blobs-offset-y) + clamp(320px, 46dvh, 840px))
+        );
+      }
+
+      /*
+       * Без потолка по X на ультраширине всё сливается в одно пятно из‑за blur.
+       * По Y — сильное растяжение от transform-origin у низа.
+       * Чуть меньше blur на десктопе — разделяются цвета 1…4.
+       */
+      .frame__mesh-scaler {
+        inset: auto;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 390px;
+        margin-left: -195px;
+        transform: scale(
+          min(2.35, calc(100vw / 390px)),
+          1.42
+        );
+        transform-origin: 50% 96%;
+      }
+
+      .frame__blob-inner--1 {
+        filter: blur(105px);
+      }
+
+      .frame__blob-inner--2 {
+        filter: blur(48px);
+      }
+
+      .frame__blob-inner--3,
+      .frame__blob-inner--4 {
+        filter: blur(78px);
+      }
+    }
+
+    .frame__blob-wrap {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .frame__blob-inner {
+      flex: none;
+      border-radius: 50%;
+      transform: rotate(-56.07deg);
+    }
+
+    /* 1: #0011FF, blur 153.48, x −261 y 115, 238.23×468.33 */
+    .frame__blob-wrap--1 {
+      left: -261px;
+      top: 115px;
+      width: 521.556px;
+      height: 459.088px;
+    }
+
+    .frame__blob-inner--1 {
+      width: 238.23px;
+      height: 468.33px;
+      background: #0011ff;
+      filter: blur(153.48px);
+    }
+
+    /* 2: #FF6652, blur 60, x −157 y 148, 185.62×308.23 */
+    .frame__blob-wrap--2 {
+      left: -157px;
+      top: 148px;
+      width: 359.354px;
+      height: 326.065px;
+    }
+
+    .frame__blob-inner--2 {
+      width: 185.62px;
+      height: 308.23px;
+      background: #ff6652;
+      filter: blur(60px);
+    }
+
+    /* 3: #FF0004, blur 123.48, x 54 y 210, 148.06×199.13 */
+    .frame__blob-wrap--3 {
+      left: 54px;
+      top: 210px;
+      width: 247.866px;
+      height: 234px;
+    }
+
+    .frame__blob-inner--3 {
+      width: 148.06px;
+      height: 199.13px;
+      background: #ff0004;
+      filter: blur(123.48px);
+    }
+
+    /* 4: #FF5100, blur 123.48, x 234 y 210, 148.06×199.13 */
+    .frame__blob-wrap--4 {
+      left: 234px;
+      top: 210px;
+      width: 247.866px;
+      height: 234px;
+    }
+
+    .frame__blob-inner--4 {
+      width: 148.06px;
+      height: 199.13px;
+      background: #ff5100;
+      filter: blur(123.48px);
+    }
+
+    /*
+     * Первый блок (hero): пятна на весь .frame, контент — колонка с боковыми 24px,
+     * сверху 20px, снизу 28px (+ safe-area).
+     */
+    .hero--first {
+      position: relative;
+      z-index: 1;
+      box-sizing: border-box;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-top: 0;
+      padding-right: var(--site-gutter);
+      padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+      padding-left: var(--site-gutter);
+    }
+
+    .hero__topbar-spacer {
+      flex-shrink: 0;
+      width: 100%;
+      height: var(--hero-topbar-slot-h);
+      pointer-events: none;
+    }
+
+    .hero__topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 30;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 12px;
+      padding: calc(env(safe-area-inset-top, 0px) + var(--hero-topbar-pad-bottom))
+        var(--site-gutter) var(--hero-topbar-pad-bottom);
+      background-color: rgba(14, 16, 21, 0.3);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+    }
+
+    .hero__brand {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .hero__brand-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0;
+      min-width: 0;
+    }
+
+    .hero__top-icon {
+      display: block;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+
+    .hero__menu {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .hero__menu svg {
+      display: block;
+      width: 32px;
+      height: 32px;
+    }
+
+    /*
+     * Контейнер с лого: по ширине — авто (по контенту), по высоте — на всю доступную область.
+     */
+    .frame__center {
+      position: relative;
+      z-index: 1;
+      box-sizing: border-box;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0;
+    }
+
+    @keyframes promo-main-fade {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 10px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    .frame__main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 31px;
+      width: max-content;
+      max-width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      opacity: 0;
+      /* Сначала иконка + текст, затем кнопка — см. задержку .frame__cta-wrap */
+      animation: promo-main-fade 0.55s ease-out 0s both;
+    }
+
+    .app-icon-wrap {
+      position: relative;
+      flex-shrink: 0;
+      width: 59px;
+      height: 59px;
+    }
+
+    .app-icon {
+      width: 100%;
+      height: 100%;
+      background: rgba(14, 16, 21, 0.2);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app-icon__price-badge {
+      position: absolute;
+      bottom: -8px;
+      right: -10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 2px solid var(--marathon-black);
+      background: #f53f01;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      transform: rotate(-3deg);
+      transform-origin: right bottom;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .app-icon__img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    @media (min-width: 768px) {
+      .app-icon-wrap {
+        width: 72px;
+        height: 72px;
+      }
+
+      .app-icon__price-badge {
+        bottom: -7px;
+        right: -9px;
+        font-size: 14px;
+      }
+    }
+
+    @keyframes promo-cta-slide-up {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 100%, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    .frame__cta-wrap {
+      position: relative;
+      z-index: 2;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: center;
+      padding: 0;
+      /* pointer-events:none на родителе ломает :hover у ссылки в части браузеров */
+      pointer-events: auto;
+      opacity: 0;
+      /* Старт после окончания promo-main-fade (0.55s) + небольшая пауза */
+      animation: promo-cta-slide-up 0.58s cubic-bezier(0.22, 1, 0.36, 1) 0.68s both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .frame__main,
+      .frame__cta-wrap {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="page-stack">
+    <div class="page-stack__first">
+    <div class="frame" data-node-id="3058:12129">
+      <div class="frame__mesh" aria-hidden="true">
+        <div class="frame__mesh-scaler">
+          <div class="frame__blob-wrap frame__blob-wrap--1">
+            <div class="frame__blob-inner frame__blob-inner--1"></div>
+          </div>
+          <div class="frame__blob-wrap frame__blob-wrap--2">
+            <div class="frame__blob-inner frame__blob-inner--2"></div>
+          </div>
+          <div class="frame__blob-wrap frame__blob-wrap--3">
+            <div class="frame__blob-inner frame__blob-inner--3"></div>
+          </div>
+          <div class="frame__blob-wrap frame__blob-wrap--4">
+            <div class="frame__blob-inner frame__blob-inner--4"></div>
+          </div>
+        </div>
+      </div>
+
+      <section class="hero hero--first" aria-label="Промо">
+        <div class="hero__topbar-spacer" aria-hidden="true"></div>
+        <header class="hero__topbar">
+          <div class="hero__brand">
+            <img
+              class="hero__top-icon"
+              src="https://raw.githubusercontent.com/rafael-mansurov/tg-ws-proxy-android/main/icon.png"
+              alt=""
+              width="32"
+              height="32"
+              decoding="async"
+            />
+            <div class="hero__brand-text">
+              <h3 class="hero__brand-title">TG WS Proxy</h3>
+              <h4 class="hero__brand-sub">Локальный прокси сервер</h4>
+            </div>
+          </div>
+          <button type="button" class="hero__menu" aria-label="Меню">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="32" height="32" rx="8" fill="white" fill-opacity="0.05" />
+              <rect
+                x="0.25"
+                y="0.25"
+                width="31.5"
+                height="31.5"
+                rx="7.75"
+                stroke="url(#hero-burger-stroke)"
+                stroke-opacity="0.2"
+                stroke-width="0.5"
+              />
+              <path d="M8 12H24" stroke="white" stroke-width="0.8" />
+              <path d="M8 16H24" stroke="white" stroke-width="0.8" />
+              <path d="M8 20H24" stroke="white" stroke-width="0.8" />
+              <defs>
+                <linearGradient
+                  id="hero-burger-stroke"
+                  x1="32"
+                  y1="0.0470591"
+                  x2="0"
+                  y2="32.0471"
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop stop-color="white" />
+                  <stop offset="0.5" stop-color="white" stop-opacity="0" />
+                  <stop offset="1" stop-color="white" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </button>
+        </header>
+        <div class="frame__center">
+          <div class="frame__main" data-node-id="3058:12134">
+            <div class="app-icon-wrap">
+              <div class="app-icon" data-node-id="3058:12139" data-name="app-icon">
+                <img
+                  class="app-icon__img"
+                  src="https://raw.githubusercontent.com/rafael-mansurov/tg-ws-proxy-android/main/icon.png"
+                  alt=""
+                  width="59"
+                  height="59"
+                  decoding="async"
+                />
+              </div>
+              <span class="app-icon__price-badge" aria-label="Цена 0 рублей">0₽</span>
+            </div>
+            <h2 class="title" data-node-id="3058:12141">Telegram Proxy<br />для&nbsp;Android</h2>
+          </div>
+        </div>
+
+        <div class="frame__cta-wrap" data-node-id="3058:12142">
+          <a class="cta" href="#what-is-this" data-node-id="3058:12143">
+            <span class="cta__label">Что это такое?</span>
+          </a>
+        </div>
+      </section>
+    </div>
+    </div>
+
+    <section
+      id="what-is-this"
+      class="promo-block-2"
+      aria-label="Что это такое"
+    >
+      <h1 class="promo-block-2__text">Не работает Telegram? Приложение TG WS Proxy поднимает сервер&nbsp;прямо на&nbsp;вашем телефоне</h1>
+    </section>
+  </div>
+  <script>
+    (function () {
+      function clamp(n, a, b) {
+        return Math.max(a, Math.min(b, n));
+      }
+
+      var link = document.querySelector('a.cta[href="#what-is-this"]');
+      var section = document.getElementById("what-is-this");
+      var applyAfterScroll = null;
+
+      if (section && link) {
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+          var reduce =
+            window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          section.scrollIntoView({
+            behavior: reduce ? "auto" : "smooth",
+            block: "start",
+          });
+          if (history.replaceState) {
+            history.replaceState(null, "", "#what-is-this");
+          } else {
+            location.hash = "what-is-this";
+          }
+          if (applyAfterScroll) {
+            [0, 120, 280, 520, 900].forEach(function (ms) {
+              setTimeout(applyAfterScroll, ms);
+            });
+          }
+        });
+      }
+
+      var textEl = section && section.querySelector(".promo-block-2__text");
+      if (!section || !textEl) return;
+
+      var reduceMotion =
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      var raw = (textEl.textContent || "")
+        .replace(/\s+/g, function (m) {
+          return m[0] === "\n" ? " " : m;
+        })
+        .trim();
+      var chars = Array.from(raw);
+      var n = chars.length;
+      if (n === 0) return;
+
+      var fullLabel = (section.getAttribute("aria-label") || "").trim();
+      section.setAttribute(
+        "aria-label",
+        fullLabel ? fullLabel + ". " + raw : raw
+      );
+
+      textEl.textContent = "";
+      textEl.setAttribute("aria-hidden", "true");
+      var spans = [];
+      for (var i = 0; i < n; i++) {
+        var s = document.createElement("span");
+        s.className = "promo-block-2__char";
+        s.setAttribute("aria-hidden", "true");
+        s.textContent = chars[i];
+        textEl.appendChild(s);
+        spans.push(s);
+      }
+
+      if (reduceMotion) {
+        for (var j = 0; j < spans.length; j++) spans[j].style.opacity = "1";
+        return;
+      }
+
+      var overlap = 0.14;
+      var ticking = false;
+      
+      /* Прогресс по центру секции; линия чуть выше середины экрана — триггер раньше */
+      function progressFromRect(rect, vh) {
+        var viewportCenter = vh * 0.35;
+        var halfBand = vh * 0.28;
+        var start = viewportCenter + halfBand;
+        var end = viewportCenter - halfBand;
+        var sectionMid = rect.top + rect.height * 0.5;
+        return clamp((start - sectionMid) / (start - end), 0, 1);
+      }
+
+      function apply() {
+        ticking = false;
+        var vh = window.innerHeight || 800;
+        var rect = section.getBoundingClientRect();
+        var p = progressFromRect(rect, vh);
+        for (var k = 0; k < n; k++) {
+          var a = k / n;
+          var b = (k + 1) / n;
+          var t0 = Math.max(0, a - overlap);
+          var t1 = Math.min(1, b + overlap * 0.35);
+          var o = t1 > t0 ? clamp((p - t0) / (t1 - t0), 0, 1) : p >= b ? 1 : 0;
+          /* изначально 20%, по скроллу → 100% */
+          spans[k].style.opacity = String(0.2 + 0.8 * o);
+        }
+      }
+
+      applyAfterScroll = apply;
+
+      function onScrollOrResize() {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(apply);
+        }
+      }
+
+      function bindScrollTargets() {
+        var seen = [];
+        function add(el) {
+          if (!el || seen.indexOf(el) !== -1) return;
+          seen.push(el);
+          el.addEventListener("scroll", onScrollOrResize, { passive: true });
+        }
+        add(document.scrollingElement);
+        add(document.body);
+        add(document.documentElement);
+        window.addEventListener("scroll", onScrollOrResize, { passive: true });
+        if (window.VisualViewport) {
+          window.VisualViewport.addEventListener("scroll", onScrollOrResize, {
+            passive: true,
+          });
+        }
+      }
+
+      bindScrollTargets();
+      window.addEventListener("resize", onScrollOrResize, { passive: true });
+      apply();
+    })();
+  </script>
+</body>
+</html>
