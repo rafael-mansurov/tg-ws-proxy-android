@@ -400,7 +400,7 @@
 
     empty.style.display = 'none';
 
-    tbody.innerHTML = users.map(u => {
+    tbody.innerHTML = users.map(u => { try {
       const status = u._computed_status;
       const badgeCls = `badge badge-${status}`;
       const badgeTxt = status === 'trial' ? 'Триал' : status === 'active' ? 'Активна' : 'Истёк';
@@ -432,7 +432,7 @@
           <button class="action-btn danger" onclick="deleteUser('${u.id}','${esc(u.email)}')"><i data-lucide="trash-2"></i> Удалить</button>
         </div>
       </div>`;
-    }).join('');
+    } catch(err) { console.error('card render error', u?.email, err); return ''; } }).join('');
 
     lucide.createIcons();
   }
@@ -526,7 +526,7 @@
     return d.toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: '2-digit' });
   }
   function esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   // Закрыть модал по клику на backdrop
