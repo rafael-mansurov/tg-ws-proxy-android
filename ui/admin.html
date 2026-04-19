@@ -26,7 +26,6 @@
       align-items: center; justify-content: center; gap: 16px;
       background: #0a0a0c; z-index: 9999;
     }
-    #boot-screen.hidden { display: none; }
     .boot-spinner {
       width: 36px; height: 36px; border-radius: 50%;
       border: 3px solid rgba(255,255,255,0.1);
@@ -344,8 +343,23 @@
     document.getElementById('users-tbody').innerHTML = '';
     document.getElementById('table-empty').style.display = 'none';
 
-    const { data, error } = await _supa.functions.invoke('admin-profiles');
-    if (error) { alert('Ошибка загрузки: ' + error.message); return; }
+    const { data: { session } } = await _supa.auth.getSession();
+    const resp = await fetch(SUPA_URL + '/functions/v1/admin-profiles', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': SUPA_ANON,
+      },
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      let msg = txt;
+      try { const j = JSON.parse(txt); msg = j.error || j.message || txt; } catch(_) {}
+      await _admAlert('Ошибка загрузки ' + resp.status + ': ' + msg);
+      document.getElementById('table-loading').style.display = 'none';
+      return;
+    }
+    const data = await resp.json();
 
     _allUsers = (data || []).map(u => {
       const now = Date.now();
@@ -590,7 +604,8 @@
       if (!profile?.is_admin) { location.replace('http://127.0.0.1:8080/index.html'); return; }
 
       document.getElementById('adm-user-email').textContent = session.user.email;
-      document.getElementById('boot-screen').classList.add('hidden');
+      const bs = document.getElementById('boot-screen');
+      if (bs) bs.remove();
       document.getElementById('app').style.display = 'block';
       await loadUsers();
     } catch(e) {

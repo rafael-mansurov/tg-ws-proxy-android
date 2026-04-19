@@ -2500,17 +2500,19 @@
     }
     document.getElementById('acct-status-line').textContent = statusText;
     document.getElementById('acct-backdrop').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
   }
 
   function closeAcctModal(e) {
     if (!e || e.target === document.getElementById('acct-backdrop')) {
       document.getElementById('acct-backdrop').classList.remove('is-open');
+      document.body.style.overflow = '';
     }
   }
 
   _initSheetSwipe(
     document.querySelector('#acct-backdrop .bs-panel'),
-    () => document.getElementById('acct-backdrop').classList.remove('is-open')
+    () => { document.getElementById('acct-backdrop').classList.remove('is-open'); document.body.style.overflow = ''; }
   );
 
   // ── Общая функция свайп-закрытия для bottom sheet ──────────────────────────
@@ -2687,6 +2689,7 @@
 
   async function authLogout() {
     document.getElementById('acct-backdrop').classList.remove('is-open');
+    document.body.style.overflow = '';
     try { await _supa.auth.signOut(); } catch (_) {}
     window.location.reload();
   }
