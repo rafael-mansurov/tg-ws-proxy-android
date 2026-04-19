@@ -211,7 +211,7 @@
   <div class="topbar">
     <div class="topbar-title"><i data-lucide="shield-check"></i> Admin · TG WS Proxy</div>
     <div class="topbar-user" id="adm-user-email"></div>
-    <a class="topbar-back" href="index.html"><i data-lucide="arrow-left"></i> Назад</a>
+    <a class="topbar-back" href="http://127.0.0.1:8080/index.html"><i data-lucide="arrow-left"></i> Назад</a>
   </div>
   <div class="main">
     <!-- Stats -->
@@ -314,7 +314,7 @@
   // ── Auth ──────────────────────────────────────────────────────────────────
   async function adminLogout() {
     await _supa.auth.signOut();
-    location.href = 'index.html';
+    location.replace('http://127.0.0.1:8080/index.html');
   }
 
   // ── Load users ────────────────────────────────────────────────────────────
@@ -539,7 +539,7 @@
   // Проверяем сессию — если не админ, редирект на главную
   (async () => {
     const { data: { session } } = await _supa.auth.getSession();
-    if (!session) { location.href = 'index.html'; return; }
+    if (!session) { location.replace('http://127.0.0.1:8080/index.html'); return; }
 
     const { data: profile } = await _supa
       .from('profiles')
@@ -547,7 +547,7 @@
       .eq('id', session.user.id)
       .single();
 
-    if (!profile?.is_admin) { location.href = 'index.html'; return; }
+    if (!profile?.is_admin) { location.replace('http://127.0.0.1:8080/index.html'); return; }
 
     document.getElementById('adm-user-email').textContent = session.user.email;
     document.getElementById('app').style.display = 'block';
