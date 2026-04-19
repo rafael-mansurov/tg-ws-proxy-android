@@ -2462,7 +2462,7 @@
     _authMode = _authMode === 'register' ? 'login' : 'register';
     const isReg = _authMode === 'register';
     document.getElementById('auth-title').textContent      = isReg ? 'Регистрация' : 'Вход';
-    document.getElementById('auth-sub').textContent        = isReg ? 'затем от 108 ₽/мес' : 'Введите email и пароль';
+    document.getElementById('auth-sub').textContent        = isReg ? '' : 'Введите email и пароль';
     document.getElementById('auth-submit-btn').textContent = isReg ? 'Зарегистрироваться' : 'Войти';
     document.getElementById('auth-toggle-row').innerHTML   = isReg
       ? 'Уже есть аккаунт? <span onclick="authSwitchMode()">Войти</span>'
