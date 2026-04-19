@@ -352,6 +352,9 @@
       },
     });
     if (!resp.ok) {
+      if (resp.status === 401 || resp.status === 403) {
+        location.replace('http://127.0.0.1:8080/index.html'); return;
+      }
       const txt = await resp.text();
       let msg = txt;
       try { const j = JSON.parse(txt); msg = j.error || j.message || txt; } catch(_) {}
@@ -585,29 +588,17 @@
   window.onerror = (msg, src, line) => { _bootError(msg + ' (' + line + ')'); };
   window.onunhandledrejection = (e) => { _bootError(String(e.reason)); };
 
-  // Проверяем сессию — если не админ, редирект на главную
+  // Проверяем сессию — права проверяет admin-profiles (403 → редирект)
   (async () => {
     try {
-      _bootMsg('Проверка сессии…');
-      const { data: { session }, error: sErr } = await _supa.auth.getSession();
-      if (sErr) throw sErr;
+      const { data: { session } } = await _supa.auth.getSession();
       if (!session) { location.replace('http://127.0.0.1:8080/index.html'); return; }
-
-      _bootMsg('Проверка прав…');
-      const { data: profile, error: pErr } = await _supa
-        .from('profiles')
-        .select('is_admin, email')
-        .eq('id', session.user.id)
-        .single();
-      if (pErr) throw pErr;
-
-      if (!profile?.is_admin) { location.replace('http://127.0.0.1:8080/index.html'); return; }
 
       document.getElementById('adm-user-email').textContent = session.user.email;
       const bs = document.getElementById('boot-screen');
       if (bs) bs.remove();
       document.getElementById('app').style.display = 'block';
-      await loadUsers();
+      loadUsers(); // не ждём — UI уже виден, таблица покажет "Загрузка…"
     } catch(e) {
       _bootError(String(e?.message || e));
     }

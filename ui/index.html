@@ -2045,6 +2045,7 @@
     font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 16px;
   }
   .auth-sent-back span { color: #229ED9; font-weight: 600; cursor: pointer; }
+  .auth-otp-input { text-align:center !important; letter-spacing:10px; font-size:26px !important; font-family:monospace !important; padding-left:20px !important; }
 </style>
 
 <!-- ── Account modal ── -->
@@ -2066,6 +2067,12 @@
       </svg>
       Управление подпиской
     </button>
+    <button class="acct-btn" onclick="closeAcctModal(); openChangePwSheet();">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      Сменить пароль
+    </button>
     <button class="acct-btn danger" onclick="authLogout()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
@@ -2074,6 +2081,23 @@
     </button>
   </div>
 </div><!-- /#acct-backdrop -->
+
+<!-- ── Change password sheet ── -->
+<div class="bs-backdrop" id="changepw-backdrop" onclick="closeChangePwSheet(event)">
+  <div class="bs-panel" role="dialog" aria-modal="true">
+    <div class="bs-handle"></div>
+    <div class="acct-email" style="margin-bottom:16px">Смена пароля</div>
+    <div class="auth-pw-wrap" style="width:100%;margin-bottom:8px">
+      <input class="auth-input" id="changepw-input" type="password" placeholder="Новый пароль (мин. 6 символов)" style="width:100%"/>
+      <button type="button" class="auth-pw-toggle" onclick="toggleChangePw()" aria-label="Показать пароль">
+        <svg id="changepw-icon-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="changepw-icon-eyeoff" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
+    <div class="auth-error" id="changepw-error" style="margin-bottom:8px"></div>
+    <button class="auth-btn" id="changepw-btn" onclick="saveChangedPassword()" style="width:100%">Сохранить</button>
+  </div>
+</div><!-- /#changepw-backdrop -->
 
 <!-- ── App dialog (замена confirm/alert для Android WebView) ── -->
 <div id="app-dialog-backdrop" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
@@ -2132,8 +2156,26 @@
         <polyline points="2,4 12,13 22,4"/>
       </svg>
     </div>
-    <div class="auth-sent-title" id="auth-sent-title">Письмо отправлено</div>
-    <div class="auth-sent-sub" id="auth-sent-sub">Ищи письмо от нас в почте — там ссылка для сброса пароля</div>
+    <div class="auth-sent-title" id="auth-sent-title">Проверь почту</div>
+    <div class="auth-sent-sub" id="auth-sent-sub"></div>
+    <!-- Шаг 1: ввод кода -->
+    <div id="auth-otp-section" style="display:none;width:100%;max-width:320px;">
+      <input class="auth-input auth-otp-input" id="auth-otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code"/>
+      <div class="auth-error" id="auth-otp-error" style="margin:8px 0"></div>
+      <button class="auth-btn" id="auth-otp-btn" onclick="authVerifyOtp()" style="width:100%;margin-top:4px">Подтвердить</button>
+    </div>
+    <!-- Шаг 2: новый пароль (только для recovery) -->
+    <div id="auth-otp-newpw-section" style="display:none;width:100%;max-width:320px;">
+      <div class="auth-pw-wrap" style="width:100%;margin-bottom:8px">
+        <input class="auth-input" id="auth-otp-newpw" type="password" placeholder="Новый пароль (мин. 6 символов)" style="width:100%"/>
+        <button type="button" class="auth-pw-toggle" onclick="toggleOtpNewPw()" aria-label="Показать пароль">
+          <svg id="otp-newpw-icon-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="otp-newpw-icon-eyeoff" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+      <div class="auth-error" id="auth-otp-newpw-error" style="margin-bottom:8px"></div>
+      <button class="auth-btn" id="auth-otp-newpw-btn" onclick="authSaveRecoveryPassword()" style="width:100%">Сменить пароль</button>
+    </div>
     <div class="auth-sent-back" id="auth-sent-resend" style="display:none"><span onclick="resendConfirmation()">Отправить повторно</span></div>
     <div class="auth-sent-back"><span onclick="authBackToLogin()">Вернуться ко входу</span></div>
   </div>
@@ -2442,34 +2484,107 @@
   }
 
   let _pendingConfirmEmail = '';
+  let _pendingOtpMode = ''; // 'signup' | 'recovery'
 
-  function _showConfirmationSent(email) {
+  function _showOtpScreen(email, mode) {
     _pendingConfirmEmail = email || '';
-    document.getElementById('auth-sent-title').textContent = 'Подтверди email';
-    document.getElementById('auth-sent-sub').textContent   = 'Мы отправили письмо на ' + (_pendingConfirmEmail || 'твой email') + '. Перейди по ссылке в письме — и сразу войдёшь.';
+    _pendingOtpMode = mode;
+    document.getElementById('auth-sent-title').textContent = mode === 'signup' ? 'Подтверди email' : 'Сброс пароля';
+    document.getElementById('auth-sent-sub').textContent   = 'Мы отправили 6-значный код на ' + (_pendingConfirmEmail || 'твой email') + '. Введи его ниже.';
+    document.getElementById('auth-otp-section').style.display = '';
+    document.getElementById('auth-otp-newpw-section').style.display = 'none';
+    document.getElementById('auth-otp-input').value = '';
+    document.getElementById('auth-otp-error').textContent = '';
+    document.getElementById('auth-otp-btn').textContent = 'Подтвердить код';
     document.getElementById('auth-sent-resend').style.display = '';
     document.getElementById('auth-sent').classList.add('is-on');
+  }
+
+  async function authVerifyOtp() {
+    const token = document.getElementById('auth-otp-input').value.trim();
+    const errEl = document.getElementById('auth-otp-error');
+    const btn   = document.getElementById('auth-otp-btn');
+    if (token.length !== 6) { errEl.textContent = 'Введите 6-значный код'; return; }
+    errEl.textContent = '';
+    _btnLoading(btn, 'Проверяем…');
+    try {
+      const { error: verifyErr } = await _supa.auth.verifyOtp({
+        email: _pendingConfirmEmail, token, type: _pendingOtpMode
+      });
+      if (verifyErr) throw verifyErr;
+      if (_pendingOtpMode === 'recovery') {
+        // Код верный — переходим к вводу нового пароля
+        document.getElementById('auth-sent-title').textContent = 'Новый пароль';
+        document.getElementById('auth-sent-sub').textContent   = 'Придумай новый пароль для входа';
+        document.getElementById('auth-otp-section').style.display = 'none';
+        document.getElementById('auth-otp-newpw-section').style.display = '';
+        document.getElementById('auth-otp-newpw').value = '';
+        document.getElementById('auth-otp-newpw-error').textContent = '';
+        document.getElementById('auth-sent-resend').style.display = 'none';
+      } else {
+        await checkSubscription();
+      }
+    } catch (e) {
+      errEl.textContent = e.message?.includes('Token has expired') || e.message?.includes('invalid')
+        ? 'Неверный или просроченный код'
+        : (e.message || 'Неверный код — попробуй ещё раз');
+      _btnReady(btn, 'Подтвердить код');
+    }
+  }
+
+  async function authSaveRecoveryPassword() {
+    const pw  = document.getElementById('auth-otp-newpw').value;
+    const err = document.getElementById('auth-otp-newpw-error');
+    const btn = document.getElementById('auth-otp-newpw-btn');
+    if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
+    err.textContent = '';
+    _btnLoading(btn, 'Сохраняем…');
+    const { error } = await _supa.auth.updateUser({ password: pw });
+    if (error) {
+      err.textContent = error.message;
+      _btnReady(btn, 'Сменить пароль');
+      return;
+    }
+    await _supa.auth.signOut();
+    authBackToLogin();
+    _setAuthError('Пароль изменён — войдите с новым паролем');
   }
 
   async function resendConfirmation() {
     if (!_pendingConfirmEmail) return;
     const link = document.querySelector('#auth-sent-resend span');
     if (link) { link.textContent = 'Отправляем…'; }
-    const { error } = await _supa.auth.resend({ type: 'signup', email: _pendingConfirmEmail });
+    let error;
+    if (_pendingOtpMode === 'recovery') {
+      ({ error } = await _supa.auth.resetPasswordForEmail(_pendingConfirmEmail));
+    } else {
+      ({ error } = await _supa.auth.resend({ type: 'signup', email: _pendingConfirmEmail }));
+    }
     if (link) {
       link.textContent = error ? 'Ошибка — попробуй ещё раз' : 'Отправлено!';
       setTimeout(() => { if (link) link.textContent = 'Отправить повторно'; }, 3000);
     }
   }
 
+  function toggleOtpNewPw() {
+    const inp  = document.getElementById('auth-otp-newpw');
+    const eye  = document.getElementById('otp-newpw-icon-eye');
+    const eoff = document.getElementById('otp-newpw-icon-eyeoff');
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    eye.style.display  = show ? 'none' : '';
+    eoff.style.display = show ? '' : 'none';
+  }
+
   function authBackToLogin() {
     _stopDeepLinkPolling();
     _authMode = 'login';
     _pendingConfirmEmail = '';
+    _pendingOtpMode = '';
     document.getElementById('auth-sent').classList.remove('is-on');
+    document.getElementById('auth-otp-section').style.display = 'none';
+    document.getElementById('auth-otp-newpw-section').style.display = 'none';
     document.getElementById('auth-sent-resend').style.display = 'none';
-    document.getElementById('auth-sent-title').textContent = 'Письмо отправлено';
-    document.getElementById('auth-sent-sub').textContent   = 'Ищи письмо от нас в почте — там ссылка для сброса пароля';
     document.getElementById('auth-pw-wrap').style.display = '';
     document.getElementById('auth-title').textContent = 'Вход';
     document.getElementById('auth-sub').textContent   = 'Введите email и пароль';
@@ -2587,16 +2702,7 @@
       _btnLoading(btn, 'Отправляем…');
       _setAuthError('');
       try {
-        const { data: emailExists, error: rpcErr } = await _supa.rpc('check_email_registered', { p_email: email });
-        if (rpcErr) throw rpcErr;
-        if (!emailExists) {
-          _setAuthError('Аккаунт не найден — сначала зарегистрируйся');
-          _btnReady(btn, 'Отправить письмо');
-          return;
-        }
-        const { error } = await _supa.auth.resetPasswordForEmail(email, {
-          redirectTo: 'tgwsproxy://reset-password'
-        });
+        const { error } = await _supa.auth.resetPasswordForEmail(email);
         if (error) {
           const msg = error.message || '';
           const friendly = msg.toLowerCase().includes('rate limit')
@@ -2606,9 +2712,7 @@
           _btnReady(btn, 'Отправить письмо');
           return;
         }
-        document.getElementById('auth-sent-resend').style.display = 'none';
-        document.getElementById('auth-sent').classList.add('is-on');
-        _startDeepLinkPolling();
+        _showOtpScreen(email, 'recovery');
         _btnReady(btn, 'Отправить письмо');
       } catch (e) {
         _setAuthError(e.message || 'Ошибка — попробуйте позже');
@@ -2635,7 +2739,7 @@
           _setAuthError('Email уже зарегистрирован — войдите');
           return;
         }
-        _showConfirmationSent(email);
+        _showOtpScreen(email, 'signup');
         return;
       } else {
         const { error } = await _supa.auth.signInWithPassword({ email, password });
@@ -2650,7 +2754,7 @@
       } else if (msg.includes('Invalid login') || msg.includes('Invalid credentials')) {
         _setAuthError('Неверный email или пароль');
       } else if (msg.toLowerCase().includes('email not confirmed')) {
-        _showConfirmationSent(email);
+        _showOtpScreen(email, 'signup');
       } else {
         _setAuthError(msg);
       }
@@ -2690,9 +2794,57 @@
   async function authLogout() {
     document.getElementById('acct-backdrop').classList.remove('is-open');
     document.body.style.overflow = '';
-    try { await _supa.auth.signOut(); } catch (_) {}
+    try { await Promise.race([_supa.auth.signOut(), new Promise(r => setTimeout(r, 1500))]); } catch(_) {}
     window.location.reload();
   }
+
+  // ── Смена пароля ──────────────────────────────────────────────────────────
+  function openChangePwSheet() {
+    document.getElementById('changepw-input').value = '';
+    document.getElementById('changepw-error').textContent = '';
+    document.getElementById('changepw-btn').disabled = false;
+    document.getElementById('changepw-btn').textContent = 'Сохранить';
+    document.getElementById('changepw-backdrop').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeChangePwSheet(e) {
+    if (!e || e.target === document.getElementById('changepw-backdrop')) {
+      document.getElementById('changepw-backdrop').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+  }
+
+  function toggleChangePw() {
+    const inp  = document.getElementById('changepw-input');
+    const eye  = document.getElementById('changepw-icon-eye');
+    const eoff = document.getElementById('changepw-icon-eyeoff');
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    eye.style.display  = show ? 'none' : '';
+    eoff.style.display = show ? '' : 'none';
+  }
+
+  async function saveChangedPassword() {
+    const pw  = document.getElementById('changepw-input').value;
+    const err = document.getElementById('changepw-error');
+    const btn = document.getElementById('changepw-btn');
+    if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
+    err.textContent = '';
+    _btnLoading(btn, 'Сохраняем…');
+    const { error } = await _supa.auth.updateUser({ password: pw });
+    if (error) {
+      err.textContent = error.message;
+      _btnReady(btn, 'Сохранить');
+      return;
+    }
+    closeChangePwSheet();
+  }
+
+  _initSheetSwipe(
+    document.querySelector('#changepw-backdrop .bs-panel'),
+    () => { document.getElementById('changepw-backdrop').classList.remove('is-open'); document.body.style.overflow = ''; }
+  );
 
   // ── Остановить прокси при истечении подписки ──────────────────────────────
   function _stopProxyOnExpiry() {
