@@ -178,6 +178,7 @@ SECRET = ""
 SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
+ADMIN_FILE = Path(__file__).parent / "ui" / "admin.html"
 ROUNDED_QR_FILE = Path(__file__).parent / "ui" / "rounded-qr.js"
 
 _running = False
@@ -918,6 +919,17 @@ class Handler(BaseHTTPRequestHandler):
         if self.path in ("/", "/index.html"):
             try:
                 html = UI_FILE.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(html)))
+                self.end_headers()
+                self.wfile.write(html)
+            except Exception as e:
+                self._send_json({"error": str(e)}, 500)
+
+        elif self.path == "/admin.html":
+            try:
+                html = ADMIN_FILE.read_bytes()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(html)))
