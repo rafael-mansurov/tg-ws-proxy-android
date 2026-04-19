@@ -2726,6 +2726,40 @@
     if (!email || !password) { _setAuthError('Заполните все поля'); return; }
     if (password.length < 6) { _setAuthError('Пароль минимум 6 символов'); return; }
 
+    if (_authMode === 'register') {
+      const _allowedDomains = new Set([
+        'gmail.com','googlemail.com',
+        'yahoo.com','yahoo.ru','yahoo.co.uk','yahoo.fr','yahoo.de','yahoo.es','yahoo.it','yahoo.co.jp',
+        'yandex.ru','yandex.com','yandex.ua','yandex.kz','yandex.by','ya.ru',
+        'mail.ru','list.ru','inbox.ru','bk.ru','internet.ru',
+        'rambler.ru','ro.ru','lenta.ru','myrambler.ru',
+        'outlook.com','outlook.ru','hotmail.com','hotmail.ru','hotmail.co.uk','hotmail.fr','hotmail.de',
+        'live.com','live.ru','live.co.uk','live.fr','live.nl','live.be','msn.com',
+        'icloud.com','me.com','mac.com',
+        'proton.me','protonmail.com','protonmail.ch','pm.me',
+        'tutanota.com','tuta.io','tutanota.de',
+        'gmx.com','gmx.net','gmx.de','gmx.at','gmx.ch',
+        'web.de','t-online.de','freenet.de',
+        'aol.com','aim.com',
+        'comcast.net','verizon.net','att.net','sbcglobal.net','cox.net','charter.net','earthlink.net',
+        'mail.com','email.com','usa.com','myself.com','consultant.com',
+        'zoho.com','fastmail.com','fastmail.fm',
+        'ukr.net','i.ua','meta.ua','bigmir.net',
+        'tut.by','mail.by',
+        'qq.com','163.com','126.com','sina.com',
+        'naver.com','daum.net',
+        'seznam.cz','centrum.cz',
+        'wp.pl','onet.pl','o2.pl',
+        'libero.it','virgilio.it',
+        'orange.fr','laposte.net','sfr.fr','free.fr','wanadoo.fr',
+      ]);
+      const emailDomain = email.split('@')[1]?.toLowerCase();
+      if (!emailDomain || !_allowedDomains.has(emailDomain)) {
+        _setAuthError('Регистрация доступна только с реальным почтовым адресом (Gmail, Яндекс, Mail.ru, Outlook и др.)');
+        return;
+      }
+    }
+
     const isReg = _authMode === 'register';
     _btnLoading(btn, isReg ? 'Регистрируем…' : 'Входим…');
     _setAuthError('');
