@@ -128,7 +128,17 @@
       font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
       margin-right: 4px;
     }
-    .action-btn:active { background: #1e1e28; }
+    .action-btn:active { background: #252530; opacity: 0.8; }
+    .action-btn.danger:active { background: #2a1515; }
+    .action-btn.success:active { background: #0d2a1e; }
+    .filter-btn:active { background: #1c1c24; }
+    .filter-btn.active:active { background: #0a1f2e; }
+    .refresh-btn:active { background: #1c1c24; opacity: 0.8; }
+    .topbar-back:active, .topbar-logout:active { background: #1c1c24; opacity: 0.8; }
+    .modal-cancel:active { background: #1c1c24; }
+    .modal-confirm:active { opacity: 0.85; }
+    .app-dialog-cancel:active { background: #1c1c24; }
+    .app-dialog-ok:active { opacity: 0.85; }
     .action-btn.danger { color: #ff6b50; border-color: rgba(255,80,50,0.2); }
     .action-btn.success { color: #00c88c; border-color: rgba(0,200,140,0.2); }
     .action-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
@@ -467,6 +477,7 @@
         </div>
         <div class="user-card-actions-row2">
           <button class="action-btn" onclick="resetPassword('${esc(u.email)}')"><i data-lucide="key-round"></i> Сбросить пароль</button>
+          <button class="action-btn ${u.is_admin ? 'danger' : ''}" onclick="toggleAdmin('${u.id}','${esc(u.email)}',${u.is_admin ? 'true' : 'false'})"><i data-lucide="${u.is_admin ? 'shield-off' : 'shield-check'}"></i> ${u.is_admin ? 'Снять админа' : 'Сделать админом'}</button>
           <button class="action-btn danger" onclick="deleteUser('${u.id}','${esc(u.email)}')"><i data-lucide="trash-2"></i> Удалить</button>
         </div>
       </div>`;
@@ -551,6 +562,15 @@
     if (!await _admConfirm('Сбросить пароль?', `Письмо с инструкцией отправится на\n${email}`, false)) return;
     const ok = await _adminAction({ action: 'reset-password', email });
     if (ok) await _admAlert(`Письмо отправлено на ${email}`);
+  }
+
+  async function toggleAdmin(userId, email, isAdmin) {
+    const msg = isAdmin
+      ? `Снять права администратора с ${email}?`
+      : `Выдать права администратора ${email}?`;
+    if (!await _admConfirm(isAdmin ? 'Снять админа' : 'Сделать админом', msg, isAdmin)) return;
+    const ok = await _adminAction({ action: 'toggle-admin', userId, isAdmin });
+    if (ok) loadUsers();
   }
 
   async function deleteUser(userId, email) {
