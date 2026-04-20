@@ -165,7 +165,6 @@ public class PythonActivity extends Activity {
             String app_root_dir = getAppRoot();
 
             mWebView = new WebView(PythonActivity.mActivity);
-            mWebView.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null);
             mWebView.getSettings().setJavaScriptEnabled(true);
             mWebView.getSettings().setDomStorageEnabled(true);
             mWebView.addJavascriptInterface(new TgwsJsBridge(PythonActivity.mActivity), "TgwsAndroid");
