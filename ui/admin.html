@@ -17,6 +17,8 @@
       color: #e8e8ec;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
 
     /* ── App shell ── */
@@ -36,7 +38,7 @@
     .boot-msg { font-size: 13px; color: rgba(255,255,255,0.4); text-align: center; padding: 0 24px; }
 
     .topbar {
-      background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.07);
+      background: #0e0e11; border-bottom: 1px solid #1a1a1f;
       padding: 14px 24px; display: flex; align-items: center; gap: 16px;
     }
     .topbar-user { font-size: 12px; color: rgba(255,255,255,0.4); }
@@ -58,7 +60,7 @@
     /* ── Stats row ── */
     .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
     .stat-card {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      background: #111115; border: 1px solid #1c1c21;
       border-radius: 16px; padding: 16px 18px;
     }
     .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
@@ -69,32 +71,31 @@
     /* ── Toolbar ── */
     .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-btn {
-      padding: 7px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.55);
+      padding: 7px 14px; border-radius: 10px; border: 1px solid #1c1c21;
+      background: #111115; color: rgba(255,255,255,0.55);
       font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .filter-btn.active {
-      background: rgba(34,158,217,0.15); border-color: rgba(34,158,217,0.3); color: #229ED9;
+      background: #0d2535; border-color: #1a4a6a; color: #229ED9;
     }
     .search-input {
-      padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04); color: #fff; font-size: 13px; font-family: inherit;
+      padding: 8px 14px; border-radius: 10px; border: 1px solid #1c1c21;
+      background: #111115; color: #fff; font-size: 13px; font-family: inherit;
       outline: none; width: 220px;
     }
     .search-input::placeholder { color: rgba(255,255,255,0.25); }
     .search-input:focus { border-color: rgba(34,158,217,0.4); }
     .refresh-btn {
       margin-left: auto; padding: 7px 16px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6);
+      border: 1px solid #1c1c21;
+      background: #111115; color: rgba(255,255,255,0.6);
       font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
     }
 
     /* ── Cards ── */
-    .cards-list { display: flex; flex-direction: column; gap: 10px; }
+    .cards-list { display: flex; flex-direction: column; gap: 10px; -webkit-transform: translateZ(0); transform: translateZ(0); }
     .user-card {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      background: #111115; border: 1px solid #1c1c21;
       border-radius: 16px; padding: 14px 16px;
       display: flex; flex-direction: column; gap: 10px;
     }
@@ -124,12 +125,12 @@
     .badge-admin   { background: rgba(255,208,96,0.1); color: #ffd060; border: 1px solid rgba(255,208,96,0.2); }
 
     .action-btn {
-      padding: 5px 11px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6);
+      padding: 5px 11px; border-radius: 8px; border: 1px solid #1c1c21;
+      background: #181820; color: rgba(255,255,255,0.6);
       font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
-      margin-right: 4px; transition: background 0.15s;
+      margin-right: 4px;
     }
-    .action-btn:hover { background: rgba(255,255,255,0.08); }
+    .action-btn:active { background: #1e1e28; }
     .action-btn.danger { color: #ff6b50; border-color: rgba(255,80,50,0.2); }
     .action-btn.success { color: #00c88c; border-color: rgba(0,200,140,0.2); }
     .action-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
@@ -152,19 +153,20 @@
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.75);
       z-index: 1000;
-      display: none; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; pointer-events: none;
     }
-    .modal-backdrop.open { display: flex; }
+    .modal-backdrop.open { opacity: 1; visibility: visible; pointer-events: auto; }
     .modal {
-      background: #16161a; border: 1px solid rgba(255,255,255,0.1);
+      background: #16161a; border: 1px solid #252530;
       border-radius: 20px; padding: 28px; width: 100%; max-width: 380px;
     }
     .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.02em; }
     .modal-label { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 6px; font-weight: 600; }
     .modal-input {
       width: 100%; padding: 11px 14px; border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.06); color: #fff; font-size: 14px;
+      border: 1px solid #252530;
+      background: #1e1e24; color: #fff; font-size: 14px;
       font-family: inherit; outline: none; margin-bottom: 16px;
     }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
@@ -186,11 +188,12 @@
     .app-dialog-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.75);
       z-index: 2000;
-      display: none; align-items: center; justify-content: center; padding: 24px;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      opacity: 0; visibility: hidden; pointer-events: none;
     }
-    .app-dialog-backdrop.open { display: flex; }
+    .app-dialog-backdrop.open { opacity: 1; visibility: visible; pointer-events: auto; }
     .app-dialog {
-      background: #1a1a1f; border: 1px solid rgba(255,255,255,0.1);
+      background: #1a1a1f; border: 1px solid #252530;
       border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 320px;
     }
     .app-dialog-title { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
