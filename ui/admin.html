@@ -263,7 +263,7 @@
       <button class="filter-btn" data-filter="trial"   onclick="setFilter('trial', this)">Триал</button>
       <button class="filter-btn" data-filter="active"  onclick="setFilter('active', this)">Активные</button>
       <button class="filter-btn" data-filter="expired" onclick="setFilter('expired', this)">Истёкшие</button>
-      <input class="search-input" id="search-input" placeholder="Поиск по email…" oninput="renderTable()" />
+      <input class="search-input" id="search-input" placeholder="Поиск по email…" />
       <button class="refresh-btn" onclick="loadUsers()"><i data-lucide="refresh-cw"></i> Обновить</button>
     </div>
 
@@ -306,11 +306,19 @@
   const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg';
 
   const _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+  // ── Константы ─────────────────────────────────────────────────────────────
+  const TRIAL_DAYS       = 7;
+  const MRR_PRICE_YEARLY = 108;   // ₽/мес при годовом тарифе
+  const MRR_PRICE_MONTHLY = 150;  // ₽/мес при месячном тарифе
+  const DEFAULT_EXTEND_DAYS = 31;
+
   let _allUsers = [];
   let _isSuperAdmin = false;
+  let _currentUserId = null;
   let _currentFilter = 'all';
   let _modalUserId = null;
   let _modalUserEmail = null;
+  let _actionInProgress = false;
 
   // ── Custom dialogs (confirm/alert не работают в Android WebView) ───────────
   function _admDialog(title, msg, buttons) {
@@ -379,7 +387,7 @@
 
     _allUsers = (data.profiles || []).map(u => {
       const now = Date.now();
-      const trialEnd  = new Date(u.trial_start).getTime() + 7 * 86400000;
+      const trialEnd  = new Date(u.trial_start).getTime() + TRIAL_DAYS * 86400000;
       const paidUntil = u.paid_until ? new Date(u.paid_until).getTime() : 0;
       let status = u.status;
       if (paidUntil > now) status = 'active';
@@ -404,9 +412,8 @@
     document.getElementById('stat-trial').textContent   = trial;
     document.getElementById('stat-expired').textContent = expired;
 
-    // MRR: диапазон от годового (108₽/мес) до месячного (150₽/мес) тарифа
-    const mrrMin = Math.round(active * 108);
-    const mrrMax = active * 150;
+    const mrrMin = Math.round(active * MRR_PRICE_YEARLY);
+    const mrrMax = active * MRR_PRICE_MONTHLY;
     const mrrEl    = document.getElementById('stat-mrr');
     const mrrSubEl = document.getElementById('stat-mrr-sub');
     if (active === 0) {
@@ -454,7 +461,7 @@
       const status = u._computed_status;
       const badgeCls = `badge badge-${status}`;
       const badgeTxt = status === 'trial' ? 'Триал' : status === 'active' ? 'Активна' : 'Истёк';
-      const trialEnd = new Date(new Date(u.trial_start).getTime() + 7 * 86400000);
+      const trialEnd = new Date(new Date(u.trial_start).getTime() + TRIAL_DAYS * 86400000);
       const paidUntil = u.paid_until ? new Date(u.paid_until) : null;
       const regDate  = new Date(u.created_at);
 
@@ -494,7 +501,7 @@
     _modalUserId    = userId;
     _modalUserEmail = email;
     document.getElementById('modal-email').textContent = email;
-    document.getElementById('modal-days').value = '31';
+    document.getElementById('modal-days').value = String(DEFAULT_EXTEND_DAYS);
     document.getElementById('extend-modal').classList.add('open');
     updateModalHint();
   }
@@ -520,66 +527,110 @@
     document.getElementById('extend-modal').classList.remove('open');
   }
 
-  async function _adminAction(body) {
-    const { data: { session } } = await _supa.auth.getSession();
-    const resp = await fetch('https://fahpfsterakqentqqazz.supabase.co/functions/v1/admin-action', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + session.access_token,
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg',
-      },
-      body: JSON.stringify(body),
-    });
-    const text = await resp.text();
-    if (!resp.ok) {
-      let msg = text;
-      try { const j = JSON.parse(text); msg = j.error || j.message || text; } catch(_) {}
-      await _admAlert('Ошибка ' + resp.status + ': ' + msg);
-      return false;
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  function _toast(msg, type = 'ok') {
+    let el = document.getElementById('adm-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'adm-toast';
+      el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center';
+      document.body.appendChild(el);
     }
-    return true;
+    el.textContent = msg;
+    el.style.background = type === 'ok' ? '#00c88c' : '#e03d2f';
+    el.style.color = '#fff';
+    el.style.opacity = '1';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.opacity = '0'; }, 2500);
+  }
+
+  // ── Action lock ───────────────────────────────────────────────────────────
+  function _lockActions() {
+    document.querySelectorAll('.action-btn').forEach(b => b.disabled = true);
+    _actionInProgress = true;
+  }
+  function _unlockActions() {
+    document.querySelectorAll('.action-btn').forEach(b => b.disabled = false);
+    _actionInProgress = false;
+  }
+
+  function _isSelf(userId) {
+    if (userId && userId === _currentUserId) {
+      _toast('Нельзя выполнить это действие над собственным аккаунтом', 'err');
+      return true;
+    }
+    return false;
+  }
+
+  async function _adminAction(body) {
+    if (_actionInProgress) return false;
+    _lockActions();
+    try {
+      const { data: { session } } = await _supa.auth.getSession();
+      const resp = await fetch('https://fahpfsterakqentqqazz.supabase.co/functions/v1/admin-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg',
+        },
+        body: JSON.stringify(body),
+      });
+      const text = await resp.text();
+      if (!resp.ok) {
+        let msg = text;
+        try { const j = JSON.parse(text); msg = j.error || j.message || text; } catch(_) {}
+        _toast('Ошибка: ' + msg, 'err');
+        return false;
+      }
+      return true;
+    } finally {
+      _unlockActions();
+    }
   }
 
   async function confirmExtend() {
-    const days = parseInt(document.getElementById('modal-days').value) ?? 31;
+    const days = parseInt(document.getElementById('modal-days').value) || DEFAULT_EXTEND_DAYS;
     const ok = await _adminAction({ action: 'extend', userId: _modalUserId, days });
     if (!ok) return;
     closeModal();
+    _toast('Доступ продлён');
     loadUsers();
   }
 
   async function revokeUser(userId, email) {
+    if (_isSelf(userId)) return;
     if (!await _admConfirm('Отозвать доступ?', email, false)) return;
     const ok = await _adminAction({ action: 'revoke', userId });
-    if (ok) loadUsers();
+    if (ok) { _toast('Доступ отозван'); loadUsers(); }
   }
 
   async function activateUser(userId, email) {
-    if (!await _admConfirm('Активировать на 31 день?', email, false)) return;
+    if (_isSelf(userId)) return;
+    if (!await _admConfirm('Активировать на ' + DEFAULT_EXTEND_DAYS + ' дней?', email, false)) return;
     const ok = await _adminAction({ action: 'activate', userId });
-    if (ok) loadUsers();
+    if (ok) { _toast('Активировано'); loadUsers(); }
   }
 
   async function resetPassword(email) {
-    if (!await _admConfirm('Сбросить пароль?', `Письмо с инструкцией отправится на\n${email}`, false)) return;
+    if (!await _admConfirm('Сбросить пароль?', `Письмо с кодом отправится на\n${email}`, false)) return;
     const ok = await _adminAction({ action: 'reset-password', email });
-    if (ok) await _admAlert(`Письмо отправлено на ${email}`);
+    if (ok) _toast('Письмо отправлено на ' + email);
   }
 
   async function toggleAdmin(userId, email, isAdmin) {
-    const msg = isAdmin
-      ? `Снять права администратора с ${email}?`
-      : `Выдать права администратора ${email}?`;
+    if (_isSelf(userId)) return;
+    const msg = isAdmin ? `Снять права администратора с ${email}?` : `Выдать права администратора ${email}?`;
     if (!await _admConfirm(isAdmin ? 'Снять админа' : 'Сделать админом', msg, isAdmin)) return;
     const ok = await _adminAction({ action: 'toggle-admin', userId, isAdmin });
-    if (ok) loadUsers();
+    if (ok) { _toast(isAdmin ? 'Права сняты' : 'Права выданы'); loadUsers(); }
   }
 
   async function deleteUser(userId, email) {
+    if (_isSelf(userId)) return;
     if (!await _admConfirm('Удалить аккаунт?', `${email}\n\nПользователь будет удалён из базы и не сможет войти.`, true)) return;
     const ok = await _adminAction({ action: 'delete-user', userId });
-    if (ok) loadUsers();
+    if (ok) { _toast('Аккаунт удалён'); loadUsers(); }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -589,6 +640,13 @@
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
+
+  // Дебаунс для поиска
+  let _searchTimer = null;
+  document.getElementById('search-input').addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(renderTable, 200);
+  });
 
   // Закрыть модал по клику на backdrop
   document.getElementById('extend-modal').addEventListener('click', function(e) {
@@ -608,9 +666,10 @@
     if (sp) sp.style.display = 'none';
   }
 
-  // Глобальный перехват ошибок
-  window.onerror = (msg, src, line) => { _bootError(msg + ' (' + line + ')'); };
-  window.onunhandledrejection = (e) => { _bootError(String(e.reason)); };
+  // Глобальный перехват ошибок — только до загрузки приложения
+  let _appReady = false;
+  window.onerror = (msg, src, line) => { if (!_appReady) _bootError('Ошибка загрузки (' + line + ')'); else console.error(msg, src, line); };
+  window.onunhandledrejection = (e) => { if (!_appReady) _bootError('Ошибка загрузки'); else console.error(e.reason); };
 
   // Проверяем сессию — права проверяет admin-profiles (403 → редирект)
   (async () => {
@@ -618,13 +677,16 @@
       const { data: { session } } = await _supa.auth.getSession();
       if (!session) { location.replace('http://127.0.0.1:8080/index.html'); return; }
 
+      _currentUserId = session.user.id;
       document.getElementById('adm-user-email').textContent = session.user.email;
       const bs = document.getElementById('boot-screen');
       if (bs) bs.remove();
       document.getElementById('app').style.display = 'block';
-      loadUsers(); // не ждём — UI уже виден, таблица покажет "Загрузка…"
+      _appReady = true;
+      loadUsers();
     } catch(e) {
-      _bootError(String(e?.message || e));
+      _bootError('Ошибка загрузки');
+      console.error(e);
     }
   })();
 </script>
