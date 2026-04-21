@@ -307,6 +307,7 @@
 
   const _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
   let _allUsers = [];
+  let _isSuperAdmin = false;
   let _currentFilter = 'all';
   let _modalUserId = null;
   let _modalUserEmail = null;
@@ -374,8 +375,9 @@
       return;
     }
     const data = await resp.json();
+    _isSuperAdmin = data.isSuperAdmin === true;
 
-    _allUsers = (data || []).map(u => {
+    _allUsers = (data.profiles || []).map(u => {
       const now = Date.now();
       const trialEnd  = new Date(u.trial_start).getTime() + 7 * 86400000;
       const paidUntil = u.paid_until ? new Date(u.paid_until).getTime() : 0;
@@ -471,13 +473,14 @@
           </div>
         </div>
         <div class="user-card-meta">${metaParts}</div>
+        ${_isSuperAdmin ? `
         <div class="user-card-actions">
           <button class="action-btn success" onclick="openExtendModal('${u.id}','${esc(u.email)}')"><i data-lucide="plus-circle"></i> Продлить</button>
           <button class="action-btn danger"  onclick="revokeUser('${u.id}','${esc(u.email)}')"><i data-lucide="x-circle"></i> Отозвать</button>
-        </div>
+        </div>` : ''}
         <div class="user-card-actions-row2">
           <button class="action-btn" onclick="resetPassword('${esc(u.email)}')"><i data-lucide="key-round"></i> Сбросить пароль</button>
-          <button class="action-btn ${u.is_admin ? 'danger' : ''}" onclick="toggleAdmin('${u.id}','${esc(u.email)}',${u.is_admin ? 'true' : 'false'})"><i data-lucide="${u.is_admin ? 'shield-off' : 'shield-check'}"></i> ${u.is_admin ? 'Снять админа' : 'Сделать админом'}</button>
+          ${_isSuperAdmin ? `<button class="action-btn ${u.is_admin ? 'danger' : ''}" onclick="toggleAdmin('${u.id}','${esc(u.email)}',${u.is_admin ? 'true' : 'false'})"><i data-lucide="${u.is_admin ? 'shield-off' : 'shield-check'}"></i> ${u.is_admin ? 'Снять админа' : 'Сделать админом'}</button>` : ''}
           <button class="action-btn danger" onclick="deleteUser('${u.id}','${esc(u.email)}')"><i data-lucide="trash-2"></i> Удалить</button>
         </div>
       </div>`;
