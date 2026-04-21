@@ -2375,6 +2375,12 @@
     const _admRow = document.getElementById('sett-admin-row');
     if (_admRow) _admRow.style.display = _subProfile.is_admin ? 'flex' : 'none';
 
+    // Записываем версию APK в профиль (fire-and-forget)
+    fetch('/api/version', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.version) _supa.from('profiles').update({ app_version: d.version }).eq('id', session.user.id).then(() => {}); })
+      .catch(() => {});
+
     const now = Date.now();
     const trialEnd = new Date(_subProfile.trial_start).getTime() + 7 * 24 * 60 * 60 * 1000;
     const paidUntil = _subProfile.paid_until ? new Date(_subProfile.paid_until).getTime() : 0;
@@ -2533,21 +2539,11 @@
   }
 
   async function authSaveRecoveryPassword() {
-    const pw  = document.getElementById('auth-otp-newpw').value;
-    const err = document.getElementById('auth-otp-newpw-error');
-    const btn = document.getElementById('auth-otp-newpw-btn');
-    if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
-    err.textContent = '';
-    _btnLoading(btn, 'Сохраняем…');
-    const { error } = await _supa.auth.updateUser({ password: pw });
-    if (error) {
-      err.textContent = error.message;
-      _btnReady(btn, 'Сменить пароль');
-      return;
-    }
-    await _supa.auth.signOut();
-    authBackToLogin();
-    _setAuthError('Пароль изменён — войдите с новым паролем');
+    await _doSavePassword('auth-otp-newpw', 'auth-otp-newpw-error', 'auth-otp-newpw-btn', 'Сменить пароль', async () => {
+      await _supa.auth.signOut();
+      authBackToLogin();
+      _setAuthError('Пароль изменён — войдите с новым паролем');
+    });
   }
 
   async function resendConfirmation() {
@@ -2566,15 +2562,7 @@
     }
   }
 
-  function toggleOtpNewPw() {
-    const inp  = document.getElementById('auth-otp-newpw');
-    const eye  = document.getElementById('otp-newpw-icon-eye');
-    const eoff = document.getElementById('otp-newpw-icon-eyeoff');
-    const show = inp.type === 'password';
-    inp.type = show ? 'text' : 'password';
-    eye.style.display  = show ? 'none' : '';
-    eoff.style.display = show ? '' : 'none';
-  }
+  function toggleOtpNewPw() { _togglePwField('auth-otp-newpw', 'otp-newpw-icon-eye', 'otp-newpw-icon-eyeoff'); }
 
   function authBackToLogin() {
     _stopDeepLinkPolling();
@@ -2693,6 +2681,30 @@
     btn.textContent = label;
   }
 
+  // ── Shared password helpers ────────────────────────────────────────────────
+  async function _doSavePassword(inputId, errId, btnId, btnLabel, onSuccess) {
+    const pw  = document.getElementById(inputId).value;
+    const err = document.getElementById(errId);
+    const btn = document.getElementById(btnId);
+    if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
+    err.textContent = '';
+    _btnLoading(btn, 'Сохраняем…');
+    const { error } = await _supa.auth.updateUser({ password: pw });
+    if (error) { err.textContent = error.message; _btnReady(btn, btnLabel); return; }
+    onSuccess();
+  }
+
+  function _togglePwField(inputId, eyeId, eyeoffId) {
+    const inp  = document.getElementById(inputId);
+    const eye  = document.getElementById(eyeId);
+    const eoff = document.getElementById(eyeoffId);
+    const show = inp.type === 'password';
+    inp.type           = show ? 'text' : 'password';
+    eye.style.display  = show ? 'none' : '';
+    eoff.style.display = show ? '' : 'none';
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   async function authSubmit() {
     const email = document.getElementById('auth-email').value.trim();
     const btn   = document.getElementById('auth-submit-btn');
@@ -2726,51 +2738,21 @@
     if (!email || !password) { _setAuthError('Заполните все поля'); return; }
     if (password.length < 6) { _setAuthError('Пароль минимум 6 символов'); return; }
 
-    if (_authMode === 'register') {
-      const _allowedDomains = new Set([
-        'gmail.com','googlemail.com',
-        'yahoo.com','yahoo.ru','yahoo.co.uk','yahoo.fr','yahoo.de','yahoo.es','yahoo.it','yahoo.co.jp',
-        'yandex.ru','yandex.com','yandex.ua','yandex.kz','yandex.by','ya.ru',
-        'mail.ru','list.ru','inbox.ru','bk.ru','internet.ru',
-        'rambler.ru','ro.ru','lenta.ru','myrambler.ru',
-        'outlook.com','outlook.ru','hotmail.com','hotmail.ru','hotmail.co.uk','hotmail.fr','hotmail.de',
-        'live.com','live.ru','live.co.uk','live.fr','live.nl','live.be','msn.com',
-        'icloud.com','me.com','mac.com',
-        'proton.me','protonmail.com','protonmail.ch','pm.me',
-        'tutanota.com','tuta.io','tutanota.de',
-        'gmx.com','gmx.net','gmx.de','gmx.at','gmx.ch',
-        'web.de','t-online.de','freenet.de',
-        'aol.com','aim.com',
-        'comcast.net','verizon.net','att.net','sbcglobal.net','cox.net','charter.net','earthlink.net',
-        'mail.com','email.com','usa.com','myself.com','consultant.com',
-        'zoho.com','fastmail.com','fastmail.fm',
-        'ukr.net','i.ua','meta.ua','bigmir.net',
-        'tut.by','mail.by',
-        'qq.com','163.com','126.com','sina.com',
-        'naver.com','daum.net',
-        'seznam.cz','centrum.cz',
-        'wp.pl','onet.pl','o2.pl',
-        'libero.it','virgilio.it',
-        'orange.fr','laposte.net','sfr.fr','free.fr','wanadoo.fr',
-      ]);
-      const emailDomain = email.split('@')[1]?.toLowerCase();
-      if (!emailDomain || !_allowedDomains.has(emailDomain)) {
-        _setAuthError('Регистрация доступна только с реальным почтовым адресом (Gmail, Яндекс, Mail.ru, Outlook и др.)');
-        return;
-      }
-    }
-
     const isReg = _authMode === 'register';
     _btnLoading(btn, isReg ? 'Регистрируем…' : 'Входим…');
     _setAuthError('');
 
     try {
       if (isReg) {
-        const { data, error } = await _supa.auth.signUp({ email, password });
-        if (error) throw error;
-        // Если identities пустые — email уже зарегистрирован
-        if (data.user?.identities?.length === 0) {
-          _setAuthError('Email уже зарегистрирован — войдите');
+        const res  = await fetch(`${SUPA_URL}/functions/v1/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_ANON },
+          body: JSON.stringify({ email, password }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          _setAuthError(json.error || 'Ошибка регистрации');
+          _btnReady(btn, 'Зарегистрироваться');
           return;
         }
         _showOtpScreen(email, 'signup');
@@ -2849,30 +2831,10 @@
     }
   }
 
-  function toggleChangePw() {
-    const inp  = document.getElementById('changepw-input');
-    const eye  = document.getElementById('changepw-icon-eye');
-    const eoff = document.getElementById('changepw-icon-eyeoff');
-    const show = inp.type === 'password';
-    inp.type = show ? 'text' : 'password';
-    eye.style.display  = show ? 'none' : '';
-    eoff.style.display = show ? '' : 'none';
-  }
+  function toggleChangePw() { _togglePwField('changepw-input', 'changepw-icon-eye', 'changepw-icon-eyeoff'); }
 
   async function saveChangedPassword() {
-    const pw  = document.getElementById('changepw-input').value;
-    const err = document.getElementById('changepw-error');
-    const btn = document.getElementById('changepw-btn');
-    if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
-    err.textContent = '';
-    _btnLoading(btn, 'Сохраняем…');
-    const { error } = await _supa.auth.updateUser({ password: pw });
-    if (error) {
-      err.textContent = error.message;
-      _btnReady(btn, 'Сохранить');
-      return;
-    }
-    closeChangePwSheet();
+    await _doSavePassword('changepw-input', 'changepw-error', 'changepw-btn', 'Сохранить', closeChangePwSheet);
   }
 
   _initSheetSwipe(
@@ -3018,34 +2980,15 @@
     }
   }
 
-  function toggleNewPw() {
-    const inp  = document.getElementById('newpw-input');
-    const eye  = document.getElementById('newpw-icon-eye');
-    const eoff = document.getElementById('newpw-icon-eyeoff');
-    const show = inp.type === 'password';
-    inp.type        = show ? 'text' : 'password';
-    eye.style.display  = show ? 'none' : '';
-    eoff.style.display = show ? '' : 'none';
-  }
+  function toggleNewPw() { _togglePwField('newpw-input', 'newpw-icon-eye', 'newpw-icon-eyeoff'); }
 
   async function saveNewPassword() {
-    const pw  = document.getElementById('newpw-input').value;
-    const err = document.getElementById('newpw-error');
-    const btn = document.getElementById('newpw-btn');
-    if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
-    err.textContent = '';
-    _btnLoading(btn, 'Сохраняем…');
-    const { error } = await _supa.auth.updateUser({ password: pw });
-    if (error) {
-      err.textContent = error.message;
-      _btnReady(btn, 'Сохранить пароль');
-      return;
-    }
-    // Пароль изменён — продолжаем как обычный вход
-    _authMode = 'login';
-    document.getElementById('auth-newpw-screen').classList.remove('is-on');
-    await checkSubscription();
-    _startSubPolling();
+    await _doSavePassword('newpw-input', 'newpw-error', 'newpw-btn', 'Сохранить пароль', async () => {
+      _authMode = 'login';
+      document.getElementById('auth-newpw-screen').classList.remove('is-on');
+      await checkSubscription();
+      _startSubPolling();
+    });
   }
 
   // Блокировка внешних прокси если expired

@@ -123,7 +123,7 @@
     .badge-admin   { background: rgba(255,208,96,0.1); color: #ffd060; border: 1px solid rgba(255,208,96,0.2); }
 
     .action-btn {
-      padding: 5px 11px; border-radius: 8px; border: 1px solid #1c1c21;
+      padding: 5px 11px; border-radius: 8px; border: 1px solid #2e2e3a;
       background: #181820; color: rgba(255,255,255,0.6);
       font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
       margin-right: 4px;
@@ -263,7 +263,7 @@
       <button class="filter-btn" data-filter="trial"   onclick="setFilter('trial', this)">Триал</button>
       <button class="filter-btn" data-filter="active"  onclick="setFilter('active', this)">Активные</button>
       <button class="filter-btn" data-filter="expired" onclick="setFilter('expired', this)">Истёкшие</button>
-      <input class="search-input" id="search-input" placeholder="Поиск по email…" />
+      <input class="search-input" id="search-input" placeholder="Поиск по email…" autocomplete="off" name="search-nofill" type="search" />
       <button class="refresh-btn" onclick="loadUsers()"><i data-lucide="refresh-cw"></i> Обновить</button>
     </div>
 
@@ -288,6 +288,28 @@
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal()">Отмена</button>
       <button class="modal-confirm" onclick="confirmExtend()">Продлить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: сменить пароль ── -->
+<div class="modal-backdrop" id="setpw-modal">
+  <div class="modal">
+    <div class="modal-title">Сменить пароль</div>
+    <div class="modal-label">Email</div>
+    <div id="setpw-email" style="font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:16px;"></div>
+    <div class="modal-label">Новый пароль</div>
+    <div style="position:relative;margin-bottom:6px;">
+      <input class="modal-input" id="setpw-input" type="password" placeholder="Минимум 6 символов" style="margin-bottom:0;padding-right:42px;" />
+      <button type="button" onclick="toggleSetPw()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0;color:rgba(255,255,255,0.4);">
+        <i data-lucide="eye" id="setpw-icon-eye"></i>
+        <i data-lucide="eye-off" id="setpw-icon-eyeoff" style="display:none"></i>
+      </button>
+    </div>
+    <div id="setpw-error" style="font-size:12px;color:#ff6b50;min-height:18px;margin-bottom:14px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeSetPwModal()">Отмена</button>
+      <button class="modal-confirm" id="setpw-confirm-btn" onclick="confirmSetPassword()">Сменить</button>
     </div>
   </div>
 </div>
@@ -468,7 +490,8 @@
       const metaParts = [
         `<span><i data-lucide="calendar"></i>Регистрация ${fmtDate(regDate)}</span>`,
         status === 'trial' ? `<span><i data-lucide="clock"></i>Триал до ${fmtDate(trialEnd)}</span>` : '',
-        paidUntil ? `<span><i data-lucide="credit-card"></i>Оплачен до ${fmtDate(paidUntil)}</span>` : ''
+        paidUntil ? `<span><i data-lucide="credit-card"></i>Оплачен до ${fmtDate(paidUntil)}</span>` : '',
+        u.app_version ? `<span><i data-lucide="smartphone"></i>APK ${esc(u.app_version)}</span>` : ''
       ].filter(Boolean).join('');
 
       return `<div class="user-card">
@@ -486,9 +509,9 @@
           <button class="action-btn danger"  onclick="revokeUser('${u.id}','${esc(u.email)}')"><i data-lucide="x-circle"></i> Отозвать</button>
         </div>` : ''}
         <div class="user-card-actions-row2">
-          <button class="action-btn" onclick="resetPassword('${esc(u.email)}')"><i data-lucide="key-round"></i> Сбросить пароль</button>
-          ${_isSuperAdmin ? `<button class="action-btn ${u.is_admin ? 'danger' : ''}" onclick="toggleAdmin('${u.id}','${esc(u.email)}',${u.is_admin ? 'true' : 'false'})"><i data-lucide="${u.is_admin ? 'shield-off' : 'shield-check'}"></i> ${u.is_admin ? 'Снять админа' : 'Сделать админом'}</button>` : ''}
-          <button class="action-btn danger" onclick="deleteUser('${u.id}','${esc(u.email)}')"><i data-lucide="trash-2"></i> Удалить</button>
+          <button class="action-btn" onclick="openSetPwModal('${u.id}','${esc(u.email)}')"><i data-lucide="key-round"></i> Сменить пароль</button>
+          ${_isSuperAdmin && u.id !== _currentUserId ? `<button class="action-btn ${u.is_admin ? 'danger' : ''}" onclick="toggleAdmin('${u.id}','${esc(u.email)}',${u.is_admin ? 'true' : 'false'})"><i data-lucide="${u.is_admin ? 'shield-off' : 'shield-check'}"></i> ${u.is_admin ? 'Снять админа' : 'Сделать админом'}</button>` : ''}
+          ${u.id !== _currentUserId ? `<button class="action-btn danger" onclick="deleteUser('${u.id}','${esc(u.email)}')"><i data-lucide="trash-2"></i> Удалить</button>` : ''}
         </div>
       </div>`;
     } catch(err) { console.error('card render error', u?.email, err); return ''; } }).join('');
@@ -612,10 +635,49 @@
     if (ok) { _toast('Активировано'); loadUsers(); }
   }
 
-  async function resetPassword(email) {
-    if (!await _admConfirm('Сбросить пароль?', `Письмо с кодом отправится на\n${email}`, false)) return;
-    const ok = await _adminAction({ action: 'reset-password', email });
-    if (ok) _toast('Письмо отправлено на ' + email);
+  let _setpwUserId = null;
+
+  function openSetPwModal(userId, email) {
+    _setpwUserId = userId;
+    document.getElementById('setpw-email').textContent = email;
+    document.getElementById('setpw-input').value = '';
+    document.getElementById('setpw-error').textContent = '';
+    document.getElementById('setpw-confirm-btn').disabled = false;
+    document.getElementById('setpw-confirm-btn').textContent = 'Сменить';
+    document.getElementById('setpw-icon-eye').style.display = '';
+    document.getElementById('setpw-icon-eyeoff').style.display = 'none';
+    document.getElementById('setpw-input').type = 'password';
+    document.getElementById('setpw-modal').classList.add('open');
+    lucide.createIcons();
+    setTimeout(() => document.getElementById('setpw-input').focus(), 100);
+  }
+
+  function closeSetPwModal() {
+    document.getElementById('setpw-modal').classList.remove('open');
+    _setpwUserId = null;
+  }
+
+  function toggleSetPw() {
+    const inp  = document.getElementById('setpw-input');
+    const eye  = document.getElementById('setpw-icon-eye');
+    const eoff = document.getElementById('setpw-icon-eyeoff');
+    const show = inp.type === 'password';
+    inp.type           = show ? 'text' : 'password';
+    eye.style.display  = show ? 'none' : '';
+    eoff.style.display = show ? '' : 'none';
+  }
+
+  async function confirmSetPassword() {
+    const pw  = document.getElementById('setpw-input').value;
+    const err = document.getElementById('setpw-error');
+    const btn = document.getElementById('setpw-confirm-btn');
+    if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
+    err.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Меняем…';
+    const ok = await _adminAction({ action: 'set-password', userId: _setpwUserId, password: pw });
+    if (ok) { closeSetPwModal(); _toast('Пароль изменён'); }
+    else { btn.disabled = false; btn.textContent = 'Сменить'; }
   }
 
   async function toggleAdmin(userId, email, isAdmin) {
@@ -641,6 +703,14 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
+  // Сброс автозаполнения WebView — очищаем пока пользователь не тронул поле
+  const _sinp = document.getElementById('search-input');
+  let _sInputTouched = false;
+  _sinp.addEventListener('focus', () => { _sInputTouched = true; });
+  [0, 100, 300, 600, 1000, 2000].forEach(t =>
+    setTimeout(() => { if (!_sInputTouched) _sinp.value = ''; }, t)
+  );
+
   // Дебаунс для поиска
   let _searchTimer = null;
   document.getElementById('search-input').addEventListener('input', () => {
@@ -651,6 +721,9 @@
   // Закрыть модал по клику на backdrop
   document.getElementById('extend-modal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
+  });
+  document.getElementById('setpw-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSetPwModal();
   });
 
   lucide.createIcons();
