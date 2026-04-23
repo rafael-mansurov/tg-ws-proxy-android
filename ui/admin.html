@@ -503,11 +503,10 @@
           </div>
         </div>
         <div class="user-card-meta">${metaParts}</div>
-        ${_isSuperAdmin ? `
         <div class="user-card-actions">
           <button class="action-btn success" onclick="openExtendModal('${u.id}','${esc(u.email)}')"><i data-lucide="plus-circle"></i> Продлить</button>
           <button class="action-btn danger"  onclick="revokeUser('${u.id}','${esc(u.email)}')"><i data-lucide="x-circle"></i> Отозвать</button>
-        </div>` : ''}
+        </div>
         <div class="user-card-actions-row2">
           <button class="action-btn" onclick="openSetPwModal('${u.id}','${esc(u.email)}')"><i data-lucide="key-round"></i> Сменить пароль</button>
           ${_isSuperAdmin && u.id !== _currentUserId ? `<button class="action-btn ${u.is_admin ? 'danger' : ''}" onclick="toggleAdmin('${u.id}','${esc(u.email)}',${u.is_admin ? 'true' : 'false'})"><i data-lucide="${u.is_admin ? 'shield-off' : 'shield-check'}"></i> ${u.is_admin ? 'Снять админа' : 'Сделать админом'}</button>` : ''}
