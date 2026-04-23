@@ -2546,6 +2546,8 @@
     });
   }
 
+  let _resendCooldownTimer = null;
+
   async function resendConfirmation() {
     if (!_pendingConfirmEmail) return;
     const link = document.querySelector('#auth-sent-resend span');
@@ -2556,10 +2558,29 @@
     } else {
       ({ error } = await _supa.auth.resend({ type: 'signup', email: _pendingConfirmEmail }));
     }
-    if (link) {
-      link.textContent = error ? 'Ошибка — попробуй ещё раз' : 'Отправлено!';
+    if (!link) return;
+    if (error) {
+      link.textContent = 'Ошибка — попробуй ещё раз';
       setTimeout(() => { if (link) link.textContent = 'Отправить повторно'; }, 3000);
+      return;
     }
+    // Countdown 20 секунд чтобы не нажимали раньше времени
+    let sec = 20;
+    link.style.pointerEvents = 'none';
+    link.style.opacity = '0.5';
+    link.textContent = `Отправлено! Повторно через ${sec}с`;
+    clearInterval(_resendCooldownTimer);
+    _resendCooldownTimer = setInterval(() => {
+      sec--;
+      if (sec <= 0) {
+        clearInterval(_resendCooldownTimer);
+        link.textContent = 'Отправить повторно';
+        link.style.pointerEvents = '';
+        link.style.opacity = '';
+      } else {
+        link.textContent = `Отправлено! Повторно через ${sec}с`;
+      }
+    }, 1000);
   }
 
   function toggleOtpNewPw() { _togglePwField('auth-otp-newpw', 'otp-newpw-icon-eye', 'otp-newpw-icon-eyeoff'); }
