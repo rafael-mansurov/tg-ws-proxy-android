@@ -120,7 +120,8 @@
     .badge-trial   { background: rgba(34,158,217,0.12); color: #229ED9; border: 1px solid rgba(34,158,217,0.2); }
     .badge-active  { background: rgba(0,200,140,0.1);  color: #00c88c; border: 1px solid rgba(0,200,140,0.2); }
     .badge-expired { background: rgba(255,80,50,0.1);  color: #ff6b50; border: 1px solid rgba(255,80,50,0.2); }
-    .badge-admin   { background: rgba(255,208,96,0.1); color: #ffd060; border: 1px solid rgba(255,208,96,0.2); }
+    .badge-admin       { background: rgba(255,208,96,0.1); color: #ffd060; border: 1px solid rgba(255,208,96,0.2); }
+    .badge-superadmin  { background: rgba(200,100,255,0.12); color: #c864ff; border: 1px solid rgba(200,100,255,0.25); }
 
     .action-btn {
       padding: 5px 11px; border-radius: 8px; border: 1px solid #2e2e3a;
@@ -241,7 +242,7 @@
   <div class="topbar">
     <div class="topbar-title"><i data-lucide="shield-check"></i> Admin · TG WS Proxy</div>
     <div class="topbar-user" id="adm-user-email"></div>
-    <a class="topbar-back" href="http://127.0.0.1:8080/index.html"><i data-lucide="arrow-left"></i> Назад</a>
+    <a class="topbar-back" href="/"><i data-lucide="arrow-left"></i> Назад</a>
   </div>
   <div class="main">
     <!-- Stats -->
@@ -283,7 +284,7 @@
     <div class="modal-label">Email</div>
     <div id="modal-email" style="font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:16px;"></div>
     <div class="modal-label">Дней добавить</div>
-    <input class="modal-input" id="modal-days" type="number" value="31" min="1" max="366" oninput="updateModalHint()" />
+    <input class="modal-input" id="modal-days" type="number" value="31" min="1" max="366" oninput="updateModalHint()" autocomplete="off" />
     <div id="modal-hint" style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:16px;margin-top:-10px;"></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal()">Отмена</button>
@@ -498,7 +499,7 @@
         <div class="user-card-top">
           <div class="user-card-email">${esc(u.email || '—')}</div>
           <div style="display:flex;gap:5px;align-items:center;">
-            ${u.is_admin ? '<span class="badge badge-admin">Admin</span>' : ''}
+            ${u.is_admin ? `<span class="badge ${_isSuperAdmin && u.id === _currentUserId ? 'badge-superadmin' : 'badge-admin'}">${_isSuperAdmin && u.id === _currentUserId ? 'Super Admin' : 'Admin'}</span>` : ''}
             <span class="${badgeCls}">${badgeTxt}</span>
           </div>
         </div>
@@ -526,6 +527,7 @@
     document.getElementById('modal-days').value = String(DEFAULT_EXTEND_DAYS);
     document.getElementById('extend-modal').classList.add('open');
     updateModalHint();
+    setTimeout(() => document.getElementById('modal-days').focus(), 50);
   }
 
   function updateModalHint() {
