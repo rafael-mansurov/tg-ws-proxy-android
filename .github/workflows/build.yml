@@ -30,16 +30,21 @@ jobs:
         run: |
           set -euo pipefail
           VERSION_SERIES_START_RUN=201
+          ANDROID_VERSION_CODE_BASE=102410700
           PATCH_OFFSET=$((GITHUB_RUN_NUMBER - VERSION_SERIES_START_RUN))
           if [ "${PATCH_OFFSET}" -lt 0 ]; then
             echo "::error::GITHUB_RUN_NUMBER (${GITHUB_RUN_NUMBER}) is lower than VERSION_SERIES_START_RUN (${VERSION_SERIES_START_RUN})."
             exit 1
           fi
           APP_VERSION="1.6.${PATCH_OFFSET}"
+          APP_NUMERIC_VERSION=$((ANDROID_VERSION_CODE_BASE + PATCH_OFFSET))
           sed -i.bak -E "s/^version = .*/version = ${APP_VERSION}/" buildozer.spec
+          sed -i.bak2 -E "s/^android\\.numeric_version = .*/android.numeric_version = ${APP_NUMERIC_VERSION}/" buildozer.spec
           rm -f buildozer.spec.bak
+          rm -f buildozer.spec.bak2
           printf 'APP_VERSION = "%s"\n' "${APP_VERSION}" > version.py
           echo "APP_VERSION=${APP_VERSION}" >> "${GITHUB_ENV}"
+          echo "APP_NUMERIC_VERSION=${APP_NUMERIC_VERSION}" >> "${GITHUB_ENV}"
 
       - name: Настройка подписи и типа сборки
         env:
@@ -85,6 +90,7 @@ jobs:
           mkdir -p "${HOME}/.buildozer"
           echo "Build mode: ${BUILD_MODE}"
           echo "Version: ${APP_VERSION}"
+          echo "Android versionCode: ${APP_NUMERIC_VERSION}"
           SIGN_ENV=()
           if [ "${BUILD_MODE}" = "release" ]; then
             SIGN_ENV+=( -e "P4A_RELEASE_KEYSTORE=/home/user/hostcwd/.ci/release.keystore" )

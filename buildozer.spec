@@ -6,6 +6,9 @@ source.dir = .
 source.include_exts = py,html,png,css,jpg,js
 source.include_patterns = ui/*,icon.png,cover.jpg
 version = 1.6.0
+# Принудительно держим растущий Android versionCode отдельно от versionName,
+# чтобы обновления не ломались при переходе с 1.5.200 на 1.6.x.
+android.numeric_version = 102410700
 requirements = python3,openssl,cryptography,cffi,android
 orientation = portrait
 fullscreen = 0
