@@ -29,11 +29,23 @@ jobs:
       - name: Подготовка версии (растет на каждом запуске)
         run: |
           set -euo pipefail
-          BASE_VERSION=$(awk -F' = ' '/^version = / {print $2}' buildozer.spec | cut -d. -f1-2)
+          BASE_VERSION=$(awk -F' = ' '/^version = / {print $2}' buildozer.spec)
           if [ -z "${BASE_VERSION}" ]; then
-            BASE_VERSION="1.0"
+            BASE_VERSION="1.0.0"
           fi
-          APP_VERSION="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"
+          VERSION_SERIES_START_RUN=201
+          IFS='.' read -r APP_MAJOR APP_MINOR APP_PATCH <<EOF
+          ${BASE_VERSION}
+          EOF
+          APP_MAJOR=${APP_MAJOR:-1}
+          APP_MINOR=${APP_MINOR:-0}
+          APP_PATCH=${APP_PATCH:-0}
+          PATCH_OFFSET=$((GITHUB_RUN_NUMBER - VERSION_SERIES_START_RUN))
+          if [ "${PATCH_OFFSET}" -lt 0 ]; then
+            echo "::error::GITHUB_RUN_NUMBER (${GITHUB_RUN_NUMBER}) is lower than VERSION_SERIES_START_RUN (${VERSION_SERIES_START_RUN})."
+            exit 1
+          fi
+          APP_VERSION="${APP_MAJOR}.${APP_MINOR}.$((APP_PATCH + PATCH_OFFSET))"
           sed -i.bak -E "s/^version = .*/version = ${APP_VERSION}/" buildozer.spec
           rm -f buildozer.spec.bak
           printf 'APP_VERSION = "%s"\n' "${APP_VERSION}" > version.py
