@@ -1430,6 +1430,7 @@
         </div>
       </div>
 
+      <!-- Промокод -->
       <!-- О приложении -->
       <div class="sett-section">
       <div class="sett-section-title">О приложении</div>
@@ -1551,7 +1552,7 @@
           <div class="faq-qa">
             <div class="faq-q">Не нашли ответ?</div>
             <div class="faq-a" style="margin-bottom:0">
-              <a class="faq-support-btn" href="https://t.me/mansurov_rafael" target="_blank" rel="noopener noreferrer">Написать в поддержку</a>
+              <a class="faq-support-btn" href="tg://resolve?domain=mansurov_rafael" target="_blank" rel="noopener noreferrer">Написать в поддержку</a>
             </div>
           </div>
         </div>
@@ -1619,8 +1620,8 @@
     <!-- Действия -->
     <div class="sett-section">
       <div class="sett-card">
-        <div class="sett-row" onclick="window.open('https://t.me/+jBWqVxkC-fs0YmUy','_blank')" style="cursor:pointer">
-          <div class="sett-row-icon" style="background:rgba(34,158,217,0.12)">
+        <div class="sett-row" onclick="window.open('tg://join?invite=jBWqVxkC-fs0YmUy','_blank')" style="cursor:pointer">
+          <div class="sett-row-icon" style="background:rgba(255,255,255,0.06)">
             <svg class="icon-filled" viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg" width="18" height="16"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761L1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097L8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z"/></svg>
           </div>
           <div class="sett-row-body">
@@ -1638,7 +1639,7 @@
           </div>
           <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
         </div>
-        <div class="sett-row sett-row-divider" onclick="window.open('https://t.me/mansurov_rafael','_blank')" style="cursor:pointer">
+        <div class="sett-row sett-row-divider" onclick="window.open('tg://resolve?domain=mansurov_rafael','_blank')" style="cursor:pointer">
           <div class="sett-row-icon" style="background:rgba(255,255,255,0.06)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg>
           </div>
@@ -1647,6 +1648,21 @@
             <div class="sett-row-sub">Написать в&nbsp;Telegram</div>
           </div>
           <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Промокод -->
+    <div class="sett-section" id="promo-section" style="display:none">
+      <div class="sett-section-title">Промокод</div>
+      <div class="sett-card">
+        <div style="padding:4px 12px 12px">
+          <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+            <input id="promo-input" type="text" placeholder="Введите промокод"
+              style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:14px;font-family:inherit;outline:none;text-transform:uppercase;letter-spacing:.05em" />
+            <button id="promo-btn" onclick="applyPromo()" style="background:#229ED9;color:#fff;border:none;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0">Применить</button>
+          </div>
+          <div id="promo-msg" style="font-size:12px;margin-top:8px;min-height:16px;padding:0 2px"></div>
         </div>
       </div>
     </div>
@@ -2191,6 +2207,7 @@
     cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .profile-pay-btn.expired-pay { background: rgba(255,100,60,0.9); }
+  .profile-pay-btn.manage-pay  { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.75); }
 </style>
 
 <!-- ── Change password sheet ── -->
@@ -2484,7 +2501,7 @@
       // Fallback: JWT без claims (старый токен или первый вход) — читаем из БД
       const { data: profile, error } = await _supa
         .from('profiles')
-        .select('*')
+        .select('id,email,status,trial_start,paid_until,is_admin')
         .eq('id', session.user.id)
         .single();
 
@@ -2499,7 +2516,7 @@
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
-          .select()
+          .select('id,email,status,trial_start,paid_until,is_admin')
           .single();
         if (insertError || !newProfile) { _showAuth(); return; }
         _subProfile = newProfile;
@@ -2510,9 +2527,11 @@
       }
     }
 
-    // Показываем пункт админки сразу после загрузки профиля — независимо от статуса подписки
+    // Показываем пункт админки и секцию промокода
     const _admRow = document.getElementById('sett-admin-row');
     if (_admRow) _admRow.style.display = _subProfile.is_admin ? 'flex' : 'none';
+    const _promoSec = document.getElementById('promo-section');
+    if (_promoSec) _promoSec.style.display = '';
 
     // Записываем версию APK в профиль (fire-and-forget)
     fetch('/api/version', { cache: 'no-store' })
@@ -2904,18 +2923,13 @@
         _showOtpScreen(email, 'signup');
         return;
       } else {
-        try {
-          const { data: exists } = await _supa.rpc('email_exists', { p_email: email });
-          if (exists === false) {
-            _setAuthError('Неверный email или пароль');
-            _btnReady(btn, 'Войти');
-            return;
-          }
-        } catch (_) { /* при сетевой ошибке идём дальше */ }
         const { error } = await _supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        await checkSubscription();
-        return; // если checkSubscription скрыл overlay — кнопку не трогаем
+
+        // Не держим пользователя на экране входа ещё одним round-trip до profiles.
+        _hideAllOverlays();
+        checkSubscription().catch(() => _showAuth());
+        return;
       }
     } catch (e) {
       const msg = e.message || 'Ошибка';
@@ -3033,6 +3047,37 @@
     }, 5000);
   }
 
+  async function applyPromo() {
+    const input = document.getElementById('promo-input');
+    const btn   = document.getElementById('promo-btn');
+    const msg   = document.getElementById('promo-msg');
+    const code  = (input?.value || '').trim().toUpperCase();
+    if (!code) { if (msg) { msg.textContent = 'Введите промокод'; msg.style.color = '#ff6b50'; } return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Применяем…'; }
+    if (msg) msg.textContent = '';
+    try {
+      const { data: { session } } = await _supa.auth.getSession();
+      if (!session) { if (msg) { msg.textContent = 'Войдите в аккаунт'; msg.style.color = '#ff6b50'; } return; }
+      const res = await fetch(`${SUPA_URL}/functions/v1/redeem-promo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}`, 'apikey': SUPA_ANON },
+        body: JSON.stringify({ code }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        if (msg) { msg.textContent = d.error || 'Ошибка'; msg.style.color = '#ff6b50'; }
+        return;
+      }
+      if (input) input.value = '';
+      if (msg) { msg.textContent = `Активировано +${d.days} дн.`; msg.style.color = '#00c88c'; }
+      await checkSubscription();
+    } catch(e) {
+      if (msg) { msg.textContent = 'Ошибка соединения'; msg.style.color = '#ff6b50'; }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Применить'; }
+    }
+  }
+
   async function checkPaymentManually() {
     const checkBtn = document.getElementById('paywall-check-btn');
     if (checkBtn) { checkBtn.disabled = true; checkBtn.textContent = 'Проверяем…'; }
@@ -3068,21 +3113,32 @@
     _supa.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT') {
         _showAuth();
+      } else if (event === 'TOKEN_REFRESHED') {
+        checkSubscription().catch(() => {});
       }
     });
 
-    // Проверяем deep link (сброс пароля через tgwsproxy://)
+    // Проверяем deep link и подписку параллельно
     await _checkDeepLink();
-    if (_authMode === 'reset') return; // покажем форму нового пароля
+    if (_authMode === 'reset') return;
 
     await checkSubscription();
+
+    // Прогрев Edge Function админки — только для админов, fire-and-forget
+    if (_subProfile?.is_admin) {
+      fetch(`${SUPA_URL}/functions/v1/admin-profiles`, {
+        method: 'OPTIONS',
+        headers: { 'apikey': SUPA_ANON },
+      }).catch(() => {});
+    }
+
     _startSubPolling();
   }
 
   // ── Deep link: сброс пароля ────────────────────────────────────────────────
   async function _checkDeepLink() {
     try {
-      const res = await fetch('/api/deep-link');
+      const res = await _localFetch('/api/deep-link', {}, 3000);
       if (!res.ok) return;
       const { url } = await res.json();
       if (!url || !url.startsWith('tgwsproxy://reset-password')) return;
@@ -3158,6 +3214,14 @@
   let autostartEnabled = false;
   let restartIntervalSeconds = 3600;
   let uiBusy = false;
+  let _pollBusy = false;
+
+  // fetch с таймаутом для локального Python-бэкенда
+  function _localFetch(url, options = {}, timeoutMs = 5000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(t));
+  }
   let currentPage = 'main';
   const HEADER_TITLE_MAIN = 'TG WS Proxy';
   const HEADER_SUB_DEFAULT = 'MTProto · локальный';
@@ -3566,7 +3630,7 @@
     const versionEl = document.getElementById('about-app-version');
     if (!versionEl) return;
     try {
-      const r = await fetch('/api/version', { cache: 'no-store' });
+      const r = await _localFetch('/api/version', { cache: 'no-store' }, 3000);
       if (!r.ok) return;
       const data = await r.json();
       if (data?.version) versionEl.textContent = data.version;
@@ -3598,7 +3662,7 @@
 
       // 2. Нативный путь через сервер (fallback)
       try {
-        const r = await fetch('/api/share', { method: 'POST' });
+        const r = await _localFetch('/api/share', { method: 'POST' }, 5000);
         if (r.ok) {
           const d = await r.json();
           if (d.ok) { done = true; return; }
@@ -3816,11 +3880,21 @@
     updateHeader(tab);
 
     if (tab === 'ext-proxies') {
+      if (!_subProfile) { _showAuth(); return; }
       if (!_extProxiesLoaded) loadExtProxies(); else _queueExtProxyVirtualRender(true);
       requestAnimationFrame(_updateExtProxyScrollTopButton);
       try { const tip = document.getElementById('ext-proxy-tip'); if (tip) tip.style.display = localStorage.getItem('tgws_ext_tip_v1') === '1' ? 'none' : ''; } catch(e) {}
     }
-    if (tab === 'profile') refreshProfilePage();
+    if (tab === 'profile') {
+      refreshProfilePage();
+      // Прогреваем Edge Function админки заранее (fire-and-forget)
+      if (_subProfile?.is_admin) {
+        fetch(`${SUPA_URL}/functions/v1/admin-profiles`, {
+          method: 'OPTIONS',
+          headers: { 'apikey': SUPA_ANON },
+        }).catch(() => {});
+      }
+    }
   }
 
   function updateHeader(tab) {
@@ -3874,7 +3948,8 @@
       badge.textContent = 'Активна';
       const d = new Date(paidMs);
       if (detail) detail.textContent = `до ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-      if (payWrap) payWrap.style.display = 'none';
+      if (payWrap) payWrap.style.display = '';
+      if (payBtn) { payBtn.textContent = 'Управлять подпиской'; payBtn.className = 'profile-pay-btn manage-pay'; }
     } else if (trialEnd > now) {
       badge.className = 'profile-sub-badge trial';
       badge.textContent = 'Пробный период';
@@ -3905,7 +3980,7 @@
 
   async function fetchAutostart() {
     try {
-      const r = await fetch('/api/autostart');
+      const r = await _localFetch('/api/autostart', {}, 3000);
       if (!r.ok) return;
       const d = await r.json();
       renderAutostart(!!d.enabled);
@@ -3916,11 +3991,11 @@
     const want = !!enabled;
     renderAutostart(want);
     try {
-      const r = await fetch('/api/autostart', {
+      const r = await _localFetch('/api/autostart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: want }),
-      });
+      }, 3000);
       const d = await r.json();
       renderAutostart(!!d.enabled);
     } catch(e) {
@@ -3939,7 +4014,7 @@
 
   async function fetchRestartInterval() {
     try {
-      const r = await fetch('/api/restart-interval');
+      const r = await _localFetch('/api/restart-interval', {}, 3000);
       if (!r.ok) return;
       const d = await r.json();
       renderRestartInterval(d.seconds);
@@ -3953,11 +4028,11 @@
     const prev = restartIntervalSeconds;
     renderRestartInterval(wanted);
     try {
-      const r = await fetch('/api/restart-interval', {
+      const r = await _localFetch('/api/restart-interval', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ seconds: wanted }),
-      });
+      }, 3000);
       const d = await r.json();
       renderRestartInterval(d.seconds);
     } catch(e) {
@@ -3966,12 +4041,13 @@
   }
 
   async function onToggle() {
+    if (!_subProfile) { _showAuth(); return; }
     if (!running && _subStatus === 'expired') { _showPaywall(); return; }
     const endpoint = running ? '/api/stop' : '/api/start';
     const turningOn = !running;
     if (turningOn) setStartBusy(true);
     try {
-      const r = await fetch(endpoint, { method: 'POST' });
+      const r = await _localFetch(endpoint, { method: 'POST' }, 10000);
       let d = {};
       try {
         d = await r.json();
@@ -3998,7 +4074,7 @@
 
   async function checkBatteryOpt() {
     try {
-      const r = await fetch('/api/battery');
+      const r = await _localFetch('/api/battery', {}, 3000);
       const d = await r.json();
       const mainBanner = document.getElementById('battery-banner');
       const settingsTitle = document.getElementById('battery-settings-title');
@@ -4021,7 +4097,7 @@
 
   async function openBatterySettings() {
     try {
-      await fetch('/api/battery', { method: 'POST' });
+      await _localFetch('/api/battery', { method: 'POST' }, 3000);
       setTimeout(checkBatteryOpt, 1500);
     } catch(e) {}
   }
@@ -4042,7 +4118,7 @@
     if (chevron) chevron.style.transform = 'rotate(180deg)';
     if (copyBtn) copyBtn.style.display = 'inline-block';
     try {
-      const r = await fetch('/api/logs');
+      const r = await _localFetch('/api/logs', {}, 5000);
       const d = await r.json();
       const box = document.getElementById('log-box');
       box.textContent = d.log || '(пусто)';
@@ -4144,13 +4220,15 @@
 
   // Poll status every 3s to stay in sync with the service
   async function pollStatus() {
-    if (uiBusy) return;
+    if (uiBusy || _pollBusy) return;
+    _pollBusy = true;
     try {
-      const r = await fetch('/api/status');
+      const r = await _localFetch('/api/status', {}, 4000);
       const d = await r.json();
       if (d.booting) return;
       updateUI(d.running, d.secret, d.link_host, d.uptime_seconds, d.rx_bps, d.tx_bps, d.last_session_ok_ts);
     } catch(e) {}
+    finally { _pollBusy = false; }
   }
 
   const GH_REPO = 'rafael-mansurov/tg-ws-proxy-android';

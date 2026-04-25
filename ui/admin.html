@@ -111,15 +111,64 @@
     .user-card-meta span { display: flex; align-items: center; gap: 4px; }
     .user-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .user-card-actions-row2 { display: flex; gap: 8px; flex-wrap: wrap; }
+    .user-card-meta-col { display: flex; flex-direction: column; gap: 5px; margin-top: 2px; }
+    .meta-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; padding: 4px 8px;
+      font-size: 12px; color: rgba(255,255,255,0.45);
+      width: fit-content;
+    }
+    .meta-pill svg { width: 12px; height: 12px; flex-shrink: 0; opacity: 0.6; }
+
+    /* ── 3-dot menu button ── */
+    .kebab-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid #2e2e3a;
+      background: #181820; color: rgba(255,255,255,0.5);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .kebab-btn:active { background: #252530; }
+    .kebab-btn svg { width: 16px; height: 16px; }
+
+    /* ── Context menu bottom sheet ── */
+    .ctx-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 3000; opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity .2s;
+    }
+    .ctx-backdrop.open { opacity: 1; visibility: visible; pointer-events: auto; }
+    .ctx-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #16161a; border-top: 1px solid #252530;
+      border-radius: 20px 20px 0 0; padding: 8px 0 calc(env(safe-area-inset-bottom) + 12px);
+      z-index: 3001; transform: translateY(100%); transition: transform .25s cubic-bezier(.32,1,.23,1);
+    }
+    .ctx-backdrop.open .ctx-sheet { transform: translateY(0); }
+    .ctx-sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); margin: 8px auto 12px; }
+    .ctx-sheet-email { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctx-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 20px; cursor: pointer; font-size: 15px; font-weight: 500; color: #fff;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ctx-item:active { background: rgba(255,255,255,0.05); }
+    .ctx-item svg { width: 18px; height: 18px; flex-shrink: 0; color: rgba(255,255,255,0.45); }
+    .ctx-item.danger { color: #ff6b50; }
+    .ctx-item.danger svg { color: #ff6b50; }
+    .ctx-item.success { color: #00c88c; }
+    .ctx-item.success svg { color: #00c88c; }
+    .ctx-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
 
     .badge {
-      display: inline-flex; align-items: center;
-      padding: 3px 9px; border-radius: 20px;
-      font-size: 11px; font-weight: 700;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 8px; border-radius: 8px;
+      font-size: 12px; font-weight: 600;
     }
     .badge-trial   { background: rgba(34,158,217,0.12); color: #229ED9; border: 1px solid rgba(34,158,217,0.2); }
     .badge-active  { background: rgba(0,200,140,0.1);  color: #00c88c; border: 1px solid rgba(0,200,140,0.2); }
     .badge-expired { background: rgba(255,80,50,0.1);  color: #ff6b50; border: 1px solid rgba(255,80,50,0.2); }
+    .badge-unconfirmed { background: rgba(255,180,0,0.12); color: #ffb700; border: 1px solid rgba(255,180,0,0.3); }
     .badge-admin       { background: rgba(255,208,96,0.1); color: #ffd060; border: 1px solid rgba(255,208,96,0.2); }
     .badge-superadmin  { background: rgba(200,100,255,0.12); color: #c864ff; border: 1px solid rgba(200,100,255,0.25); }
 
@@ -150,6 +199,20 @@
     .topbar-title svg { width: 16px; height: 16px; flex-shrink: 0; color: #229ED9; }
     .refresh-btn { display: inline-flex; align-items: center; gap: 6px; }
     .refresh-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* ── Admin tabs ── */
+    .admin-tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #111115; border: 1px solid #1c1c21; border-radius: 12px; padding: 4px; }
+    .admin-tab { flex: 1; padding: 8px 12px; border-radius: 9px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background .15s, color .15s; }
+    .admin-tab.is-active { background: #1c1c24; color: #fff; }
+    .admin-tab:active { opacity: 0.8; }
+
+    /* ── Promo cards ── */
+    .promo-card { background: #111115; border: 1px solid #1c1c21; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+    .promo-code { font-size: 15px; font-weight: 700; letter-spacing: .05em; color: #fff; flex: 1; min-width: 0; }
+    .promo-meta { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+    .create-promo-btn { padding: 7px 16px; border-radius: 10px; border: 1px solid rgba(34,158,217,0.3); background: rgba(34,158,217,0.1); color: #229ED9; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .create-promo-btn svg { width: 14px; height: 14px; }
+    .create-promo-btn:active { opacity: 0.8; }
 
     .empty-state {
       text-align: center; padding: 48px 24px;
@@ -245,6 +308,15 @@
     <a class="topbar-back" href="/"><i data-lucide="arrow-left"></i> Назад</a>
   </div>
   <div class="main">
+    <!-- Tab nav -->
+    <div class="admin-tabs">
+      <button class="admin-tab is-active" onclick="switchAdminTab('users', this)">Пользователи</button>
+      <button class="admin-tab" onclick="switchAdminTab('promos', this)">Промокоды</button>
+    </div>
+
+    <!-- ── Users tab ── -->
+    <div id="admin-tab-users">
+
     <!-- Stats -->
     <div class="stats-row" id="stats-row">
       <div class="stat-card"><div class="stat-label">Всего</div><div class="stat-value" id="stat-total">—</div></div>
@@ -265,7 +337,6 @@
       <button class="filter-btn" data-filter="trial"   onclick="setFilter('trial', this)">Триал</button>
       <button class="filter-btn" data-filter="active"  onclick="setFilter('active', this)">Активные</button>
       <button class="filter-btn" data-filter="expired" onclick="setFilter('expired', this)">Истёкшие</button>
-      <input class="search-input" id="search-input" placeholder="Поиск по email…" autocomplete="off" name="search-nofill" type="search" />
       <button class="refresh-btn" onclick="loadUsers()"><i data-lucide="refresh-cw"></i> Обновить</button>
     </div>
 
@@ -275,6 +346,23 @@
       <div class="cards-list" id="users-tbody"></div>
       <div class="empty-state" id="table-empty" style="display:none">Нет пользователей</div>
     </div>
+
+    </div><!-- /admin-tab-users -->
+
+    <!-- ── Promos tab ── -->
+    <div id="admin-tab-promos" style="display:none">
+      <div class="toolbar">
+        <button class="create-promo-btn" onclick="openCreatePromoModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Создать промокод
+        </button>
+        <button class="refresh-btn" onclick="loadPromos()" style="margin-left:auto"><i data-lucide="refresh-cw"></i> Обновить</button>
+      </div>
+      <div class="loading" id="promos-loading" style="display:none">Загрузка…</div>
+      <div class="cards-list" id="promos-list"></div>
+      <div class="empty-state" id="promos-empty" style="display:none">Промокодов нет — создайте первый</div>
+    </div><!-- /admin-tab-promos -->
+
   </div>
 </div>
 
@@ -312,6 +400,38 @@
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeSetPwModal()">Отмена</button>
       <button class="modal-confirm" id="setpw-confirm-btn" onclick="confirmSetPassword()">Сменить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Context menu bottom sheet ── -->
+<div class="ctx-backdrop" id="ctx-backdrop" onclick="closeCtxMenu()">
+  <div class="ctx-sheet" onclick="event.stopPropagation()">
+    <div class="ctx-sheet-handle"></div>
+    <div style="padding:0 20px 14px">
+      <div id="ctx-badge" style="margin-bottom:6px"></div>
+      <div class="ctx-sheet-email" id="ctx-email"></div>
+    </div>
+    <div id="ctx-items"></div>
+  </div>
+</div>
+
+<!-- ── Modal: создать промокод ── -->
+<div class="modal-backdrop" id="create-promo-modal">
+  <div class="modal">
+    <div class="modal-title">Создать промокод</div>
+    <div class="modal-label">Код</div>
+    <input class="modal-input" id="cp-code" type="text" placeholder="PROMO2025" style="text-transform:uppercase;letter-spacing:.05em" autocomplete="off" />
+    <div class="modal-label">Дней доступа</div>
+    <input class="modal-input" id="cp-days" type="number" value="30" min="1" max="3650" autocomplete="off" />
+    <div class="modal-label">Макс. использований</div>
+    <input class="modal-input" id="cp-uses" type="number" value="1" min="1" max="100000" autocomplete="off" />
+    <div class="modal-label">Действует до (необязательно)</div>
+    <input class="modal-input" id="cp-expires" type="date" style="color-scheme:dark;margin-bottom:20px" />
+    <div id="cp-error" style="font-size:12px;color:#ff6b50;min-height:16px;margin-bottom:12px;margin-top:-12px"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeCreatePromoModal()">Отмена</button>
+      <button class="modal-confirm" id="cp-confirm-btn" onclick="confirmCreatePromo()">Создать</button>
     </div>
   </div>
 </div>
@@ -441,8 +561,9 @@
     document.getElementById('stat-expired').textContent     = expired;
     document.getElementById('stat-unconfirmed').textContent = unconfirmed;
 
-    const mrrMin = Math.round(active * MRR_PRICE_YEARLY);
-    const mrrMax = active * MRR_PRICE_MONTHLY;
+    const activePaying = _allUsers.filter(u => u._computed_status === 'active' && !u.is_admin).length;
+    const mrrMin = Math.round(activePaying * MRR_PRICE_YEARLY);
+    const mrrMax = activePaying * MRR_PRICE_MONTHLY;
     const mrrEl    = document.getElementById('stat-mrr');
     const mrrSubEl = document.getElementById('stat-mrr-sub');
     if (active === 0) {
@@ -465,7 +586,7 @@
   }
 
   function renderTable() {
-    const search = (document.getElementById('search-input').value || '').toLowerCase();
+    const search = (document.getElementById('search-input')?.value || '').toLowerCase();
     let users = _allUsers;
 
     if (_currentFilter !== 'all') {
@@ -494,31 +615,26 @@
       const paidUntil = u.paid_until ? new Date(u.paid_until) : null;
       const regDate  = new Date(u.created_at);
 
-      const metaParts = [
-        `<span><i data-lucide="calendar"></i>Регистрация ${fmtDate(regDate)}</span>`,
-        status === 'trial' ? `<span><i data-lucide="clock"></i>Триал до ${fmtDate(trialEnd)}</span>` : '',
-        paidUntil ? `<span><i data-lucide="credit-card"></i>Оплачен до ${fmtDate(paidUntil)}</span>` : '',
-        u.app_version ? `<span><i data-lucide="smartphone"></i>APK ${esc(u.app_version)}</span>` : ''
+      const metaPills = [
+        `<span class="meta-pill"><i data-lucide="calendar"></i>Регистрация ${fmtDate(regDate)}</span>`,
+        status === 'trial' ? `<span class="meta-pill"><i data-lucide="clock"></i>Триал до ${fmtDate(trialEnd)}</span>` : '',
+        paidUntil ? `<span class="meta-pill"><i data-lucide="credit-card"></i>Оплачен до ${fmtDate(paidUntil)}</span>` : '',
+        u.app_version ? `<span class="meta-pill"><i data-lucide="smartphone"></i>APK ${esc(u.app_version)}</span>` : ''
       ].filter(Boolean).join('');
 
       return `<div class="user-card">
         <div class="user-card-top">
-          <div class="user-card-email">${esc(u.email || '—')}</div>
-          <div style="display:flex;gap:5px;align-items:center;">
-            ${u.is_admin ? `<span class="badge ${u.id === _superAdminId ? 'badge-superadmin' : 'badge-admin'}">${u.id === _superAdminId ? 'Super Admin' : 'Admin'}</span>` : ''}
-            <span class="${badgeCls}">${badgeTxt}</span>
+          <div style="min-width:0;flex:1">
+            <div class="user-card-email">${esc(u.email || '—')}</div>
           </div>
+          <button class="kebab-btn" onclick="openCtxMenu('${u.id}','${esc(u.email)}',${u.is_admin},${!!u.email_confirmed},${u.id === _currentUserId},'${badgeCls}','${badgeTxt}')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
         </div>
-        <div class="user-card-meta">${metaParts}</div>
-        <div class="user-card-actions">
-          <button class="action-btn success" onclick="openExtendModal('${u.id}','${esc(u.email)}')"><i data-lucide="plus-circle"></i> Продлить</button>
-          ${!u.is_admin ? `<button class="action-btn danger" onclick="revokeUser('${u.id}','${esc(u.email)}')"><i data-lucide="x-circle"></i> Отозвать</button>` : ''}
-          ${!u.email_confirmed ? `<button class="action-btn" onclick="confirmEmail('${u.id}','${esc(u.email)}')"><i data-lucide="mail-check"></i> Подтвердить email</button>` : ''}
-        </div>
-        <div class="user-card-actions-row2">
-          <button class="action-btn" onclick="openSetPwModal('${u.id}','${esc(u.email)}')"><i data-lucide="key-round"></i> Сменить пароль</button>
-          ${_isSuperAdmin && u.id !== _currentUserId ? `<button class="action-btn ${u.is_admin ? 'danger' : ''}" onclick="toggleAdmin('${u.id}','${esc(u.email)}',${u.is_admin ? 'true' : 'false'})"><i data-lucide="${u.is_admin ? 'shield-off' : 'shield-check'}"></i> ${u.is_admin ? 'Снять админа' : 'Сделать админом'}</button>` : ''}
-          ${u.id !== _currentUserId ? `<button class="action-btn danger" onclick="deleteUser('${u.id}','${esc(u.email)}')"><i data-lucide="trash-2"></i> Удалить</button>` : ''}
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          ${u.is_admin ? `<span class="badge ${u.id === _superAdminId ? 'badge-superadmin' : 'badge-admin'}">${u.id === _superAdminId ? 'Super Admin' : 'Admin'}</span>` : ''}
+          <span class="${badgeCls}">${badgeTxt}</span>
+          ${metaPills}
         </div>
       </div>`;
     } catch(err) { console.error('card render error', u?.email, err); return ''; } }).join('');
@@ -717,20 +833,20 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  // Сброс автозаполнения WebView — очищаем пока пользователь не тронул поле
+  // Дебаунс для поиска (если search-input присутствует)
   const _sinp = document.getElementById('search-input');
-  let _sInputTouched = false;
-  _sinp.addEventListener('focus', () => { _sInputTouched = true; });
-  [0, 100, 300, 600, 1000, 2000].forEach(t =>
-    setTimeout(() => { if (!_sInputTouched) _sinp.value = ''; }, t)
-  );
-
-  // Дебаунс для поиска
-  let _searchTimer = null;
-  document.getElementById('search-input').addEventListener('input', () => {
-    clearTimeout(_searchTimer);
-    _searchTimer = setTimeout(renderTable, 200);
-  });
+  if (_sinp) {
+    let _sInputTouched = false;
+    _sinp.addEventListener('focus', () => { _sInputTouched = true; });
+    [0, 100, 300, 600, 1000, 2000].forEach(t =>
+      setTimeout(() => { if (!_sInputTouched) _sinp.value = ''; }, t)
+    );
+    let _searchTimer = null;
+    _sinp.addEventListener('input', () => {
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(renderTable, 200);
+    });
+  }
 
   // Закрыть модал по клику на backdrop
   document.getElementById('extend-modal').addEventListener('click', function(e) {
@@ -738,6 +854,223 @@
   });
   document.getElementById('setpw-modal').addEventListener('click', function(e) {
     if (e.target === this) closeSetPwModal();
+  });
+
+  // ── Context menu ─────────────────────────────────────────────────────────
+  let _ctxUserId = null, _ctxUserEmail = null, _ctxScrollY = 0;
+
+  function openCtxMenu(userId, email, isAdmin, emailConfirmed, isSelf, badgeCls, badgeTxt) {
+    _ctxUserId    = userId;
+    _ctxUserEmail = email;
+    document.getElementById('ctx-email').textContent = email;
+    const badgeEl = document.getElementById('ctx-badge');
+    if (badgeEl) badgeEl.innerHTML = badgeCls ? `<span class="${badgeCls}" style="align-self:flex-start">${badgeTxt}</span>` : '';
+
+    const items = [];
+    items.push({ icon: 'plus-circle', label: 'Продлить',        cls: 'success', fn: `closeCtxMenu();openExtendModal('${userId}','${esc(email)}')` });
+    if (!isAdmin)        items.push({ icon: 'x-circle',   label: 'Отозвать',          cls: 'danger', fn: `closeCtxMenu();revokeUser('${userId}','${esc(email)}')` });
+    if (!emailConfirmed) items.push({ icon: 'mail-check', label: 'Подтвердить email', cls: '',       fn: `closeCtxMenu();confirmEmail('${userId}','${esc(email)}')` });
+    items.push({ divider: true });
+    items.push({ icon: 'key-round', label: 'Сменить пароль', cls: '', fn: `closeCtxMenu();openSetPwModal('${userId}','${esc(email)}')` });
+    if (_isSuperAdmin && !isSelf) {
+      items.push({ icon: isAdmin ? 'shield-off' : 'shield-check', label: isAdmin ? 'Снять админа' : 'Сделать админом', cls: isAdmin ? 'danger' : '', fn: `closeCtxMenu();toggleAdmin('${userId}','${esc(email)}',${isAdmin})` });
+    }
+    if (!isSelf) {
+      items.push({ divider: true });
+      items.push({ icon: 'trash-2', label: 'Удалить аккаунт', cls: 'danger', fn: `closeCtxMenu();deleteUser('${userId}','${esc(email)}')` });
+    }
+
+    document.getElementById('ctx-items').innerHTML = items.map(it => {
+      if (it.divider) return '<div class="ctx-divider"></div>';
+      return `<div class="ctx-item ${it.cls}" onclick="${it.fn}"><i data-lucide="${it.icon}"></i>${it.label}</div>`;
+    }).join('');
+
+    lucide.createIcons({ nodes: [document.getElementById('ctx-items')] });
+    const backdrop = document.getElementById('ctx-backdrop');
+    backdrop.classList.add('open');
+    _ctxScrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${_ctxScrollY}px`;
+    document.body.style.width = '100%';
+    _initSheetSwipe();
+  }
+
+  function closeCtxMenu() {
+    document.getElementById('ctx-backdrop').classList.remove('open');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, _ctxScrollY);
+  }
+
+  function _initSheetSwipe() {
+    const sheet = document.querySelector('.ctx-sheet');
+    let startY = 0, curY = 0, dragging = false;
+
+    function onStart(e) {
+      startY = (e.touches ? e.touches[0].clientY : e.clientY);
+      curY = 0;
+      dragging = true;
+      sheet.style.transition = 'none';
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      const dy = (e.touches ? e.touches[0].clientY : e.clientY) - startY;
+      if (dy < 0) return;
+      curY = dy;
+      sheet.style.transform = `translateY(${dy}px)`;
+      e.preventDefault();
+    }
+    function onEnd() {
+      if (!dragging) return;
+      dragging = false;
+      sheet.style.transition = '';
+      if (curY > 80) {
+        sheet.style.transform = '';
+        closeCtxMenu();
+      } else {
+        sheet.style.transform = '';
+      }
+    }
+
+    sheet.removeEventListener('touchstart', sheet._ts);
+    sheet.removeEventListener('touchmove',  sheet._tm);
+    sheet.removeEventListener('touchend',   sheet._te);
+    sheet._ts = onStart; sheet._tm = onMove; sheet._te = onEnd;
+    sheet.addEventListener('touchstart', onStart, { passive: true });
+    sheet.addEventListener('touchmove',  onMove,  { passive: false });
+    sheet.addEventListener('touchend',   onEnd);
+  }
+
+  // ── Admin tab switching ───────────────────────────────────────────────────
+  function switchAdminTab(tab, btn) {
+    document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('is-active'));
+    if (btn) btn.classList.add('is-active');
+    document.getElementById('admin-tab-users').style.display = tab === 'users' ? '' : 'none';
+    document.getElementById('admin-tab-promos').style.display = tab === 'promos' ? '' : 'none';
+    if (tab === 'promos' && document.getElementById('promos-list').innerHTML === '') loadPromos();
+  }
+
+  // ── Promo codes ───────────────────────────────────────────────────────────
+  let _allPromos = [];
+
+  async function loadPromos() {
+    document.getElementById('promos-loading').style.display = 'block';
+    document.getElementById('promos-list').innerHTML = '';
+    document.getElementById('promos-empty').style.display = 'none';
+    const ok = await _adminAction({ action: 'list-promos' }, true);
+    document.getElementById('promos-loading').style.display = 'none';
+    if (!ok) return;
+    _allPromos = ok.promos || [];
+    renderPromos();
+  }
+
+  function renderPromos() {
+    const list = document.getElementById('promos-list');
+    const empty = document.getElementById('promos-empty');
+    if (!_allPromos.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    list.innerHTML = _allPromos.map(p => {
+      const used = `${p.used_count}/${p.max_uses}`;
+      const exp  = p.expires_at ? `до ${fmtDate(new Date(p.expires_at))}` : 'бессрочно';
+      const activeCls = p.is_active ? 'badge badge-active' : 'badge badge-expired';
+      const activeTxt = p.is_active ? 'Активен' : 'Отключён';
+      return `<div class="promo-card">
+        <div style="flex:1;min-width:0">
+          <div class="promo-code">${esc(p.code)}</div>
+          <div class="promo-meta">+${p.days} дн · использован ${used} · ${exp}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <span class="${activeCls}">${activeTxt}</span>
+          <button class="action-btn" onclick="togglePromo('${p.id}',${p.is_active})" title="${p.is_active ? 'Отключить' : 'Включить'}">
+            <i data-lucide="${p.is_active ? 'pause' : 'play'}"></i>
+          </button>
+          <button class="action-btn danger" onclick="deletePromo('${p.id}','${esc(p.code)}')">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+    lucide.createIcons();
+  }
+
+  function openCreatePromoModal() {
+    document.getElementById('cp-code').value = '';
+    document.getElementById('cp-days').value = '30';
+    document.getElementById('cp-uses').value = '1';
+    document.getElementById('cp-expires').value = '';
+    document.getElementById('cp-error').textContent = '';
+    document.getElementById('cp-confirm-btn').disabled = false;
+    document.getElementById('cp-confirm-btn').textContent = 'Создать';
+    document.getElementById('create-promo-modal').classList.add('open');
+    setTimeout(() => document.getElementById('cp-code').focus(), 50);
+  }
+
+  function closeCreatePromoModal() {
+    document.getElementById('create-promo-modal').classList.remove('open');
+  }
+
+  async function confirmCreatePromo() {
+    const code    = document.getElementById('cp-code').value.trim().toUpperCase();
+    const days    = parseInt(document.getElementById('cp-days').value) || 0;
+    const maxUses = parseInt(document.getElementById('cp-uses').value) || 1;
+    const expires = document.getElementById('cp-expires').value || null;
+    const errEl   = document.getElementById('cp-error');
+    const btn     = document.getElementById('cp-confirm-btn');
+
+    if (!code)  { errEl.textContent = 'Введите код'; return; }
+    if (days < 1) { errEl.textContent = 'Укажите количество дней'; return; }
+    errEl.textContent = '';
+    btn.disabled = true; btn.textContent = 'Создаём…';
+
+    const ok = await _adminAction({ action: 'create-promo', promoCode: code, promoDays: days, maxUses, expiresAt: expires });
+    if (ok) { closeCreatePromoModal(); _toast('Промокод создан'); loadPromos(); }
+    else { btn.disabled = false; btn.textContent = 'Создать'; }
+  }
+
+  async function deletePromo(promoId, code) {
+    if (!await _admConfirm('Удалить промокод?', code, true)) return;
+    const ok = await _adminAction({ action: 'delete-promo', promoId });
+    if (ok) { _toast('Промокод удалён'); loadPromos(); }
+  }
+
+  async function togglePromo(promoId, isActive) {
+    const ok = await _adminAction({ action: 'toggle-promo', promoId, isActive });
+    if (ok) { _toast(isActive ? 'Промокод отключён' : 'Промокод включён'); loadPromos(); }
+  }
+
+  // Перегружаем _adminAction чтобы поддерживать возврат данных (list-promos)
+  const _adminActionOrig = _adminAction;
+  async function _adminAction(body, returnData = false) {
+    if (_actionInProgress) return false;
+    _lockActions();
+    try {
+      const { data: { session } } = await _supa.auth.getSession();
+      const resp = await fetch(SUPA_URL + '/functions/v1/admin-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+          'apikey': SUPA_ANON,
+        },
+        body: JSON.stringify(body),
+      });
+      const text = await resp.text();
+      if (!resp.ok) {
+        let msg = text;
+        try { const j = JSON.parse(text); msg = j.error || j.message || text; } catch(_) {}
+        _toast('Ошибка: ' + msg, 'err');
+        return false;
+      }
+      if (returnData) { try { return JSON.parse(text); } catch(_) { return true; } }
+      return true;
+    } finally {
+      _unlockActions();
+    }
+  }
+
+  document.getElementById('create-promo-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeCreatePromoModal();
   });
 
   lucide.createIcons();

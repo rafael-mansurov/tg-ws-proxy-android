@@ -13,7 +13,7 @@ import threading
 import time
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -1194,5 +1194,5 @@ if __name__ == "__main__":
     _request_permissions()  # early request so permission is granted before proxy starts
     # Init in background so WebView gets HTML as soon as the server is up (splash hides on first paint of this URL).
     threading.Thread(target=_init_app_state, daemon=True).start()
-    server = HTTPServer(("127.0.0.1", SERVE_PORT), Handler)
+    server = ThreadingHTTPServer(("127.0.0.1", SERVE_PORT), Handler)
     server.serve_forever()
