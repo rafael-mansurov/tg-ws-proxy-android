@@ -1658,11 +1658,11 @@
       <div class="sett-card">
         <div style="padding:4px 12px 12px">
           <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
-            <input id="promo-input" type="text" placeholder="Введите промокод"
-              style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:14px;font-family:inherit;outline:none;text-transform:uppercase;letter-spacing:.05em" />
+            <input id="promo-input" type="text" placeholder="Введите промокод" autocomplete="new-password" autocorrect="off" autocapitalize="none" readonly onfocus="this.removeAttribute('readonly')"
+              style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);border-radius:12px;padding:10px 14px;color:#fff;font-size:14px;font-family:inherit;outline:none" />
             <button id="promo-btn" onclick="applyPromo()" style="background:#229ED9;color:#fff;border:none;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0">Применить</button>
           </div>
-          <div id="promo-msg" style="font-size:12px;margin-top:8px;min-height:16px;padding:0 2px"></div>
+          <div id="promo-msg" style="font-size:12px;padding:0 2px;display:none"></div>
         </div>
       </div>
     </div>
@@ -3051,28 +3051,32 @@
     const input = document.getElementById('promo-input');
     const btn   = document.getElementById('promo-btn');
     const msg   = document.getElementById('promo-msg');
+    function _promoMsg(text, color) {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.style.color = color;
+      msg.style.marginTop = '6px';
+      msg.style.display = text ? '' : 'none';
+    }
     const code  = (input?.value || '').trim().toUpperCase();
-    if (!code) { if (msg) { msg.textContent = 'Введите промокод'; msg.style.color = '#ff6b50'; } return; }
+    if (!code) { _promoMsg('Введите промокод', '#ff6b50'); return; }
     if (btn) { btn.disabled = true; btn.textContent = 'Применяем…'; }
-    if (msg) msg.textContent = '';
+    _promoMsg('', '');
     try {
       const { data: { session } } = await _supa.auth.getSession();
-      if (!session) { if (msg) { msg.textContent = 'Войдите в аккаунт'; msg.style.color = '#ff6b50'; } return; }
+      if (!session) { _promoMsg('Войдите в аккаунт', '#ff6b50'); return; }
       const res = await fetch(`${SUPA_URL}/functions/v1/redeem-promo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}`, 'apikey': SUPA_ANON },
         body: JSON.stringify({ code }),
       });
       const d = await res.json();
-      if (!res.ok) {
-        if (msg) { msg.textContent = d.error || 'Ошибка'; msg.style.color = '#ff6b50'; }
-        return;
-      }
+      if (!res.ok) { _promoMsg(d.error || 'Ошибка', '#ff6b50'); return; }
       if (input) input.value = '';
-      if (msg) { msg.textContent = `Активировано +${d.days} дн.`; msg.style.color = '#00c88c'; }
+      _promoMsg(`Активировано +${d.days} дн.`, '#00c88c');
       await checkSubscription();
     } catch(e) {
-      if (msg) { msg.textContent = 'Ошибка соединения'; msg.style.color = '#ff6b50'; }
+      _promoMsg('Ошибка соединения', '#ff6b50');
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Применить'; }
     }
