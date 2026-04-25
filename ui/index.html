@@ -415,6 +415,7 @@
       display: flex; align-items: center; justify-content: center;
     }
     .sett-row-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sett-row-icon svg.icon-filled { fill: #229ED9; stroke: none; }
     .sett-row-icon .icon-telegram {
       width: 16px;
       height: 14px;
@@ -1287,12 +1288,6 @@
     <div class="header-toggle-wrap toggle-wrap" id="header-toggle-wrap" role="switch" aria-checked="false" aria-label="Прокси" onclick="onToggle()">
       <div class="toggle-track" id="toggle"><div class="toggle-thumb"></div></div>
     </div>
-    <button type="button" class="header-gear-btn" id="header-settings-btn" onclick="openSettings()" aria-label="Настройки" title="Настройки">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
-    </button>
   </div>
 
   <div id="page-main" class="page is-active">
@@ -1344,12 +1339,12 @@
     </div>
 
     <!-- Плашка подписки под SECRET -->
-    <div id="sub-badge-main" style="display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.04)">
+    <div id="sub-badge-main" onclick="switchTab('profile')" style="display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.04);cursor:pointer">
       <div style="display:flex;align-items:center;gap:8px">
         <div id="sub-badge-dot" style="width:7px;height:7px;border-radius:50%;background:#229ED9;flex-shrink:0"></div>
         <span id="sub-badge-text" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.65)">Триал · 7 дн</span>
       </div>
-      <button onclick="openAcctModal()" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.55);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">Профиль</button>
+      <button onclick="switchTab('profile')" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.55);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">Профиль</button>
     </div>
 
     <div class="spacer"></div>
@@ -1367,10 +1362,6 @@
     <button type="button" class="btn off" id="tg-btn" onclick="openTelegram()">Открыть в&nbsp;Telegram</button>
     </div>
 
-    <button type="button" onclick="openExtProxies()" style="width:100%;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      Внешние прокси
-    </button>
   </div>
   </div>
 
@@ -1439,34 +1430,6 @@
         </div>
       </div>
 
-      <!-- Аккаунт (+ Администрирование если is_admin) -->
-      <div class="sett-section">
-        <div class="sett-section-title">Аккаунт</div>
-        <div class="sett-card">
-          <div class="sett-row" onclick="openAcctModal()" style="cursor:pointer">
-            <div class="sett-row-icon" style="background:rgba(255,255,255,0.07)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            </div>
-            <div class="sett-row-body">
-              <div class="sett-row-label">Личный кабинет</div>
-              <div class="sett-row-sub" id="sett-acct-sub">Подписка и выход из аккаунта</div>
-            </div>
-            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
-          </div>
-          <!-- Панель управления (только для is_admin) -->
-          <div class="sett-row sett-row-divider" id="sett-admin-row" style="display:none;cursor:pointer" onclick="window.location.replace('http://127.0.0.1:8080/admin.html')">
-            <div class="sett-row-icon" style="background:rgba(255,255,255,0.07)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <div class="sett-row-body">
-              <div class="sett-row-label">Панель управления</div>
-              <div class="sett-row-sub">Пользователи, подписки, статистика</div>
-            </div>
-            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
-          </div>
-        </div>
-      </div>
-
       <!-- О приложении -->
       <div class="sett-section">
       <div class="sett-section-title">О приложении</div>
@@ -1524,29 +1487,6 @@
             <div class="sett-row-body">
               <div class="sett-row-label">Поддержать проект</div>
               <div class="sett-row-sub">Открыть страницу доната</div>
-            </div>
-            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
-          </div>
-          <div class="sett-row" onclick="window.open('https://t.me/+jBWqVxkC-fs0YmUy','_blank')" style="cursor:pointer">
-            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
-              <svg class="icon-telegram" width="16" height="14" viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761C1.27894 7.38924 1.28414 7.39088 1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097C8.6685 6.97392 8.66534 6.97687 8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z" fill="white"/>
-                <path d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761L1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097L8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z" fill="white"/>
-              </svg>
-            </div>
-            <div class="sett-row-body">
-              <div class="sett-row-label">Telegram-канал</div>
-              <div class="sett-row-sub">Новости и обновления приложения</div>
-            </div>
-            <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
-          </div>
-          <div class="sett-row" onclick="window.open('https://t.me/mansurov_rafael','_blank')" style="cursor:pointer">
-            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
-              <svg viewBox="0 0 24 24"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg>
-            </div>
-            <div class="sett-row-body">
-              <div class="sett-row-label">Поддержка</div>
-              <div class="sett-row-sub">Написать в&nbsp;Telegram</div>
             </div>
             <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
           </div>
@@ -1619,6 +1559,121 @@
     </div>
   </div>
 
+<!-- ── Page: Внешние прокси ── -->
+<div id="page-ext-proxies" class="page">
+  <div class="content">
+
+    <div id="ext-probe-bar" class="ext-probe-bar">
+      <span id="ext-probe-left" class="ext-probe-left"></span>
+      <span id="ext-probe-right" class="ext-probe-right"></span>
+    </div>
+
+    <div style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.40);margin-bottom:14px;line-height:1.5">
+      Публичные MTProto-прокси — работают на мобильном интернете и&nbsp;Wi-Fi. Выберите любой, Telegram применит автоматически.
+    </div>
+
+    <div id="ext-proxy-tip" class="ext-proxy-tip">
+      <div class="ext-proxy-tip-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+      </div>
+      <div class="ext-proxy-tip-body">
+        <div class="ext-proxy-tip-title">Держите запасной план</div>
+        <div class="ext-proxy-tip-sub">Чтобы Telegram работал везде, добавьте 15–20 разных прокси из этого списка. Затем в Telegram откройте настройки прокси и включите тумблер автопереключения с таймаутом в 5&nbsp;секунд</div>
+      </div>
+      <button class="ext-proxy-tip-close" onclick="dismissExtProxyTip()" aria-label="Закрыть">✕</button>
+    </div>
+
+    <div id="ext-proxy-list" class="ext-proxy-list">
+      <div class="ext-proxy-status">Загрузка…</div>
+    </div>
+
+  </div>
+  <button type="button" class="scroll-top-btn" id="ext-proxy-scroll-top-btn" onclick="scrollExtProxiesToTop()" aria-label="Наверх">
+    Наверх
+  </button>
+</div>
+
+<!-- ── Page: Профиль ── -->
+<div id="page-profile" class="page">
+  <div class="content">
+
+    <!-- Карточка аккаунта -->
+    <div class="sett-section" style="margin-bottom:0">
+      <div class="sett-card">
+        <div class="profile-acct-row">
+          <div class="profile-avatar" id="profile-avatar">—</div>
+          <div class="profile-acct-info">
+            <div class="profile-email" id="profile-email">—</div>
+            <div class="profile-sub-row">
+              <span class="profile-sub-badge" id="profile-sub-badge">—</span>
+              <span class="profile-sub-detail" id="profile-sub-detail"></span>
+            </div>
+          </div>
+        </div>
+        <div class="profile-pay-wrap" id="profile-pay-wrap" style="display:none">
+          <button class="profile-pay-btn" id="profile-pay-btn" onclick="openLavaPayment()">Оформить подписку</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Действия -->
+    <div class="sett-section">
+      <div class="sett-card">
+        <div class="sett-row" onclick="window.open('https://t.me/+jBWqVxkC-fs0YmUy','_blank')" style="cursor:pointer">
+          <div class="sett-row-icon" style="background:rgba(34,158,217,0.12)">
+            <svg class="icon-filled" viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg" width="18" height="16"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.69184 2.00737C8.25888 2.60345 5.39488 3.83705 1.09992 5.70833C0.402477 5.98569 0.0371331 6.25697 0.00387711 6.52225C-0.0523389 6.97065 0.509141 7.14721 1.27376 7.38761L1.28934 7.39251C1.38851 7.42371 1.49102 7.45596 1.596 7.49009C2.34824 7.73465 3.36008 8.02073 3.88616 8.03209C4.36336 8.04241 4.89592 7.84569 5.48392 7.44193C9.4968 4.73305 11.5683 3.36393 11.6983 3.33441C11.7901 3.31353 11.9172 3.28737 12.0034 3.36393C12.0895 3.44049 12.081 3.58553 12.0719 3.62441C12.0163 3.86153 9.81232 5.91057 8.67168 6.97097L8.66218 6.9798C8.31167 7.3057 8.06345 7.53649 8.01232 7.58961C7.89688 7.70953 7.77912 7.82305 7.666 7.93209C6.9672 8.60577 6.44312 9.11097 7.69504 9.93601C8.29501 10.3314 8.77548 10.6586 9.25451 10.9847L9.2584 10.9874C9.78288 11.3446 10.3061 11.7009 10.983 12.1446C11.1554 12.2576 11.3201 12.375 11.4805 12.4894C12.091 12.9246 12.6394 13.3155 13.3169 13.2532C13.7106 13.217 14.1172 12.8468 14.3237 11.7427C14.8118 9.13353 15.7712 3.48009 15.9929 1.15049C16.0123 0.946331 15.9878 0.685131 15.9682 0.570491C15.9486 0.455851 15.9076 0.292411 15.7586 0.171531C15.5821 0.0282511 15.3095 -0.00190902 15.1877 9.09819e-05C14.6335 0.010011 13.7834 0.305611 9.69184 2.00737Z"/></svg>
+          </div>
+          <div class="sett-row-body">
+            <div class="sett-row-label">Telegram-канал</div>
+            <div class="sett-row-sub">Новости и обновления</div>
+          </div>
+          <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+        </div>
+        <div class="sett-row sett-row-divider" onclick="openChangePwSheet()" style="cursor:pointer">
+          <div class="sett-row-icon" style="background:rgba(255,255,255,0.06)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="sett-row-body">
+            <div class="sett-row-label">Сменить пароль</div>
+          </div>
+          <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+        </div>
+        <div class="sett-row sett-row-divider" onclick="window.open('https://t.me/mansurov_rafael','_blank')" style="cursor:pointer">
+          <div class="sett-row-icon" style="background:rgba(255,255,255,0.06)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg>
+          </div>
+          <div class="sett-row-body">
+            <div class="sett-row-label">Поддержка</div>
+            <div class="sett-row-sub">Написать в&nbsp;Telegram</div>
+          </div>
+          <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Панель управления (только is_admin) -->
+    <div class="sett-section" id="profile-admin-section" style="display:none">
+      <div class="sett-section-title">Администрирование</div>
+      <div class="sett-card">
+        <div class="sett-row" onclick="window.location.href='/admin.html'" style="cursor:pointer">
+          <div class="sett-row-icon" style="background:rgba(255,255,255,0.06)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="sett-row-body">
+            <div class="sett-row-label">Панель управления</div>
+            <div class="sett-row-sub">Пользователи, подписки, статистика</div>
+          </div>
+          <div class="sett-row-right sett-chevron"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Выход -->
+    <button class="profile-logout-text-btn" onclick="authLogout()" style="margin-top:auto;padding-bottom:24px">Выйти из аккаунта</button>
+
+  </div>
+</div>
+
 <div id="qr-modal" class="qr-modal" aria-hidden="true">
   <div class="qr-modal-backdrop" onclick="closeQrModal()"></div>
   <div class="qr-modal-panel" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
@@ -1635,38 +1690,6 @@
       <p class="qr-modal-proxy-hint">Чтобы добавить этот прокси, Вашим друзьям достаточно сканировать этот код камерой телефона.</p>
     </div>
   </div>
-</div>
-
-<div id="ext-proxy-modal" class="ext-proxy-modal bs-backdrop" aria-hidden="true" onclick="(e.target===this)&&closeExtProxies()">
-  <div class="ext-proxy-panel bs-panel">
-    <div class="ext-proxy-handle bs-handle" id="ext-proxy-handle"></div>
-    <div class="ext-proxy-head">
-      <div class="ext-proxy-head-title">Внешние прокси</div>
-      <button class="ext-proxy-head-btn" id="ext-refresh-btn" onclick="loadExtProxies()" title="Обновить">Обновить</button>
-      <button class="ext-proxy-head-btn" onclick="closeExtProxies()" aria-label="Закрыть">✕</button>
-    </div>
-    <div class="ext-proxy-sub">Публичные MTProto-прокси — работают на мобильном интернете и&nbsp;Wi-Fi. Выберите любой, Telegram применит автоматически.</div>
-    <div id="ext-probe-bar" class="ext-probe-bar">
-      <span id="ext-probe-left" class="ext-probe-left"></span>
-      <span id="ext-probe-right" class="ext-probe-right"></span>
-    </div>
-    <div id="ext-proxy-tip" class="ext-proxy-tip">
-      <div class="ext-proxy-tip-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.75c.62.46 1 1.18 1 1.95V18h6v-1.3c0-.77.38-1.49 1-1.95A7 7 0 0 0 12 2Z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
-      </div>
-      <div class="ext-proxy-tip-body">
-        <div class="ext-proxy-tip-title">Держите запасной план</div>
-        <div class="ext-proxy-tip-sub">Чтобы Telegram работал везде, добавьте 15–20 разных прокси из этого списка. Затем в Telegram откройте настройки прокси и включите тумблер автопереключения с таймаутом в 5&nbsp;секунд</div>
-      </div>
-      <button class="ext-proxy-tip-close" onclick="dismissExtProxyTip()" aria-label="Закрыть">✕</button>
-    </div>
-    <div id="ext-proxy-list" class="ext-proxy-list">
-      <div class="ext-proxy-status">Загрузка…</div>
-    </div>
-  </div>
-  <button type="button" class="scroll-top-btn" id="ext-proxy-scroll-top-btn" onclick="scrollExtProxiesToTop()" aria-label="Наверх">
-    Наверх
-  </button>
 </div>
 
 <div id="onboarding-coach" class="onb-coach" aria-hidden="true" role="dialog" aria-modal="true">
@@ -1723,7 +1746,7 @@
         <div class="about-list">
           <div class="about-item">
             <div class="about-item-label">Версия приложения</div>
-            <div class="about-item-value" id="about-app-version">1.5.73</div>
+            <div class="about-item-value" id="about-app-version">1.6.0</div>
           </div>
           <div class="about-item">
             <div class="about-item-label">Минимальная версия Android</div>
@@ -1749,27 +1772,42 @@
     position: fixed; inset: 0; z-index: 10000;
     background: #0f0f11;
     display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 24px 24px env(safe-area-inset-bottom, 24px);
+    align-items: center; justify-content: flex-start;
+    padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
     overflow-y: auto;
   }
   .auth-overlay.is-hidden { display: none !important; }
 
-  .auth-logo {
-    width: 64px; height: 64px; border-radius: 18px; margin-bottom: 20px;
-    background: rgba(34,158,217,0.15); border: 1px solid rgba(34,158,217,0.25);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+  .auth-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; }
+  .auth-logo { flex-shrink: 0; }
+  .auth-welcome {
+    font-size: 14px; color: rgba(255,255,255,0.4); font-weight: 500;
+    margin-top: 20px; letter-spacing: 0;
   }
-  .auth-logo svg { width: 32px; height: 32px; stroke: #229ED9; }
+  .auth-appname {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.04em;
+    color: #ffffff; margin-top: 4px;
+  }
+  .auth-tabs {
+    display: flex; width: 100%; max-width: 340px;
+    background: rgba(255,255,255,0.07); border-radius: 13px;
+    padding: 3px; margin-bottom: 20px; flex-shrink: 0;
+  }
+  .auth-tab {
+    flex: 1; padding: 10px; border: none; border-radius: 10px;
+    background: none; color: rgba(255,255,255,0.4); font-size: 14px;
+    font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .auth-tab.is-active { background: rgba(255,255,255,0.12); color: #ffffff; }
 
-.auth-title {
-    font-size: 22px; font-weight: 700; letter-spacing: -0.035em;
+  .auth-title {
+    font-size: 20px; font-weight: 700; letter-spacing: -0.03em;
     color: #ffffff; text-align: center; margin-bottom: 6px;
   }
   .auth-sub {
     font-size: 13px; color: rgba(255,255,255,0.45); text-align: center;
-    margin-bottom: 28px; line-height: 1.5; max-width: 280px;
+    margin-bottom: 20px; line-height: 1.5; max-width: 280px;
   }
   .auth-form { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; }
   .auth-input {
@@ -2011,6 +2049,12 @@
   }
   .auth-forgot.is-on { display: block; }
   .auth-forgot span { color: rgba(34,158,217,0.8); }
+  .profile-logout-text-btn {
+    display: block; width: 100%; padding: 0; margin-top: 8px; margin-bottom: 0;
+    background: none; border: none; font-family: inherit;
+    font-size: 14px; color: rgba(255,255,255,0.35); cursor: pointer;
+    text-align: center;
+  }
   /* Полноэкранный экран после отправки письма */
   .auth-sent {
     display: none;
@@ -2046,41 +2090,108 @@
   }
   .auth-sent-back span { color: #229ED9; font-weight: 600; cursor: pointer; }
   .auth-otp-input { text-align:center !important; letter-spacing:10px; font-size:26px !important; font-family:monospace !important; padding-left:20px !important; }
-</style>
 
-<!-- ── Account modal ── -->
-<div class="bs-backdrop" id="acct-backdrop" onclick="closeAcctModal(event)">
-  <div class="bs-panel" role="dialog" aria-modal="true">
-    <div class="bs-handle" id="acct-handle"></div>
-    <div class="acct-email" id="acct-email">—</div>
-    <div class="acct-status-line" id="acct-status-line">—</div>
-    <div class="acct-divider"></div>
-    <button class="acct-btn" onclick="closeAcctModal(); openLavaPayment();">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-      </svg>
-      Оформить / продлить подписку
-    </button>
-    <button class="acct-btn" onclick="window.location.href='https://app.lava.top/my-purchases';">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-      </svg>
-      Управление подпиской
-    </button>
-    <button class="acct-btn" onclick="closeAcctModal(); openChangePwSheet();">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-      </svg>
-      Сменить пароль
-    </button>
-    <button class="acct-btn danger" onclick="authLogout()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-      </svg>
-      Выйти из аккаунта
-    </button>
-  </div>
-</div><!-- /#acct-backdrop -->
+  /* ── Tab Bar (floating pill) ── */
+  .tab-bar {
+    position: fixed;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 400px;
+    background: rgba(18,18,22,0.96);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 30px;
+    display: flex;
+    padding: 5px;
+    gap: 2px;
+    z-index: 500;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 9px 4px;
+    background: none;
+    border: none;
+    border-radius: 24px;
+    color: rgba(255,255,255,0.35);
+    font-size: 10px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: color 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    position: relative;
+    z-index: 1;
+  }
+  .tab-item.is-active { color: #229ED9; }
+  .tab-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tab-label { line-height: 1; }
+
+  /* Скользящий индикатор */
+  .tab-indicator {
+    position: absolute;
+    top: 5px; bottom: 5px;
+    left: 0;
+    border-radius: 22px;
+    background: rgba(34,158,217,0.13);
+    transition: left 0.32s cubic-bezier(0.34, 1.3, 0.64, 1), width 0.32s cubic-bezier(0.34, 1.3, 0.64, 1);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Padding для контента под плавающим таб-баром ── */
+  .page .content { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+
+  /* ── Profile page ── */
+  .profile-acct-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 16px 14px;
+  }
+  .profile-avatar {
+    width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #229ED9 0%, #7c3aed 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .profile-acct-info { flex: 1; min-width: 0; }
+  .profile-email {
+    font-size: 14px; font-weight: 600; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 5px;
+  }
+  .profile-sub-row { display: flex; align-items: center; gap: 7px; }
+  .profile-sub-badge {
+    font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 20px; flex-shrink: 0;
+  }
+  .profile-sub-badge.trial   { background: rgba(34,158,217,0.15); color: #229ED9; }
+  .profile-sub-badge.active  { background: rgba(0,200,140,0.12);  color: #00c88c; }
+  .profile-sub-badge.expired { background: rgba(255,100,60,0.12); color: #ff6b50; }
+  .profile-sub-detail {
+    font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .profile-pay-wrap {
+    padding: 0 12px 12px;
+  }
+  .profile-pay-btn {
+    width: 100%; padding: 12px; border: none; border-radius: 14px;
+    background: #229ED9; color: #fff;
+    font-size: 14px; font-weight: 700; font-family: inherit;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .profile-pay-btn.expired-pay { background: rgba(255,100,60,0.9); }
+</style>
 
 <!-- ── Change password sheet ── -->
 <div class="bs-backdrop" id="changepw-backdrop" onclick="closeChangePwSheet(event)" style="backdrop-filter:none;-webkit-backdrop-filter:none">
@@ -2110,14 +2221,21 @@
 
 <!-- ── Auth screen ── -->
 <div id="auth-overlay" class="auth-overlay is-hidden" aria-modal="true" role="dialog">
-  <div class="auth-logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
+  <div class="auth-header" id="auth-header">
+    <div class="auth-logo">
+      <img src="/icon.png" alt="TG WS Proxy" style="width:80px;height:80px;display:block">
+    </div>
+    <div class="auth-welcome">Добро пожаловать в</div>
+    <div class="auth-appname">TG WS Proxy</div>
   </div>
-  <div class="auth-title" id="auth-title">Регистрация</div>
+
+  <div class="auth-title" id="auth-title" style="display:none">Сброс пароля</div>
   <div class="auth-sub" id="auth-sub"></div>
 
+  <div class="auth-tabs" id="auth-tabs">
+    <button class="auth-tab is-active" id="auth-tab-login" onclick="authSetMode('login')">Вход</button>
+    <button class="auth-tab" id="auth-tab-register" onclick="authSetMode('register')">Регистрация</button>
+  </div>
 
   <form class="auth-form" id="auth-form" onsubmit="return false">
     <input
@@ -2142,9 +2260,7 @@
     </button>
   </form>
 
-  <div class="auth-toggle" id="auth-toggle-row">
-    Уже есть аккаунт? <span onclick="authSwitchMode()">Войти</span>
-  </div>
+  <div class="auth-toggle" id="auth-toggle-row" style="display:none"></div>
   <div class="auth-forgot" id="auth-forgot">
     <span onclick="authForgotPassword()">Забыли пароль?</span>
   </div>
@@ -2162,7 +2278,7 @@
     <div id="auth-otp-section" style="display:none;width:100%;max-width:320px;">
       <input class="auth-input auth-otp-input" id="auth-otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code"/>
       <div class="auth-error" id="auth-otp-error" style="margin:8px 0"></div>
-      <button class="auth-btn" id="auth-otp-btn" onclick="authVerifyOtp()" style="width:100%;margin-top:4px">Подтвердить</button>
+      <button class="auth-btn" id="auth-otp-btn" onclick="authVerifyOtp()" style="width:100%;margin-top:16px">Подтвердить</button>
     </div>
     <!-- Шаг 2: новый пароль (только для recovery) -->
     <div id="auth-otp-newpw-section" style="display:none;width:100%;max-width:320px;">
@@ -2274,7 +2390,7 @@
 
   const _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
   let _subProfile   = null;   // текущий профиль из БД
-  let _authMode     = 'register'; // 'register' | 'login'
+  let _authMode     = 'login'; // 'register' | 'login'
   let _subStatus    = null;   // 'trial' | 'active' | 'expired'
   let _deepLinkPollTimer = null;
 
@@ -2309,14 +2425,18 @@
     _stopDeepLinkPolling();
     document.getElementById('auth-overlay').classList.remove('is-hidden');
     document.getElementById('paywall-overlay').classList.add('is-hidden');
-    // Сбрасываем в режим регистрации
-    if (_authMode === 'forgot') { _authMode = 'register'; }
+    if (_authMode === 'forgot') { _authMode = 'login'; }
+    document.getElementById('auth-overlay').style.paddingTop = '';
+    document.getElementById('auth-header').style.display = '';
     document.getElementById('auth-sent').classList.remove('is-on');
     document.getElementById('auth-pw-wrap').style.display = '';
-    document.getElementById('auth-title').textContent     = _authMode === 'register' ? 'Регистрация' : 'Вход';
-    document.getElementById('auth-sub').textContent       = _authMode === 'register' ? '' : 'Введите email и пароль';
+    document.getElementById('auth-title').style.display = 'none';
+    document.getElementById('auth-sub').textContent = '';
+    document.getElementById('auth-tabs').style.display = '';
+    document.getElementById('auth-toggle-row').style.display = 'none';
     const btn = document.getElementById('auth-submit-btn');
-    if (btn) { btn.disabled = false; btn.textContent = _authMode === 'register' ? 'Зарегистрироваться' : 'Войти'; }
+    if (btn) btn.disabled = false;
+    authSetMode(_authMode);
     _setAuthError('');
     document.getElementById('auth-password').value = '';
   }
@@ -2338,37 +2458,56 @@
   }
 
   // Проверить статус подписки и показать нужный экран
+  function _jwtClaims(session) {
+    try {
+      const b64 = session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      return JSON.parse(atob(b64));
+    } catch { return null; }
+  }
+
   async function checkSubscription() {
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) { _showAuth(); return; }
 
-
-    const { data: profile, error } = await _supa
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-
-    if (!profile) {
-      // Профиль не существует — создаём при первом входе
-      const { data: newProfile, error: insertError } = await _supa
-        .from('profiles')
-        .insert({
-          id: session.user.id,
-          email: session.user.email,
-          status: 'trial',
-          trial_start: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-      if (insertError || !newProfile) { _showAuth(); return; }
-      _subProfile = newProfile;
-    } else if (error) {
-      _showAuth(); return;
+    const claims = _jwtClaims(session);
+    if (claims?.sub_status) {
+      // Данные подписки уже в JWT — без запроса к БД
+      _subProfile = {
+        id:           session.user.id,
+        email:        session.user.email,
+        status:       claims.sub_status,
+        trial_start:  claims.sub_trial_start ?? null,
+        paid_until:   claims.sub_paid_until  ?? null,
+        is_admin:     claims.is_admin        ?? false,
+      };
     } else {
-      _subProfile = profile;
+      // Fallback: JWT без claims (старый токен или первый вход) — читаем из БД
+      const { data: profile, error } = await _supa
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!profile) {
+        const { data: newProfile, error: insertError } = await _supa
+          .from('profiles')
+          .insert({
+            id: session.user.id,
+            email: session.user.email,
+            status: 'trial',
+            trial_start: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+        if (insertError || !newProfile) { _showAuth(); return; }
+        _subProfile = newProfile;
+      } else if (error) {
+        _showAuth(); return;
+      } else {
+        _subProfile = profile;
+      }
     }
 
     // Показываем пункт админки сразу после загрузки профиля — независимо от статуса подписки
@@ -2461,30 +2600,38 @@
         badgeMain.style.borderColor = 'rgba(34,158,217,0.2)';
       }
     }
+    // Обновляем баннер профиля
+    if (typeof renderSubscriptionBanner === 'function') renderSubscriptionBanner(_subProfile);
   }
 
   // ── Auth form ──────────────────────────────────────────────────────────────
-  function authSwitchMode() {
-    _authMode = _authMode === 'register' ? 'login' : 'register';
-    const isReg = _authMode === 'register';
-    document.getElementById('auth-title').textContent      = isReg ? 'Регистрация' : 'Вход';
-    document.getElementById('auth-sub').textContent        = isReg ? '' : 'Введите email и пароль';
+  function authSetMode(mode) {
+    _authMode = mode;
+    const isReg = mode === 'register';
+    document.getElementById('auth-tab-register')?.classList.toggle('is-active', isReg);
+    document.getElementById('auth-tab-login')?.classList.toggle('is-active', !isReg);
     document.getElementById('auth-submit-btn').textContent = isReg ? 'Зарегистрироваться' : 'Войти';
-    document.getElementById('auth-toggle-row').innerHTML   = isReg
-      ? 'Уже есть аккаунт? <span onclick="authSwitchMode()">Войти</span>'
-      : 'Нет аккаунта? <span onclick="authSwitchMode()">Зарегистрироваться</span>';
     document.getElementById('auth-forgot').classList.toggle('is-on', !isReg);
-    document.getElementById('auth-reset-msg').classList.remove('is-on');
+    document.getElementById('auth-reset-msg')?.classList.remove('is-on');
     _setAuthError('');
+  }
+  function authSwitchMode() {
+    authSetMode(_authMode === 'register' ? 'login' : 'register');
   }
 
   function authForgotPassword() {
     _authMode = 'forgot';
-    document.getElementById('auth-title').textContent = 'Сброс пароля';
-    document.getElementById('auth-sub').textContent   = 'Введите email — пришлём ссылку для сброса';
+    document.getElementById('auth-overlay').style.justifyContent = '';
+    document.getElementById('auth-overlay').style.paddingTop = '28vh';
+    document.getElementById('auth-header').style.display = 'none';
+    document.getElementById('auth-tabs').style.display  = 'none';
+    document.getElementById('auth-title').style.display = '';
+    document.getElementById('auth-title').textContent   = 'Сброс пароля';
+    document.getElementById('auth-sub').textContent     = 'Введите email — пришлём ссылку для сброса';
     document.getElementById('auth-submit-btn').textContent = 'Отправить письмо';
     document.getElementById('auth-pw-wrap').style.display  = 'none';
-    document.getElementById('auth-toggle-row').innerHTML   = '<span onclick="authBackToLogin()">← Назад ко входу</span>';
+    document.getElementById('auth-toggle-row').style.display = '';
+    document.getElementById('auth-toggle-row').innerHTML    = '<span onclick="authBackToLogin()">← Назад ко входу</span>';
     document.getElementById('auth-forgot').classList.remove('is-on');
     _setAuthError('');
   }
@@ -2528,7 +2675,9 @@
         document.getElementById('auth-otp-newpw-error').textContent = '';
         document.getElementById('auth-sent-resend').style.display = 'none';
       } else {
-        await checkSubscription();
+        // Показываем приложение сразу, checkSubscription догружает в фоне
+        _hideAllOverlays();
+        checkSubscription();
       }
     } catch (e) {
       errEl.textContent = e.message?.includes('Token has expired') || e.message?.includes('invalid')
@@ -2587,7 +2736,6 @@
 
   function authBackToLogin() {
     _stopDeepLinkPolling();
-    _authMode = 'login';
     _pendingConfirmEmail = '';
     _pendingOtpMode = '';
     document.getElementById('auth-sent').classList.remove('is-on');
@@ -2595,49 +2743,18 @@
     document.getElementById('auth-otp-newpw-section').style.display = 'none';
     document.getElementById('auth-sent-resend').style.display = 'none';
     document.getElementById('auth-pw-wrap').style.display = '';
-    document.getElementById('auth-title').textContent = 'Вход';
-    document.getElementById('auth-sub').textContent   = 'Введите email и пароль';
-    document.getElementById('auth-submit-btn').textContent = 'Войти';
-    document.getElementById('auth-submit-btn').disabled    = false;
-    document.getElementById('auth-toggle-row').innerHTML   = 'Нет аккаунта? <span onclick="authSwitchMode()">Зарегистрироваться</span>';
-    document.getElementById('auth-forgot').classList.add('is-on');
+    document.getElementById('auth-title').style.display = 'none';
+    document.getElementById('auth-sub').textContent = '';
+    document.getElementById('auth-tabs').style.display = '';
+    document.getElementById('auth-toggle-row').style.display = 'none';
+    document.getElementById('auth-submit-btn').disabled = false;
+    authSetMode('login');
     _setAuthError('');
   }
 
   // ── Account modal ──────────────────────────────────────────────────────────
-  function openAcctModal() {
-    if (!_subProfile) return;
-    const now = Date.now();
-    const trialEnd  = new Date(_subProfile.trial_start).getTime() + 7 * 86400000;
-    const paidUntil = _subProfile.paid_until ? new Date(_subProfile.paid_until) : null;
-
-    document.getElementById('acct-email').textContent = _subProfile.email || '—';
-
-    let statusText = '';
-    if (paidUntil && paidUntil > new Date()) {
-      statusText = 'Подписка активна до ' + paidUntil.toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' });
-    } else if (now < trialEnd) {
-      const days = Math.ceil((trialEnd - now) / 86400000);
-      statusText = `Триал (${_daysWord(days)} осталось)`;
-    } else {
-      statusText = 'Подписка не активна';
-    }
-    document.getElementById('acct-status-line').textContent = statusText;
-    document.getElementById('acct-backdrop').classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeAcctModal(e) {
-    if (!e || e.target === document.getElementById('acct-backdrop')) {
-      document.getElementById('acct-backdrop').classList.remove('is-open');
-      document.body.style.overflow = '';
-    }
-  }
-
-  _initSheetSwipe(
-    document.querySelector('#acct-backdrop .bs-panel'),
-    () => { document.getElementById('acct-backdrop').classList.remove('is-open'); document.body.style.overflow = ''; }
-  );
+  function openAcctModal() { switchTab('profile'); }
+  function closeAcctModal() {}
 
   // ── Общая функция свайп-закрытия для bottom sheet ──────────────────────────
   function _initSheetSwipe(panel, closeFn) {
@@ -2765,6 +2882,14 @@
 
     try {
       if (isReg) {
+        // Быстрая проверка дубликата без холодного старта Edge Function
+        const { data: exists } = await _supa.rpc('email_exists', { p_email: email });
+        if (exists) {
+          _setAuthError('Email уже зарегистрирован — войдите');
+          _btnReady(btn, 'Зарегистрироваться');
+          return;
+        }
+
         const res  = await fetch(`${SUPA_URL}/functions/v1/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'apikey': SUPA_ANON },
@@ -2779,6 +2904,14 @@
         _showOtpScreen(email, 'signup');
         return;
       } else {
+        try {
+          const { data: exists } = await _supa.rpc('email_exists', { p_email: email });
+          if (exists === false) {
+            _setAuthError('Неверный email или пароль');
+            _btnReady(btn, 'Войти');
+            return;
+          }
+        } catch (_) { /* при сетевой ошибке идём дальше */ }
         const { error } = await _supa.auth.signInWithPassword({ email, password });
         if (error) throw error;
         await checkSubscription();
@@ -2829,7 +2962,7 @@
   }
 
   async function authLogout() {
-    document.getElementById('acct-backdrop').classList.remove('is-open');
+    document.getElementById('acct-backdrop')?.classList.remove('is-open');
     document.body.style.overflow = '';
     try { await Promise.race([_supa.auth.signOut(), new Promise(r => setTimeout(r, 1500))]); } catch(_) {}
     window.location.reload();
@@ -3620,10 +3753,9 @@
   function onHeaderBack() {
     if (uiBusy) return;
     if (currentPage === 'faq') {
-      history.back();
+      closeFaq();
       return;
     }
-    closeSettings();
   }
 
 
@@ -3636,57 +3768,132 @@
     currentPage = 'faq';
     history.pushState({ page: 'faq' }, '');
     document.getElementById('header-title').textContent = 'Частые вопросы';
+    const backBtn = document.getElementById('header-back');
+    if (backBtn) backBtn.classList.add('is-on');
     const hsub = document.getElementById('header-sub');
     if (hsub && !uiBusy) hsub.textContent = HEADER_SUB_FAQ;
   }
 
   function closeFaq() {
     document.getElementById('page-faq').classList.remove('is-active');
-    document.getElementById('page-settings').classList.add('is-active');
-    currentPage = 'settings';
-    document.getElementById('header-title').textContent = 'Настройки';
-    const hsub = document.getElementById('header-sub');
-    if (hsub && !uiBusy) hsub.textContent = HEADER_SUB_SETTINGS;
+    switchTab('settings');
   }
 
-  function openSettings() {
-    if (uiBusy) return;
-    currentPage = 'settings';
-    history.pushState({ page: 'settings' }, '');
-    document.getElementById('page-main').classList.remove('is-active');
-    const settEl = document.getElementById('page-settings');
-    settEl.classList.add('is-active');
-    settEl.scrollTop = 0;
-    // Синхронизируем видимость строки Admin при каждом открытии настроек
-    const _ar = document.getElementById('sett-admin-row');
-    if (_ar) _ar.style.display = _subProfile?.is_admin ? 'flex' : 'none';
-    document.getElementById('page-faq').classList.remove('is-active');
-    document.getElementById('header-back').classList.add('is-on');
-    document.getElementById('header-app-icon').classList.add('is-hidden');
-    document.getElementById('header-settings-btn').classList.add('is-hidden');
-    document.getElementById('header-toggle-wrap').classList.add('is-hidden');
-    document.getElementById('header-title').textContent = 'Настройки';
-    const hsub = document.getElementById('header-sub');
-    if (hsub && !uiBusy) hsub.textContent = HEADER_SUB_SETTINGS;
+  // ── Tab Bar Navigation ────────────────────────────────────────────────────
+  let _activeTab = 'main';
+
+  function _moveTabIndicator(tab) {
+    const bar = document.getElementById('tab-bar');
+    const indicator = document.getElementById('tab-indicator');
+    const btn = document.getElementById('tab-btn-' + tab);
+    if (!bar || !indicator || !btn) return;
+    const barRect = bar.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const borderL = parseFloat(getComputedStyle(bar).borderLeftWidth) || 0;
+    // left в abs-позиционировании считается от padding-edge (после border)
+    const left = btnRect.left - barRect.left - borderL;
+    indicator.style.width = btnRect.width + 'px';
+    indicator.style.left = left + 'px';
+    indicator.style.transform = '';
   }
 
+  function switchTab(tab) {
+    if (tab === 'ext-proxies' && !_canUseExtProxies()) { _showPaywall(); return; }
 
-  function closeSettings() {
-    currentPage = 'main';
-    document.getElementById('page-settings').classList.remove('is-active');
-    document.getElementById('page-faq').classList.remove('is-active');
-    document.getElementById('page-main').classList.add('is-active');
-    document.getElementById('header-back').classList.remove('is-on');
-    document.getElementById('header-app-icon').classList.remove('is-hidden');
-    document.getElementById('header-settings-btn').classList.remove('is-hidden');
-    document.getElementById('header-toggle-wrap').classList.remove('is-hidden');
-    document.getElementById('header-title').textContent = HEADER_TITLE_MAIN;
-    const hsub = document.getElementById('header-sub');
-    if (hsub) {
-      if (uiBusy) hsub.textContent = 'Запуск прокси…';
-      else hsub.textContent = HEADER_SUB_DEFAULT;
+    _activeTab = tab;
+    currentPage = tab;
+
+    const pageMap = { 'main': 'page-main', 'ext-proxies': 'page-ext-proxies', 'profile': 'page-profile', 'settings': 'page-settings' };
+    ['page-main','page-ext-proxies','page-profile','page-settings','page-faq'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('is-active');
+    });
+    const page = document.getElementById(pageMap[tab]);
+    if (page) { page.classList.add('is-active'); page.scrollTop = 0; }
+
+    document.querySelectorAll('.tab-item').forEach(btn => btn.classList.toggle('is-active', btn.dataset.tab === tab));
+    _moveTabIndicator(tab);
+    updateHeader(tab);
+
+    if (tab === 'ext-proxies') {
+      if (!_extProxiesLoaded) loadExtProxies(); else _queueExtProxyVirtualRender(true);
+      requestAnimationFrame(_updateExtProxyScrollTopButton);
+      try { const tip = document.getElementById('ext-proxy-tip'); if (tip) tip.style.display = localStorage.getItem('tgws_ext_tip_v1') === '1' ? 'none' : ''; } catch(e) {}
+    }
+    if (tab === 'profile') refreshProfilePage();
+  }
+
+  function updateHeader(tab) {
+    const icon       = document.getElementById('header-app-icon');
+    const titleEl    = document.getElementById('header-title');
+    const subEl      = document.getElementById('header-sub');
+    const toggleWrap = document.getElementById('header-toggle-wrap');
+    const backBtn    = document.getElementById('header-back');
+    if (backBtn) backBtn.classList.remove('is-on');
+    const cfg = {
+      'main':        { title: HEADER_TITLE_MAIN,  sub: uiBusy ? 'Запуск прокси…' : HEADER_SUB_DEFAULT, icon: true,  toggle: true  },
+      'ext-proxies': { title: 'Внешние прокси',   sub: 'Публичные MTProto',                             icon: false, toggle: false },
+      'profile':     { title: 'Профиль',           sub: '',                                              icon: false, toggle: false },
+      'settings':    { title: 'Настройки',         sub: HEADER_SUB_SETTINGS,                             icon: false, toggle: false },
+    }[tab] || { title: HEADER_TITLE_MAIN, sub: HEADER_SUB_DEFAULT, icon: true, toggle: true };
+    if (icon)       icon.classList.toggle('is-hidden', !cfg.icon);
+    if (titleEl)    titleEl.textContent = cfg.title;
+    if (subEl)      { subEl.textContent = cfg.sub; subEl.style.display = cfg.sub ? '' : 'none'; }
+    if (toggleWrap) toggleWrap.classList.toggle('is-hidden', !cfg.toggle);
+  }
+
+  function refreshProfilePage() {
+    const p = _subProfile;
+    if (!p) return;
+    const emailEl = document.getElementById('profile-email');
+    if (emailEl) emailEl.textContent = p.email || '—';
+    const adminSection = document.getElementById('profile-admin-section');
+    if (adminSection) adminSection.style.display = p.is_admin ? '' : 'none';
+    renderSubscriptionBanner(p);
+  }
+
+  function renderSubscriptionBanner(p) {
+    const badge     = document.getElementById('profile-sub-badge');
+    const detail    = document.getElementById('profile-sub-detail');
+    const payWrap   = document.getElementById('profile-pay-wrap');
+    const payBtn    = document.getElementById('profile-pay-btn');
+    const avatarEl  = document.getElementById('profile-avatar');
+    if (!badge || !p) return;
+
+    const now      = Date.now();
+    const trialEnd = p.trial_start ? new Date(p.trial_start).getTime() + 7 * 86400000 : 0;
+    const paidMs   = p.paid_until  ? new Date(p.paid_until).getTime() : 0;
+    const months   = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+    if (avatarEl && p.email) {
+      avatarEl.textContent = p.email[0].toUpperCase();
+    }
+
+    if (paidMs > now) {
+      badge.className = 'profile-sub-badge active';
+      badge.textContent = 'Активна';
+      const d = new Date(paidMs);
+      if (detail) detail.textContent = `до ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+      if (payWrap) payWrap.style.display = 'none';
+    } else if (trialEnd > now) {
+      badge.className = 'profile-sub-badge trial';
+      badge.textContent = 'Пробный период';
+      const days = Math.ceil((trialEnd - now) / 86400000);
+      if (detail) detail.textContent = `осталось ${_daysWord(days)}`;
+      if (payWrap) payWrap.style.display = '';
+      if (payBtn)  { payBtn.textContent = 'Оформить подписку'; payBtn.className = 'profile-pay-btn'; }
+    } else {
+      badge.className = 'profile-sub-badge expired';
+      badge.textContent = 'Истекла';
+      if (detail) detail.textContent = 'продлите доступ';
+      if (payWrap) payWrap.style.display = '';
+      if (payBtn)  { payBtn.textContent = 'Продлить доступ'; payBtn.className = 'profile-pay-btn expired-pay'; }
     }
   }
+
+  function openSettings() { switchTab('settings'); }
+
+  function closeSettings() { switchTab('main'); }
 
   function renderAutostart(enabled) {
     autostartEnabled = !!enabled;
@@ -4631,53 +4838,12 @@
     if (el) el.style.display = 'none';
   }
 
-  function openExtProxies() {
-    if (!_canUseExtProxies()) {
-      _showPaywall();
-      return;
-    }
-    const modal = document.getElementById('ext-proxy-modal');
-    if (!modal) return;
-    modal.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => modal.classList.add('is-open'));
-    history.pushState({ page: 'ext-proxies' }, '');
-    if (!_extProxiesLoaded) loadExtProxies();
-    else _queueExtProxyVirtualRender(true);
-    _initExtPanelSwipe();
-    requestAnimationFrame(_updateExtProxyScrollTopButton);
-    // показать/скрыть подсказку
-    try {
-      const tip = document.getElementById('ext-proxy-tip');
-      if (tip) tip.style.display = localStorage.getItem('tgws_ext_tip_v1') === '1' ? 'none' : '';
-    } catch(e) {}
-  }
-
-  function closeExtProxies() {
-    const modal = document.getElementById('ext-proxy-modal');
-    if (!modal) return;
-    modal.classList.remove('is-open');
-    modal.setAttribute('aria-hidden', 'true');
-    // сбрасываем inline transform который мог остаться от свайпа
-    const panel = modal.querySelector('.ext-proxy-panel');
-    if (panel) panel.style.transform = '';
-    _updateExtProxyScrollTopButton();
-  }
-
-  function _initExtPanelSwipe() {
-    _initSheetSwipe(
-      document.querySelector('.ext-proxy-panel'),
-      () => { closeExtProxies(); history.back(); }
-    );
-  }
+  function openExtProxies() { switchTab('ext-proxies'); }
+  function closeExtProxies() { switchTab('main'); }
+  function _initExtPanelSwipe() {}
 
   window.addEventListener('popstate', (e) => {
-    if (document.getElementById('ext-proxy-modal')?.classList.contains('is-open')) {
-      closeExtProxies();
-    } else if (currentPage === 'faq') {
-      closeFaq();
-    } else if (currentPage === 'settings') {
-      closeSettings();
-    }
+    if (currentPage === 'faq') closeFaq();
   });
 
   _loadExtProxyFavorites();
@@ -4770,10 +4936,18 @@
 
   // Когда приложение возвращается на передний план — проверяем новый deep link
   // (пользователь нажал ссылку из письма пока приложение уже было открыто)
+  let _visibilityCheckTs = 0;
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
     if (_authMode === 'reset') return; // уже на форме нового пароля
     await _checkDeepLink();
+    // Перечитываем подписку при каждом выходе на передний план
+    // (дебаунс 10 сек чтобы не долбить при частых переключениях)
+    const now = Date.now();
+    if (now - _visibilityCheckTs > 10_000) {
+      _visibilityCheckTs = now;
+      await checkSubscription();
+    }
   });
 
   initHeaderIcon();
@@ -4790,7 +4964,33 @@
     if (shouldShowOnboardingInProd()) {
       setTimeout(onboardingOpen, 280);
     }
+    // Инициализируем индикатор без анимации
+    const _ind = document.getElementById('tab-indicator');
+    if (_ind) { _ind.style.transition = 'none'; _moveTabIndicator('main'); }
+    requestAnimationFrame(() => { if (_ind) _ind.style.transition = ''; });
   });
 </script>
+
+<!-- ── Tab Bar ── -->
+<nav class="tab-bar" id="tab-bar">
+  <span class="tab-indicator" id="tab-indicator"></span>
+  <button class="tab-item is-active" id="tab-btn-main" data-tab="main" onclick="switchTab('main')" aria-label="Главная">
+    <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg>
+    <span class="tab-label">Главная</span>
+  </button>
+  <button class="tab-item" id="tab-btn-ext-proxies" data-tab="ext-proxies" onclick="switchTab('ext-proxies')" aria-label="Внешние прокси">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    <span class="tab-label">Прокси</span>
+  </button>
+  <button class="tab-item" id="tab-btn-profile" data-tab="profile" onclick="switchTab('profile')" aria-label="Профиль">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <span class="tab-label">Профиль</span>
+  </button>
+  <button class="tab-item" id="tab-btn-settings" data-tab="settings" onclick="switchTab('settings')" aria-label="Настройки">
+    <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    <span class="tab-label">Настройки</span>
+  </button>
+</nav>
+
 </body>
 </html>

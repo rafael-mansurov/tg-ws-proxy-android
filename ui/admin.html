@@ -251,6 +251,7 @@
       <div class="stat-card"><div class="stat-label">Активных</div><div class="stat-value" id="stat-active" style="color:#00c88c">—</div></div>
       <div class="stat-card"><div class="stat-label">Триал</div><div class="stat-value" id="stat-trial" style="color:#229ED9">—</div></div>
       <div class="stat-card"><div class="stat-label">Истёкших</div><div class="stat-value" id="stat-expired" style="color:#ff6b50">—</div></div>
+      <div class="stat-card"><div class="stat-label">Не подтв.</div><div class="stat-value" id="stat-unconfirmed" style="color:#aaa">—</div></div>
       <div class="stat-card" style="grid-column: 1 / -1;">
         <div class="stat-label">MRR (расч.)</div>
         <div class="stat-value" id="stat-mrr" style="color:#ffd060">—</div>
@@ -337,6 +338,7 @@
 
   let _allUsers = [];
   let _isSuperAdmin = false;
+  let _superAdminId = null;
   let _currentUserId = null;
   let _currentFilter = 'all';
   let _modalUserId = null;
@@ -406,15 +408,17 @@
       return;
     }
     const data = await resp.json();
-    _isSuperAdmin = data.isSuperAdmin === true;
+    _isSuperAdmin  = data.isSuperAdmin === true;
+    _superAdminId  = data.superAdminId ?? null;
 
     _allUsers = (data.profiles || []).map(u => {
       const now = Date.now();
       const trialEnd  = new Date(u.trial_start).getTime() + TRIAL_DAYS * 86400000;
       const paidUntil = u.paid_until ? new Date(u.paid_until).getTime() : 0;
       let status = u.status;
-      if (paidUntil > now) status = 'active';
-      else if (status === 'expired') status = 'expired'; // явно отозван — не переопределять
+      if (status === 'unconfirmed') { /* не переопределять */ }
+      else if (paidUntil > now) status = 'active';
+      else if (status === 'expired') status = 'expired';
       else if (now < trialEnd) status = 'trial';
       else status = 'expired';
       return { ...u, _computed_status: status };
@@ -426,14 +430,16 @@
   }
 
   function updateStats() {
-    const total   = _allUsers.length;
-    const active  = _allUsers.filter(u => u._computed_status === 'active').length;
-    const trial   = _allUsers.filter(u => u._computed_status === 'trial').length;
-    const expired = _allUsers.filter(u => u._computed_status === 'expired').length;
-    document.getElementById('stat-total').textContent   = total;
-    document.getElementById('stat-active').textContent  = active;
-    document.getElementById('stat-trial').textContent   = trial;
-    document.getElementById('stat-expired').textContent = expired;
+    const total       = _allUsers.length;
+    const active      = _allUsers.filter(u => u._computed_status === 'active').length;
+    const trial       = _allUsers.filter(u => u._computed_status === 'trial').length;
+    const expired     = _allUsers.filter(u => u._computed_status === 'expired').length;
+    const unconfirmed = _allUsers.filter(u => u._computed_status === 'unconfirmed').length;
+    document.getElementById('stat-total').textContent       = total;
+    document.getElementById('stat-active').textContent      = active;
+    document.getElementById('stat-trial').textContent       = trial;
+    document.getElementById('stat-expired').textContent     = expired;
+    document.getElementById('stat-unconfirmed').textContent = unconfirmed;
 
     const mrrMin = Math.round(active * MRR_PRICE_YEARLY);
     const mrrMax = active * MRR_PRICE_MONTHLY;
@@ -483,7 +489,7 @@
     tbody.innerHTML = users.map(u => { try {
       const status = u._computed_status;
       const badgeCls = `badge badge-${status}`;
-      const badgeTxt = status === 'trial' ? 'Триал' : status === 'active' ? 'Активна' : 'Истёк';
+      const badgeTxt = status === 'trial' ? 'Триал' : status === 'active' ? 'Активна' : status === 'unconfirmed' ? 'Не подтверждён' : 'Истёк';
       const trialEnd = new Date(new Date(u.trial_start).getTime() + TRIAL_DAYS * 86400000);
       const paidUntil = u.paid_until ? new Date(u.paid_until) : null;
       const regDate  = new Date(u.created_at);
@@ -499,14 +505,15 @@
         <div class="user-card-top">
           <div class="user-card-email">${esc(u.email || '—')}</div>
           <div style="display:flex;gap:5px;align-items:center;">
-            ${u.is_admin ? `<span class="badge ${_isSuperAdmin && u.id === _currentUserId ? 'badge-superadmin' : 'badge-admin'}">${_isSuperAdmin && u.id === _currentUserId ? 'Super Admin' : 'Admin'}</span>` : ''}
+            ${u.is_admin ? `<span class="badge ${u.id === _superAdminId ? 'badge-superadmin' : 'badge-admin'}">${u.id === _superAdminId ? 'Super Admin' : 'Admin'}</span>` : ''}
             <span class="${badgeCls}">${badgeTxt}</span>
           </div>
         </div>
         <div class="user-card-meta">${metaParts}</div>
         <div class="user-card-actions">
           <button class="action-btn success" onclick="openExtendModal('${u.id}','${esc(u.email)}')"><i data-lucide="plus-circle"></i> Продлить</button>
-          <button class="action-btn danger"  onclick="revokeUser('${u.id}','${esc(u.email)}')"><i data-lucide="x-circle"></i> Отозвать</button>
+          ${!u.is_admin ? `<button class="action-btn danger" onclick="revokeUser('${u.id}','${esc(u.email)}')"><i data-lucide="x-circle"></i> Отозвать</button>` : ''}
+          ${!u.email_confirmed ? `<button class="action-btn" onclick="confirmEmail('${u.id}','${esc(u.email)}')"><i data-lucide="mail-check"></i> Подтвердить email</button>` : ''}
         </div>
         <div class="user-card-actions-row2">
           <button class="action-btn" onclick="openSetPwModal('${u.id}','${esc(u.email)}')"><i data-lucide="key-round"></i> Сменить пароль</button>
@@ -687,6 +694,12 @@
     if (!await _admConfirm(isAdmin ? 'Снять админа' : 'Сделать админом', msg, isAdmin)) return;
     const ok = await _adminAction({ action: 'toggle-admin', userId, isAdmin });
     if (ok) { _toast(isAdmin ? 'Права сняты' : 'Права выданы'); loadUsers(); }
+  }
+
+  async function confirmEmail(userId, email) {
+    if (!await _admConfirm('Подтвердить email?', `${email}\n\nПользователь сможет войти без подтверждения по коду.`, false)) return;
+    const ok = await _adminAction({ action: 'confirm-email', userId });
+    if (ok) { _toast('Email подтверждён'); loadUsers(); }
   }
 
   async function deleteUser(userId, email) {
