@@ -146,7 +146,8 @@
     }
     .ctx-backdrop.open .ctx-sheet { transform: translateY(0); }
     .ctx-sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); margin: 8px auto 12px; }
-    .ctx-sheet-email { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctx-sheet-email { font-size: 16px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctx-sheet-label { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
     .ctx-item {
       display: flex; align-items: center; gap: 14px;
       padding: 13px 20px; cursor: pointer; font-size: 15px; font-weight: 500; color: #fff;
@@ -161,10 +162,11 @@
     .ctx-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
 
     .badge {
-      display: inline-flex; align-items: center; gap: 5px;
+      display: inline-flex; align-items: center; gap: 4px;
       padding: 4px 8px; border-radius: 8px;
       font-size: 12px; font-weight: 600;
     }
+    .badge svg { width: 11px; height: 11px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
     .badge-trial   { background: rgba(34,158,217,0.12); color: #229ED9; border: 1px solid rgba(34,158,217,0.2); }
     .badge-active  { background: rgba(0,200,140,0.1);  color: #00c88c; border: 1px solid rgba(0,200,140,0.2); }
     .badge-expired { background: rgba(255,80,50,0.1);  color: #ff6b50; border: 1px solid rgba(255,80,50,0.2); }
@@ -408,8 +410,9 @@
 <div class="ctx-backdrop" id="ctx-backdrop" onclick="closeCtxMenu()">
   <div class="ctx-sheet" onclick="event.stopPropagation()">
     <div class="ctx-sheet-handle"></div>
-    <div style="padding:12px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.07)">
-      <div id="ctx-badge" style="margin-bottom:6px"></div>
+    <div style="padding:12px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03)">
+      <div class="ctx-sheet-label">Аккаунт</div>
+      <div id="ctx-badge" style="margin-bottom:8px"></div>
       <div class="ctx-sheet-email" id="ctx-email"></div>
     </div>
     <div id="ctx-items"></div>
@@ -636,8 +639,8 @@
           </button>
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-          ${u.is_admin ? `<span class="badge ${u.id === _superAdminId ? 'badge-superadmin' : 'badge-admin'}">${u.id === _superAdminId ? 'Super Admin' : 'Admin'}</span>` : ''}
-          <span class="${badgeCls}">${badgeTxt}</span>
+          ${u.is_admin ? _badge(`badge ${u.id === _superAdminId ? 'badge-superadmin' : 'badge-admin'}`, u.id === _superAdminId ? 'Super Admin' : 'Admin', u.id === _superAdminId ? 'superadmin' : 'admin') : ''}
+          ${_badge(badgeCls, badgeTxt, status)}
           ${metaPills}
         </div>
       </div>`;
@@ -837,6 +840,21 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
+  const _BADGE_ICONS = {
+    trial:       '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    active:      '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+    expired:     '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    unconfirmed: '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><polyline points="3 7 12 13 21 7"/></svg>',
+    admin:       '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    superadmin:  '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    promo_on:    '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+    promo_off:   '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  };
+  function _badge(cls, txt, iconKey) {
+    const icon = iconKey && _BADGE_ICONS[iconKey] ? _BADGE_ICONS[iconKey] : '';
+    return `<span class="${cls}">${icon}${txt}</span>`;
+  }
+
   // Дебаунс для поиска (если search-input присутствует)
   const _sinp = document.getElementById('search-input');
   if (_sinp) {
@@ -868,7 +886,15 @@
     _ctxUserEmail = email;
     document.getElementById('ctx-email').textContent = email;
     const badgeEl = document.getElementById('ctx-badge');
-    if (badgeEl) badgeEl.innerHTML = badgeCls ? `<span class="${badgeCls}" style="align-self:flex-start">${badgeTxt}</span>` : '';
+    if (badgeEl) {
+      if (badgeCls) {
+        const iconKey = badgeCls.split(' ').find(c => c.startsWith('badge-'))?.replace('badge-', '');
+        badgeEl.innerHTML = _badge(badgeCls, badgeTxt, iconKey);
+        badgeEl.firstElementChild && (badgeEl.firstElementChild.style.alignSelf = 'flex-start');
+      } else {
+        badgeEl.innerHTML = '';
+      }
+    }
 
     const items = [];
     items.push({ icon: 'plus-circle', label: 'Продлить',        cls: 'success', fn: `closeCtxMenu();openExtendModal('${userId}','${esc(email)}')` });
@@ -879,7 +905,8 @@
     if (_isSuperAdmin && !isSelf) {
       items.push({ icon: isAdmin ? 'shield-off' : 'shield-check', label: isAdmin ? 'Снять админа' : 'Сделать админом', cls: isAdmin ? 'danger' : '', fn: `closeCtxMenu();toggleAdmin('${userId}','${esc(email)}',${isAdmin})` });
     }
-    if (!isSelf) {
+    // Удалить: нельзя себя, нельзя любого админа (включая супер-админа)
+    if (!isSelf && !isAdmin) {
       items.push({ divider: true });
       items.push({ icon: 'trash-2', label: 'Удалить аккаунт', cls: 'danger', fn: `closeCtxMenu();deleteUser('${userId}','${esc(email)}')` });
     }
@@ -1007,21 +1034,24 @@
     if (!_allPromos.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
     list.innerHTML = _allPromos.map(p => {
-      const exp    = p.expires_at ? `до ${fmtDate(new Date(p.expires_at))}` : 'бессрочно';
-      const activeCls = p.is_active ? 'badge badge-active' : 'badge badge-expired';
-      const activeTxt = p.is_active ? 'Активен' : 'Отключён';
+      const exp       = p.expires_at ? `до ${fmtDate(new Date(p.expires_at))}` : 'бессрочно';
+      const activeBadge = _badge(
+        p.is_active ? 'badge badge-active' : 'badge badge-expired',
+        p.is_active ? 'Активен' : 'Откл.',
+        p.is_active ? 'promo_on' : 'promo_off'
+      );
       return `<div class="promo-card">
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-            <div class="promo-code">${esc(p.code)}</div>
-            <span class="${activeCls}">${activeTxt}</span>
-          </div>
-          <div class="promo-meta">+${p.days} дн · ${exp}</div>
+          <div class="promo-code">${esc(p.code)}</div>
+          <div class="promo-meta" style="margin-top:3px">+${p.days} дн · ${exp}</div>
           <div class="promo-meta" style="margin-top:1px">использован ${p.used_count} / ${p.max_uses}</div>
         </div>
-        <button class="kebab-btn" onclick="openPromoCtx('${p.id}','${esc(p.code)}',${p.is_active})" style="flex-shrink:0">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${activeBadge}
+          <button class="kebab-btn" onclick="openPromoCtx('${p.id}','${esc(p.code)}',${p.is_active})">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
       </div>`;
     }).join('');
     lucide.createIcons();
