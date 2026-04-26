@@ -4070,7 +4070,7 @@
     } catch (e) {
       console.error(e);
       if (turningOn) updateUI(false, null, null, null, 0, 0);
-      _appAlert('Не удалось связаться с сервисом приложения. Проверьте, что приложение не закрыто, и повторите попытку.');
+      _appAlert('Сервис не отвечает. Попробуйте перезапустить приложение.');
     } finally {
       if (turningOn) setStartBusy(false);
     }

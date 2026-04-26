@@ -1053,19 +1053,22 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         if self.path == "/api/start":
-            _request_permissions()
-            ok, err = _start_service()
-            if ok:
-                self._send_json({
-                    "ok": True,
-                    "running": _running,
-                    "secret": SECRET,
-                    "link_host": _proxy_link_host(),
-                    "uptime_seconds": _proxy_uptime_seconds(),
-                    **_read_live_metrics(),
-                })
-            else:
-                self._send_json({"ok": False, "running": False, "error": err})
+            try:
+                _request_permissions()
+                ok, err = _start_service()
+                if ok:
+                    self._send_json({
+                        "ok": True,
+                        "running": _running,
+                        "secret": SECRET,
+                        "link_host": _proxy_link_host(),
+                        "uptime_seconds": _proxy_uptime_seconds(),
+                        **_read_live_metrics(),
+                    })
+                else:
+                    self._send_json({"ok": False, "running": False, "error": err})
+            except Exception as e:
+                self._send_json({"ok": False, "running": False, "error": str(e)})
 
         elif self.path == "/api/battery":
             _open_battery_optimization_settings()
