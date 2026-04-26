@@ -581,48 +581,52 @@ def _notify_proxy_ready() -> None:
 
         @run_on_ui_thread
         def _go():
-            activity = autoclass("org.kivy.android.PythonActivity").mActivity
-            Context = autoclass("android.content.Context")
-            Build = autoclass("android.os.Build")
-            NotificationManager = autoclass("android.app.NotificationManager")
-            NotificationChannel = autoclass("android.app.NotificationChannel")
-            Intent = autoclass("android.content.Intent")
-            PendingIntent = autoclass("android.app.PendingIntent")
-            PyAct = autoclass("org.kivy.android.PythonActivity")
+            try:
+                activity = autoclass("org.kivy.android.PythonActivity").mActivity
+                Context = autoclass("android.content.Context")
+                Build = autoclass("android.os.Build")
+                NotificationManager = autoclass("android.app.NotificationManager")
+                NotificationChannel = autoclass("android.app.NotificationChannel")
+                Intent = autoclass("android.content.Intent")
+                PendingIntent = autoclass("android.app.PendingIntent")
+                PyAct = autoclass("org.kivy.android.PythonActivity")
 
-            nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
-            channel_id = "tgws_proxy_user_alert"
-            sdk = int(Build.VERSION.SDK_INT)
+                nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+                channel_id = "tgws_proxy_user_alert"
+                sdk = int(Build.VERSION.SDK_INT)
 
-            if sdk >= 26:
-                ch = NotificationChannel(
-                    channel_id,
-                    "TG WS Proxy · статус",
-                    NotificationManager.IMPORTANCE_HIGH,
+                if sdk >= 26:
+                    ch = NotificationChannel(
+                        channel_id,
+                        "TG WS Proxy · статус",
+                        NotificationManager.IMPORTANCE_HIGH,
+                    )
+                    ch.setDescription("Сообщения о готовности прокси")
+                    nm.createNotificationChannel(ch)
+
+                intent = Intent(activity, PyAct)
+                intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                pi = PendingIntent.getActivity(
+                    activity,
+                    0,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE,
                 )
-                ch.setDescription("Сообщения о готовности прокси")
-                nm.createNotificationChannel(ch)
 
-            intent = Intent(activity, PyAct)
-            intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            pi = PendingIntent.getActivity(
-                activity,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE,
-            )
-
-            Builder = autoclass("android.app.Notification$Builder")
-            b = Builder(activity, channel_id) if sdk >= 26 else Builder(activity)
-            b.setSmallIcon(activity.getApplicationInfo().icon)
-            b.setContentTitle("Прокси включён")
-            b.setContentText("Можно открывать Telegram")
-            b.setContentIntent(pi)
-            b.setAutoCancel(False)
-            b.setOngoing(True)
-            b.setOnlyAlertOnce(True)
-            nm.notify(READY_NOTIFICATION_ID, b.build())
-            _ready_notification_shown = True
+                Builder = autoclass("android.app.Notification$Builder")
+                b = Builder(activity, channel_id) if sdk >= 26 else Builder(activity)
+                b.setSmallIcon(activity.getApplicationInfo().icon)
+                b.setContentTitle("Прокси включён")
+                b.setContentText("Можно открывать Telegram")
+                b.setContentIntent(pi)
+                b.setAutoCancel(False)
+                b.setOngoing(True)
+                b.setOnlyAlertOnce(True)
+                nm.notify(READY_NOTIFICATION_ID, b.build())
+                global _ready_notification_shown
+                _ready_notification_shown = True
+            except Exception:
+                pass  # не ломаем UI-поток из-за уведомления
 
         _go()
     except Exception:
@@ -638,11 +642,15 @@ def _clear_proxy_ready_notification() -> None:
 
         @run_on_ui_thread
         def _go():
-            activity = autoclass("org.kivy.android.PythonActivity").mActivity
-            Context = autoclass("android.content.Context")
-            nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
-            nm.cancel(READY_NOTIFICATION_ID)
-            _ready_notification_shown = False
+            try:
+                activity = autoclass("org.kivy.android.PythonActivity").mActivity
+                Context = autoclass("android.content.Context")
+                nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+                nm.cancel(READY_NOTIFICATION_ID)
+                global _ready_notification_shown
+                _ready_notification_shown = False
+            except Exception:
+                pass
 
         _go()
     except Exception:
@@ -1071,7 +1079,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"ok": False, "running": False, "error": str(e)})
 
         elif self.path == "/api/battery":
-            _open_battery_optimization_settings()
+            try:
+                _open_battery_optimization_settings()
+            except Exception:
+                pass
             self._send_json({"ok": True})
 
         elif self.path == "/api/autostart":
@@ -1093,11 +1104,18 @@ class Handler(BaseHTTPRequestHandler):
             })
 
         elif self.path == "/api/stop":
-            _stop_service()
+            try:
+                _stop_service()
+            except Exception as e:
+                self._send_json({"ok": False, "running": _running, "error": str(e)})
+                return
             self._send_json({"ok": True, "running": _running, "secret": None})
 
         elif self.path == "/api/share":
-            ok = _share_app()
+            try:
+                ok = _share_app()
+            except Exception:
+                ok = False
             self._send_json({"ok": ok})
 
         elif self.path == "/api/proxy-lab-probe":

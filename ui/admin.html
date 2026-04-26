@@ -337,7 +337,7 @@
       <button class="filter-btn" data-filter="trial"   onclick="setFilter('trial', this)">Триал</button>
       <button class="filter-btn" data-filter="active"  onclick="setFilter('active', this)">Активные</button>
       <button class="filter-btn" data-filter="expired" onclick="setFilter('expired', this)">Истёкшие</button>
-      <button class="refresh-btn" onclick="loadUsers()"><i data-lucide="refresh-cw"></i> Обновить</button>
+      <button class="refresh-btn" id="users-refresh-btn" onclick="loadUsers()"><i data-lucide="refresh-cw"></i> Обновить</button>
     </div>
 
     <!-- Cards -->
@@ -356,7 +356,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Создать промокод
         </button>
-        <button class="refresh-btn" onclick="loadPromos()" style="margin-left:auto"><i data-lucide="refresh-cw"></i> Обновить</button>
+        <button class="refresh-btn" id="promos-refresh-btn" onclick="loadPromos()" style="margin-left:auto"><i data-lucide="refresh-cw"></i> Обновить</button>
       </div>
       <div class="loading" id="promos-loading" style="display:none">Загрузка…</div>
       <div class="cards-list" id="promos-list"></div>
@@ -408,7 +408,7 @@
 <div class="ctx-backdrop" id="ctx-backdrop" onclick="closeCtxMenu()">
   <div class="ctx-sheet" onclick="event.stopPropagation()">
     <div class="ctx-sheet-handle"></div>
-    <div style="padding:0 20px 14px">
+    <div style="padding:12px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.07)">
       <div id="ctx-badge" style="margin-bottom:6px"></div>
       <div class="ctx-sheet-email" id="ctx-email"></div>
     </div>
@@ -507,6 +507,8 @@
     document.getElementById('table-loading').style.display = 'block';
     document.getElementById('users-tbody').innerHTML = '';
     document.getElementById('table-empty').style.display = 'none';
+    const _usersRefBtn = document.getElementById('users-refresh-btn');
+    if (_usersRefBtn) _usersRefBtn.style.display = 'none';
 
     const { data: { session } } = await _supa.auth.getSession();
     const resp = await fetch(SUPA_URL + '/functions/v1/admin-profiles', {
@@ -525,6 +527,7 @@
       try { const j = JSON.parse(txt); msg = j.error || j.message || txt; } catch(_) {}
       await _admAlert('Ошибка загрузки ' + resp.status + ': ' + msg);
       document.getElementById('table-loading').style.display = 'none';
+      if (_usersRefBtn) _usersRefBtn.style.display = '';
       return;
     }
     const data = await resp.json();
@@ -547,6 +550,7 @@
     updateStats();
     renderTable();
     document.getElementById('table-loading').style.display = 'none';
+    if (_usersRefBtn) _usersRefBtn.style.display = '';
   }
 
   function updateStats() {
@@ -895,6 +899,35 @@
     _initSheetSwipe();
   }
 
+  function openPromoCtx(promoId, code, isActive) {
+    document.getElementById('ctx-email').textContent = code;
+    const badgeEl = document.getElementById('ctx-badge');
+    if (badgeEl) badgeEl.innerHTML = '';
+
+    const items = [
+      { icon: isActive ? 'pause' : 'play',
+        label: isActive ? 'Отключить' : 'Включить',
+        cls: isActive ? 'danger' : 'success',
+        fn: `closeCtxMenu();togglePromo('${promoId}',${isActive})` },
+      { divider: true },
+      { icon: 'trash-2', label: 'Удалить', cls: 'danger', fn: `closeCtxMenu();deletePromo('${promoId}','${esc(code)}')` },
+    ];
+
+    document.getElementById('ctx-items').innerHTML = items.map(it => {
+      if (it.divider) return '<div class="ctx-divider"></div>';
+      return `<div class="ctx-item ${it.cls}" onclick="${it.fn}"><i data-lucide="${it.icon}"></i>${it.label}</div>`;
+    }).join('');
+
+    lucide.createIcons({ nodes: [document.getElementById('ctx-items')] });
+    const backdrop = document.getElementById('ctx-backdrop');
+    backdrop.classList.add('open');
+    _ctxScrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${_ctxScrollY}px`;
+    document.body.style.width = '100%';
+    _initSheetSwipe();
+  }
+
   function closeCtxMenu() {
     document.getElementById('ctx-backdrop').classList.remove('open');
     document.body.style.position = '';
@@ -955,11 +988,14 @@
   let _allPromos = [];
 
   async function loadPromos() {
+    const _promosRefBtn = document.getElementById('promos-refresh-btn');
+    if (_promosRefBtn) _promosRefBtn.style.display = 'none';
     document.getElementById('promos-loading').style.display = 'block';
     document.getElementById('promos-list').innerHTML = '';
     document.getElementById('promos-empty').style.display = 'none';
     const ok = await _adminAction({ action: 'list-promos' }, true);
     document.getElementById('promos-loading').style.display = 'none';
+    if (_promosRefBtn) _promosRefBtn.style.display = '';
     if (!ok) return;
     _allPromos = ok.promos || [];
     renderPromos();
@@ -971,24 +1007,21 @@
     if (!_allPromos.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
     list.innerHTML = _allPromos.map(p => {
-      const used = `${p.used_count}/${p.max_uses}`;
-      const exp  = p.expires_at ? `до ${fmtDate(new Date(p.expires_at))}` : 'бессрочно';
+      const exp    = p.expires_at ? `до ${fmtDate(new Date(p.expires_at))}` : 'бессрочно';
       const activeCls = p.is_active ? 'badge badge-active' : 'badge badge-expired';
       const activeTxt = p.is_active ? 'Активен' : 'Отключён';
       return `<div class="promo-card">
         <div style="flex:1;min-width:0">
-          <div class="promo-code">${esc(p.code)}</div>
-          <div class="promo-meta">+${p.days} дн · использован ${used} · ${exp}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <div class="promo-code">${esc(p.code)}</div>
+            <span class="${activeCls}">${activeTxt}</span>
+          </div>
+          <div class="promo-meta">+${p.days} дн · ${exp}</div>
+          <div class="promo-meta" style="margin-top:1px">использован ${p.used_count} / ${p.max_uses}</div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-          <span class="${activeCls}">${activeTxt}</span>
-          <button class="action-btn" onclick="togglePromo('${p.id}',${p.is_active})" title="${p.is_active ? 'Отключить' : 'Включить'}">
-            <i data-lucide="${p.is_active ? 'pause' : 'play'}"></i>
-          </button>
-          <button class="action-btn danger" onclick="deletePromo('${p.id}','${esc(p.code)}')">
-            <i data-lucide="trash-2"></i>
-          </button>
-        </div>
+        <button class="kebab-btn" onclick="openPromoCtx('${p.id}','${esc(p.code)}',${p.is_active})" style="flex-shrink:0">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+        </button>
       </div>`;
     }).join('');
     lucide.createIcons();
