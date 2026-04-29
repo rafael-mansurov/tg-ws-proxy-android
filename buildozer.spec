@@ -29,6 +29,7 @@ android.release_artifact = apk
 p4a.bootstrap = webview
 p4a.port = 8080
 p4a.hook = tools/p4a_hook.py
+p4a.local_recipes = ./p4a_recipes
 android.gradle_dependencies = androidx.core:core:1.12.0,androidx.core:core-splashscreen:1.0.1
 
 # Deep link: tgwsproxy://reset-password#access_token=...&type=recovery
