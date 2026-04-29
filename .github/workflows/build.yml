@@ -77,9 +77,9 @@ jobs:
           path: |
             .buildozer
             /home/runner/.buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec', 'icon.png', 'presplash.png', 'cover.jpg', 'tools/p4a_hook.py', 'tools/p4a_webview_loader/**', 'tools/p4a_python_activity/**', 'tools/p4a_android_java/**', 'tools/p4a_android_res/**') }}-v9-sdkhome
+          key: buildozer-${{ hashFiles('buildozer.spec', 'icon.png', 'presplash.png', 'cover.jpg', 'tools/p4a_hook.py', 'tools/p4a_webview_loader/**', 'tools/p4a_python_activity/**', 'tools/p4a_android_java/**', 'tools/p4a_android_res/**') }}-v8-sdkhome
           restore-keys: |
-            buildozer-${{ hashFiles('tools/p4a_android_java/**', 'tools/p4a_python_activity/**', 'tools/p4a_hook.py', 'tools/p4a_android_res/**') }}-v9-
+            buildozer-${{ hashFiles('tools/p4a_android_java/**', 'tools/p4a_python_activity/**', 'tools/p4a_hook.py', 'tools/p4a_android_res/**') }}-v8-
 
       - name: Build APK (kivy/buildozer docker)
         env:
