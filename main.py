@@ -180,6 +180,10 @@ SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
 ADMIN_FILE = Path(__file__).parent / "ui" / "admin.html"
 ROUNDED_QR_FILE = Path(__file__).parent / "ui" / "rounded-qr.js"
+SUPABASE_JS_FILE = Path(__file__).parent / "ui" / "supabase.min.js"
+QRCODE_JS_FILE = Path(__file__).parent / "ui" / "qrcode.min.js"
+QRCODE_GENERATOR_JS_FILE = Path(__file__).parent / "ui" / "qrcode-generator.min.js"
+LUCIDE_JS_FILE = Path(__file__).parent / "ui" / "lucide.min.js"
 
 _running = False
 _ready_notification_shown = False
@@ -992,6 +996,30 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", "application/javascript; charset=utf-8")
                 self.send_header("Cache-Control", "public, max-age=86400")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            except OSError:
+                self.send_response(404)
+                self.end_headers()
+
+        elif self.path in ("/supabase.min.js", "/qrcode.min.js", "/qrcode-generator.min.js", "/lucide.min.js"):
+            file_map = {
+                "/supabase.min.js": SUPABASE_JS_FILE,
+                "/qrcode.min.js": QRCODE_JS_FILE,
+                "/qrcode-generator.min.js": QRCODE_GENERATOR_JS_FILE,
+                "/lucide.min.js": LUCIDE_JS_FILE,
+            }
+            js_file = file_map[self.path]
+            if not js_file.is_file():
+                self.send_response(404)
+                self.end_headers()
+                return
+            try:
+                data = js_file.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/javascript; charset=utf-8")
+                self.send_header("Cache-Control", "public, max-age=604800")
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()
                 self.wfile.write(data)

@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>TG WS Proxy</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="preconnect" href="https://fahpfsterakqentqqazz.supabase.co">
+  <link rel="dns-prefetch" href="https://fahpfsterakqentqqazz.supabase.co">
+  <script src="/supabase.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -2392,10 +2393,10 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="/qrcode.min.js"></script>
+<script src="/qrcode-generator.min.js"></script>
 <script src="rounded-qr.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="/lucide.min.js"></script>
 <script>
   // ── Supabase / Subscription ────────────────────────────────────────────────
   const SUPA_URL  = 'https://fahpfsterakqentqqazz.supabase.co';
@@ -2486,9 +2487,16 @@
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) { _showAuth(); return; }
 
+    // JWT-клеймы используем только если они явно подтверждают активную оплаченную подписку.
+    // Токен живёт до 1 часа: за это время paid_until мог быть выставлен в БД, а старый JWT
+    // этого не знает → нельзя доверять клеймам для вынесения «expired»-вердикта.
     const claims = _jwtClaims(session);
-    if (claims?.sub_status) {
-      // Данные подписки уже в JWT — без запроса к БД
+    const claimsPaidUntil = claims?.sub_paid_until ? new Date(claims.sub_paid_until).getTime() : 0;
+    const claimsActive = claims?.sub_status === 'active' && claimsPaidUntil > Date.now();
+
+    let fromDb = false;
+    if (claimsActive) {
+      // JWT точно говорит «активная оплаченная» — доверяем, не идём в БД
       _subProfile = {
         id:           session.user.id,
         email:        session.user.email,
@@ -2498,7 +2506,9 @@
         is_admin:     claims.is_admin        ?? false,
       };
     } else {
-      // Fallback: JWT без claims (старый токен или первый вход) — читаем из БД
+      // Во всех остальных случаях (trial, expired, нет клеймов, сомнительные клеймы) —
+      // идём в БД за актуальными данными
+      fromDb = true;
       const { data: profile, error } = await _supa
         .from('profiles')
         .select('id,email,status,trial_start,paid_until,is_admin')
@@ -2563,8 +2573,9 @@
       return;
     }
 
-    // Обновляем статус в БД если ещё не expired
-    if (_subProfile.status !== 'expired') {
+    // Триал и оплата истекли — только если данные свежие из БД (не из JWT),
+    // обновляем статус и показываем paywall
+    if (fromDb && _subProfile.status !== 'expired') {
       await _supa.from('profiles').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', session.user.id);
     }
     if (_subStatus !== 'expired') _stopProxyOnExpiry();
@@ -3116,8 +3127,13 @@
     // Слушаем изменения сессии
     _supa.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT') {
+        _subProfile = null;
+        _subStatus  = null;
         _showAuth();
-      } else if (event === 'TOKEN_REFRESHED') {
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // SIGNED_IN срабатывает когда сессия восстановлена после старта или логина.
+        // Без этого обработчика пользователь оставался на экране входа если getSession()
+        // вернул null до того как SDK восстановил сессию из localStorage.
         checkSubscription().catch(() => {});
       }
     });

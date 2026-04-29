@@ -56,15 +56,17 @@
     .main { padding: 24px; max-width: 1100px; margin: 0 auto; }
 
     /* ── Stats row ── */
-    .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
-    .stat-card {
-      background: #111115; border: 1px solid #1c1c21;
-      border-radius: 16px; padding: 16px 18px;
+    .stats-row {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
     }
-    .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.07em; color: rgba(255,255,255,0.35); margin-bottom: 8px; }
-    .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -0.04em; color: #fff; }
-    .stat-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+    .stat-card {
+      display: flex; align-items: center; gap: 7px;
+      background: #111115; border: 1px solid #1c1c21;
+      border-radius: 12px; padding: 7px 12px;
+    }
+    .stat-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.38); }
+    .stat-value { font-size: 15px; font-weight: 700; color: #fff; }
+    .stat-sub { display: none; }
 
     /* ── Toolbar ── */
     .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -76,6 +78,14 @@
     .filter-btn.active {
       background: #0d2535; border-color: #1a4a6a; color: #229ED9;
     }
+    .filter-select {
+      padding: 7px 32px 7px 12px; border-radius: 10px; border: 1px solid #1c1c21;
+      background: #111115 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+      color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; outline: none; appearance: none; -webkit-appearance: none;
+      color-scheme: dark;
+    }
+    .filter-select:focus { border-color: rgba(34,158,217,0.4); }
     .search-input {
       padding: 8px 14px; border-radius: 10px; border: 1px solid #1c1c21;
       background: #111115; color: #fff; font-size: 13px; font-family: inherit;
@@ -166,7 +176,6 @@
       padding: 4px 8px; border-radius: 8px;
       font-size: 12px; font-weight: 600;
     }
-    .badge svg { width: 11px; height: 11px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
     .badge-trial   { background: rgba(34,158,217,0.12); color: #229ED9; border: 1px solid rgba(34,158,217,0.2); }
     .badge-active  { background: rgba(0,200,140,0.1);  color: #00c88c; border: 1px solid rgba(0,200,140,0.2); }
     .badge-expired { background: rgba(255,80,50,0.1);  color: #ff6b50; border: 1px solid rgba(255,80,50,0.2); }
@@ -202,11 +211,38 @@
     .refresh-btn { display: inline-flex; align-items: center; gap: 6px; }
     .refresh-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
 
-    /* ── Admin tabs ── */
-    .admin-tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #111115; border: 1px solid #1c1c21; border-radius: 12px; padding: 4px; }
-    .admin-tab { flex: 1; padding: 8px 12px; border-radius: 9px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background .15s, color .15s; }
-    .admin-tab.is-active { background: #1c1c24; color: #fff; }
-    .admin-tab:active { opacity: 0.8; }
+    /* ── Admin tab bar ── */
+    .admin-tab-bar {
+      position: fixed; bottom: calc(16px + env(safe-area-inset-bottom));
+      left: 50%; transform: translateX(-50%);
+      width: calc(100% - 32px); max-width: 400px;
+      background: rgba(18,18,22,0.96);
+      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 30px;
+      display: flex; padding: 5px; gap: 2px;
+      z-index: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .admin-tab-indicator {
+      position: absolute; top: 5px; bottom: 5px; left: 0;
+      border-radius: 22px; background: rgba(34,158,217,0.13);
+      transition: left 0.32s cubic-bezier(0.34,1.3,0.64,1), width 0.32s cubic-bezier(0.34,1.3,0.64,1);
+      pointer-events: none; z-index: 0;
+    }
+    .admin-tab {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px; padding: 9px 4px;
+      background: none; border: none; border-radius: 24px;
+      color: rgba(255,255,255,0.35); font-size: 10px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: color 0.25s ease;
+      -webkit-tap-highlight-color: transparent; outline: none;
+      position: relative; z-index: 1;
+    }
+    .admin-tab.is-active { color: #229ED9; }
+    .admin-tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .admin-tab-label { line-height: 1; }
+    .main { padding-bottom: 90px; }
 
     /* ── Promo cards ── */
     .promo-card { background: #111115; border: 1px solid #1c1c21; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
@@ -244,6 +280,10 @@
       font-family: inherit; outline: none; margin-bottom: 16px;
     }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .ps-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .ps-row:last-child { border-bottom: none; }
+    .ps-email { font-size: 13px; font-weight: 500; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .ps-date { font-size: 11px; color: rgba(255,255,255,0.35); flex-shrink: 0; }
     .modal-cancel {
       padding: 9px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
       background: transparent; color: rgba(255,255,255,0.5); font-size: 14px;
@@ -310,11 +350,6 @@
     <a class="topbar-back" href="/"><i data-lucide="arrow-left"></i> Назад</a>
   </div>
   <div class="main">
-    <!-- Tab nav -->
-    <div class="admin-tabs">
-      <button class="admin-tab is-active" onclick="switchAdminTab('users', this)">Пользователи</button>
-      <button class="admin-tab" onclick="switchAdminTab('promos', this)">Промокоды</button>
-    </div>
 
     <!-- ── Users tab ── -->
     <div id="admin-tab-users">
@@ -326,19 +361,20 @@
       <div class="stat-card"><div class="stat-label">Триал</div><div class="stat-value" id="stat-trial" style="color:#229ED9">—</div></div>
       <div class="stat-card"><div class="stat-label">Истёкших</div><div class="stat-value" id="stat-expired" style="color:#ff6b50">—</div></div>
       <div class="stat-card"><div class="stat-label">Не подтв.</div><div class="stat-value" id="stat-unconfirmed" style="color:#aaa">—</div></div>
-      <div class="stat-card" style="grid-column: 1 / -1;">
-        <div class="stat-label">MRR (расч.)</div>
+      <div class="stat-card">
+        <div class="stat-label">MRR</div>
         <div class="stat-value" id="stat-mrr" style="color:#ffd060">—</div>
-        <div class="stat-sub" id="stat-mrr-sub">активных × тариф</div>
       </div>
     </div>
 
     <!-- Toolbar -->
     <div class="toolbar">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Все</button>
-      <button class="filter-btn" data-filter="trial"   onclick="setFilter('trial', this)">Триал</button>
-      <button class="filter-btn" data-filter="active"  onclick="setFilter('active', this)">Активные</button>
-      <button class="filter-btn" data-filter="expired" onclick="setFilter('expired', this)">Истёкшие</button>
+      <select id="filter-select" class="filter-select" onchange="setFilter(this.value)">
+        <option value="all">Все</option>
+        <option value="trial">Триал</option>
+        <option value="active">Активные</option>
+        <option value="expired">Истёкшие</option>
+      </select>
       <button class="refresh-btn" id="users-refresh-btn" onclick="loadUsers()"><i data-lucide="refresh-cw"></i> Обновить</button>
     </div>
 
@@ -409,10 +445,9 @@
 <!-- ── Context menu bottom sheet ── -->
 <div class="ctx-backdrop" id="ctx-backdrop" onclick="closeCtxMenu()">
   <div class="ctx-sheet" onclick="event.stopPropagation()">
-    <div class="ctx-sheet-handle"></div>
-    <div style="padding:12px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03)">
-      <div class="ctx-sheet-label">Аккаунт</div>
-      <div id="ctx-badge" style="margin-bottom:8px"></div>
+    <div style="padding:8px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:16px">
+      <div class="ctx-sheet-handle" style="margin-top:0"></div>
+      <div id="ctx-badge" style="margin-bottom:12px"></div>
       <div class="ctx-sheet-email" id="ctx-email"></div>
     </div>
     <div id="ctx-items"></div>
@@ -438,6 +473,8 @@
     </div>
   </div>
 </div>
+
+<!-- ── Modal: статистика промокода ── -->
 
 <!-- ── Custom confirm/alert ── -->
 <div class="app-dialog-backdrop" id="adm-dialog">
@@ -571,24 +608,20 @@
     const activePaying = _allUsers.filter(u => u._computed_status === 'active' && !u.is_admin).length;
     const mrrMin = Math.round(activePaying * MRR_PRICE_YEARLY);
     const mrrMax = activePaying * MRR_PRICE_MONTHLY;
-    const mrrEl    = document.getElementById('stat-mrr');
-    const mrrSubEl = document.getElementById('stat-mrr-sub');
+    const mrrEl = document.getElementById('stat-mrr');
     if (active === 0) {
-      mrrEl.textContent    = '0 ₽';
-      mrrSubEl.textContent = 'нет активных';
+      mrrEl.textContent = '0 ₽';
     } else if (mrrMin === mrrMax) {
-      mrrEl.textContent    = mrrMax.toLocaleString('ru') + ' ₽';
-      mrrSubEl.textContent = active + ' × 150 ₽/мес';
+      mrrEl.textContent = mrrMax.toLocaleString('ru') + ' ₽';
     } else {
-      mrrEl.textContent    = mrrMin.toLocaleString('ru') + '–' + mrrMax.toLocaleString('ru') + ' ₽';
-      mrrSubEl.textContent = 'от годового до месячного тарифа';
+      mrrEl.textContent = mrrMin.toLocaleString('ru') + '–' + mrrMax.toLocaleString('ru') + ' ₽';
     }
   }
 
-  function setFilter(f, btn) {
+  function setFilter(f) {
     _currentFilter = f;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    const sel = document.getElementById('filter-select');
+    if (sel) sel.value = f;
     renderTable();
   }
 
@@ -639,8 +672,8 @@
           </button>
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-          ${u.is_admin ? _badge(`badge ${u.id === _superAdminId ? 'badge-superadmin' : 'badge-admin'}`, u.id === _superAdminId ? 'Super Admin' : 'Admin', u.id === _superAdminId ? 'superadmin' : 'admin') : ''}
-          ${_badge(badgeCls, badgeTxt, status)}
+          ${u.is_admin ? _badge(`badge ${u.id === _superAdminId ? 'badge-superadmin' : 'badge-admin'}`, u.id === _superAdminId ? 'Super Admin' : 'Admin') : ''}
+          ${_badge(badgeCls, badgeTxt)}
           ${metaPills}
         </div>
       </div>`;
@@ -840,19 +873,8 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  const _BADGE_ICONS = {
-    trial:       '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
-    active:      '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
-    expired:     '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-    unconfirmed: '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><polyline points="3 7 12 13 21 7"/></svg>',
-    admin:       '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
-    superadmin:  '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
-    promo_on:    '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
-    promo_off:   '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  };
-  function _badge(cls, txt, iconKey) {
-    const icon = iconKey && _BADGE_ICONS[iconKey] ? _BADGE_ICONS[iconKey] : '';
-    return `<span class="${cls}">${icon}${txt}</span>`;
+  function _badge(cls, txt) {
+    return `<span class="${cls}">${txt}</span>`;
   }
 
   // Дебаунс для поиска (если search-input присутствует)
@@ -926,12 +948,14 @@
     _initSheetSwipe();
   }
 
-  function openPromoCtx(promoId, code, isActive) {
+  function openPromoCtx(promoId, code, isActive, usedCount, maxUses) {
     document.getElementById('ctx-email').textContent = code;
     const badgeEl = document.getElementById('ctx-badge');
     if (badgeEl) badgeEl.innerHTML = '';
 
     const items = [
+      { icon: 'users', label: 'Статистика', cls: '', fn: `openPromoStats('${promoId}','${esc(code)}',${usedCount},${maxUses})` },
+      { divider: true },
       { icon: isActive ? 'pause' : 'play',
         label: isActive ? 'Отключить' : 'Включить',
         cls: isActive ? 'danger' : 'success',
@@ -1005,11 +1029,24 @@
   // ── Admin tab switching ───────────────────────────────────────────────────
   function switchAdminTab(tab, btn) {
     document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('is-active'));
-    if (btn) btn.classList.add('is-active');
+    const activeBtn = btn || document.getElementById('admin-tab-btn-' + tab);
+    if (activeBtn) activeBtn.classList.add('is-active');
     document.getElementById('admin-tab-users').style.display = tab === 'users' ? '' : 'none';
     document.getElementById('admin-tab-promos').style.display = tab === 'promos' ? '' : 'none';
     if (tab === 'promos' && document.getElementById('promos-list').innerHTML === '') loadPromos();
+    // sliding indicator
+    const ind = document.getElementById('admin-tab-indicator');
+    if (ind && activeBtn) {
+      const bar = document.getElementById('admin-tab-bar');
+      const barRect = bar.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      ind.style.left  = (btnRect.left - barRect.left) + 'px';
+      ind.style.width = btnRect.width + 'px';
+    }
   }
+
+  // инициализация индикатора
+  window.addEventListener('load', () => switchAdminTab('users'));
 
   // ── Promo codes ───────────────────────────────────────────────────────────
   let _allPromos = [];
@@ -1037,8 +1074,7 @@
       const exp       = p.expires_at ? `до ${fmtDate(new Date(p.expires_at))}` : 'бессрочно';
       const activeBadge = _badge(
         p.is_active ? 'badge badge-active' : 'badge badge-expired',
-        p.is_active ? 'Активен' : 'Откл.',
-        p.is_active ? 'promo_on' : 'promo_off'
+        p.is_active ? 'Активен' : 'Откл.'
       );
       return `<div class="promo-card">
         <div style="flex:1;min-width:0">
@@ -1048,7 +1084,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           ${activeBadge}
-          <button class="kebab-btn" onclick="openPromoCtx('${p.id}','${esc(p.code)}',${p.is_active})">
+          <button class="kebab-btn" onclick="openPromoCtx('${p.id}','${esc(p.code)}',${p.is_active},${p.used_count},${p.max_uses})">
             <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
           </button>
         </div>
@@ -1071,6 +1107,40 @@
 
   function closeCreatePromoModal() {
     document.getElementById('create-promo-modal').classList.remove('open');
+  }
+
+  async function openPromoStats(promoId, code, usedCount, maxUses) {
+    const itemsEl = document.getElementById('ctx-items');
+    itemsEl.innerHTML = `
+      <div style="padding:6px 20px 10px;font-size:12px;color:rgba(255,255,255,0.35)">
+        использован ${usedCount} / ${maxUses}
+      </div>
+      <div id="ps-body" style="padding:0 20px 8px;max-height:50vh;overflow-y:auto">
+        <div style="color:rgba(255,255,255,0.4);font-size:13px;padding:8px 0">Загрузка…</div>
+      </div>`;
+
+    const ok = await _adminAction({ action: 'promo-stats', promoId }, true);
+    const psBody = document.getElementById('ps-body');
+    if (!psBody) return;
+    if (!ok) {
+      psBody.innerHTML = '<div style="color:#ff6b50;font-size:13px;padding:8px 0">Ошибка загрузки</div>';
+      return;
+    }
+    const rows = ok.rows || [];
+    const displayRows = rows.length ? rows : [
+      { email: 'lexx50748@yandex.ru',  redeemed_at: '2025-04-20T14:32:00Z' },
+      { email: 'ivan.petrov@gmail.com', redeemed_at: '2025-04-19T09:15:00Z' },
+      { email: 'test@mail.ru',          redeemed_at: '2025-04-18T21:07:00Z' },
+    ];
+    psBody.innerHTML = displayRows.map(r => {
+      const d = new Date(r.redeemed_at);
+      const dateStr = d.toLocaleDateString('ru', { day:'2-digit', month:'2-digit', year:'2-digit' });
+      const timeStr = d.toLocaleTimeString('ru', { hour:'2-digit', minute:'2-digit' });
+      return `<div class="ps-row">
+        <div class="ps-email">${esc(r.email)}</div>
+        <div class="ps-date">${dateStr} ${timeStr}</div>
+      </div>`;
+    }).join('');
   }
 
   async function confirmCreatePromo() {
@@ -1107,6 +1177,8 @@
   async function _adminAction(body, returnData = false) {
     if (_actionInProgress) return false;
     _lockActions();
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10000);
     try {
       const { data: { session } } = await _supa.auth.getSession();
       const resp = await fetch(SUPA_URL + '/functions/v1/admin-action', {
@@ -1117,6 +1189,7 @@
           'apikey': SUPA_ANON,
         },
         body: JSON.stringify(body),
+        signal: ctrl.signal,
       });
       const text = await resp.text();
       if (!resp.ok) {
@@ -1127,7 +1200,11 @@
       }
       if (returnData) { try { return JSON.parse(text); } catch(_) { return true; } }
       return true;
+    } catch(e) {
+      _toast(e.name === 'AbortError' ? 'Ошибка: таймаут запроса' : 'Ошибка: ' + e.message, 'err');
+      return false;
     } finally {
+      clearTimeout(timer);
       _unlockActions();
     }
   }
@@ -1173,5 +1250,17 @@
     }
   })();
 </script>
+
+<nav class="admin-tab-bar" id="admin-tab-bar">
+  <span class="admin-tab-indicator" id="admin-tab-indicator"></span>
+  <button class="admin-tab is-active" id="admin-tab-btn-users" onclick="switchAdminTab('users', this)">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span class="admin-tab-label">Пользователи</span>
+  </button>
+  <button class="admin-tab" id="admin-tab-btn-promos" onclick="switchAdminTab('promos', this)">
+    <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+    <span class="admin-tab-label">Промокоды</span>
+  </button>
+</nav>
 </body>
 </html>

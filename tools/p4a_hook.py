@@ -231,6 +231,11 @@ def _apply_tgws_build_overlay():
     _patch_gradle_compile_sdk(34)
 
 
+def before_apk_build(toolchain):
+    """Самый ранний хук: гарантирует, что кастомные Java-файлы присутствуют до любого шага сборки."""
+    _apply_tgws_build_overlay()
+
+
 def after_apk_build(toolchain):
     _apply_tgws_build_overlay()
 
