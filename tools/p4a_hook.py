@@ -209,6 +209,7 @@ def _apply_tgws_build_overlay():
     if java_src.is_file():
         java_dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(java_src, java_dest)
+        java_dest.touch()  # bump mtime so Gradle sees it as newer than cached .class
 
     extra_java = root / "p4a_android_java"
     if extra_java.is_dir():
@@ -217,6 +218,7 @@ def _apply_tgws_build_overlay():
             dest = Path("src/main/java") / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
+            dest.touch()  # bump mtime so Gradle always recompiles our custom classes
 
     extra_res = root / "p4a_android_res"
     if extra_res.is_dir():

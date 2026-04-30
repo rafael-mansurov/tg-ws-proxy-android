@@ -696,49 +696,14 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     started = False
     fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
     payload = _json.dumps({"secret": SECRET})
-
-    # Попытка 1: статический хелпер из нашего ServiceProxy (есть в свежих сборках)
     try:
         ServiceProxy = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
         ServiceProxy.start(activity, "", "TG WS Proxy", fg_text, payload)
         started = True
     except Exception:
-        pass
-
-    # Попытка 2: явный Intent через ComponentName — работает даже если
-    # ServiceProxy собран без статических методов или вообще отсутствует в DEX
-    if not started:
-        try:
-            Intent = autoclass("android.content.Intent")
-            ComponentName = autoclass("android.content.ComponentName")
-            Build = autoclass("android.os.Build")
-            pkg = activity.getPackageName()
-            private_dir = activity.getFilesDir().getAbsolutePath()
-            argument = private_dir + "/app"
-            intent = Intent()
-            intent.setComponent(ComponentName(pkg, pkg + ".ServiceProxy"))
-            intent.putExtra("androidPrivate", private_dir)
-            intent.putExtra("androidArgument", argument)
-            intent.putExtra("serviceTitle", "TG WS Proxy")
-            intent.putExtra("serviceEntrypoint", "services/proxy_service.py")
-            intent.putExtra("pythonName", "proxy")
-            intent.putExtra("serviceStartAsForeground", "true")
-            intent.putExtra("pythonHome", argument)
-            intent.putExtra("pythonPath", argument + ":" + argument + "/lib")
-            intent.putExtra("pythonServiceArgument", payload)
-            intent.putExtra("smallIconName", "")
-            intent.putExtra("contentTitle", "TG WS Proxy")
-            intent.putExtra("contentText", fg_text)
-            if Build.VERSION.SDK_INT >= 26:  # Build.VERSION_CODES.O
-                activity.startForegroundService(intent)
-            else:
-                activity.startService(intent)
-            started = True
-        except Exception:
-            started = False
-
+        started = False
     if not started and not _probe_proxy_port_open():
-        _write_start_log("UI: service start failed (both methods)")
+        _write_start_log("UI: ServiceProxy.start failed")
         return False, "Не удалось отправить команду запуска сервиса."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
