@@ -242,7 +242,7 @@
     .admin-tab.is-active { color: #229ED9; }
     .admin-tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .admin-tab-label { line-height: 1; }
-    .main { padding-bottom: 90px; }
+    .main { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
 
     /* ── Promo cards ── */
     .promo-card { background: #111115; border: 1px solid #1c1c21; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
