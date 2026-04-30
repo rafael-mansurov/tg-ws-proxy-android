@@ -101,7 +101,7 @@ jobs:
             "${SIGN_ENV[@]}" \
             -e "P4A_RELEASE_KEYSTORE_PASSWD=${P4A_RELEASE_KEYSTORE_PASSWD:-}" \
             -e "P4A_RELEASE_KEYALIAS_PASSWD=${P4A_RELEASE_KEYALIAS_PASSWD:-}" \
-            kivy/buildozer:latest \
+            kivy/buildozer@sha256:a291fd4c0c9dfce036c7c79c820af6faa6461d386969ea00303b45164ff37ac4 \
             android "${BUILD_MODE}"
 
       - name: Upload APK
