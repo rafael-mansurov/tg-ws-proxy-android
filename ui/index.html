@@ -2486,7 +2486,7 @@
 
   async function checkSubscription() {
     const { data: { session } } = await _supa.auth.getSession();
-    if (!session) { _showAuth(); return; }
+    if (!session) { _subLoaded = true; _showAuth(); return; }
 
     // JWT-клеймы используем только если они явно подтверждают активную оплаченную подписку.
     // Токен живёт до 1 часа: за это время paid_until мог быть выставлен в БД, а старый JWT
@@ -2529,10 +2529,10 @@
           })
           .select('id,email,status,trial_start,paid_until,is_admin')
           .single();
-        if (insertError || !newProfile) { _showAuth(); return; }
+        if (insertError || !newProfile) { _subLoaded = true; _showAuth(); return; }
         _subProfile = newProfile;
       } else if (error) {
-        _showAuth(); return;
+        _subLoaded = true; _showAuth(); return;
       } else {
         _subProfile = profile;
       }
