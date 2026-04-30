@@ -326,7 +326,7 @@
     .app-dialog-ok.danger { background: #e03d2f; }
 
     @media (max-width: 600px) {
-      .main { padding: 16px; }
+      .main { padding: 16px; padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
       .topbar { padding: 12px 16px; }
       th:nth-child(3), td:nth-child(3),
       th:nth-child(4), td:nth-child(4) { display: none; }
