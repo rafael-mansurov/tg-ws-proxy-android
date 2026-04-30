@@ -2410,6 +2410,7 @@
   let _subProfile   = null;   // текущий профиль из БД
   let _authMode     = 'login'; // 'register' | 'login'
   let _subStatus    = null;   // 'trial' | 'active' | 'expired'
+  let _subLoaded    = false;  // true после первой завершённой проверки подписки
   let _deepLinkPollTimer = null;
 
 
@@ -2555,6 +2556,7 @@
 
     if (paidUntil > now) {
       _subStatus = 'active';
+      _subLoaded = true;
       _hideAllOverlays();
       _updateSubBadge();
       return;
@@ -2563,11 +2565,13 @@
       // Явно отозван администратором — не пускать даже если триал ещё идёт
       if (_subStatus !== 'expired') _stopProxyOnExpiry();
       _subStatus = 'expired';
+      _subLoaded = true;
       _showPaywall();
       return;
     }
     if (now < trialEnd) {
       _subStatus = 'trial';
+      _subLoaded = true;
       _hideAllOverlays();
       _updateSubBadge();
       return;
@@ -2580,6 +2584,7 @@
     }
     if (_subStatus !== 'expired') _stopProxyOnExpiry();
     _subStatus = 'expired';
+    _subLoaded = true;
     _showPaywall();
   }
 
@@ -3036,7 +3041,12 @@
     const { data: { session } } = await _supa.auth.getSession();
     const email = session?.user?.email || '';
     const url = `https://app.lava.top/products/${LAVA_PRODUCT_ID}/${LAVA_OFFER_ID}?email=${encodeURIComponent(email)}`;
-    window.location.href = url;
+    // Открываем в системном браузере — WebView остаётся на месте, поллинг продолжается
+    if (window.TgwsAndroid?.openUrl) {
+      window.TgwsAndroid.openUrl(url);
+    } else {
+      window.open(url, '_blank');
+    }
     _startLavaPayPoll(session);
   }
 
@@ -3881,7 +3891,23 @@
     indicator.style.transform = '';
   }
 
+  let _toastTimer = null;
+  function _showToast(msg) {
+    let el = document.getElementById('app-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'app-toast';
+      el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:9999;pointer-events:none;transition:opacity .2s';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+  }
+
   function switchTab(tab) {
+    if (tab === 'ext-proxies' && !_subLoaded) { _showToast('Загрузка…'); return; }
     if (tab === 'ext-proxies' && !_canUseExtProxies()) { _showPaywall(); return; }
 
     _activeTab = tab;
@@ -4061,6 +4087,7 @@
   }
 
   async function onToggle() {
+    if (!_subLoaded) { _showToast('Загрузка…'); return; }
     if (!_subProfile) { _showAuth(); return; }
     if (!running && _subStatus === 'expired') { _showPaywall(); return; }
     const endpoint = running ? '/api/stop' : '/api/start';

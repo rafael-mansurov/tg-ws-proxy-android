@@ -664,6 +664,7 @@ def _clear_proxy_ready_notification() -> None:
 def _start_service() -> Tuple[bool, Optional[str]]:
     """Start foreground service from a clean state."""
     global _running
+    import json as _json
     from jnius import autoclass
 
     if len(SECRET) != 32:
@@ -675,11 +676,14 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     _save_secret(SECRET)
     _write_start_log("UI: start requested", reset=True)
 
-    ProxyControl = autoclass("unofficial.tgws.tgwsproxy.ProxyControl")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     activity = PythonActivity.mActivity
+
+    # Вызываем ServiceProxy напрямую — p4a всегда генерирует этот класс в DEX.
+    # ProxyControl — наш кастомный класс, который может отсутствовать в старых сборках.
+    ServiceProxy = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
     try:
-        ProxyControl.stopProxy(activity)
+        ServiceProxy.stop(activity)
         _write_start_log("UI: stop previous proxy")
     except Exception:
         pass
@@ -693,11 +697,14 @@ def _start_service() -> Tuple[bool, Optional[str]]:
 
     started = False
     try:
-        started = bool(ProxyControl.startProxy(activity))
+        fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
+        payload = _json.dumps({"secret": SECRET})
+        ServiceProxy.start(activity, "", "TG WS Proxy", fg_text, payload)
+        started = True
     except Exception:
         started = False
     if not started and not _probe_proxy_port_open():
-        _write_start_log("UI: ProxyControl.startProxy returned false")
+        _write_start_log("UI: ServiceProxy.start failed")
         return False, "Не удалось отправить команду запуска сервиса."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
@@ -726,9 +733,12 @@ def _stop_service() -> None:
     global _running
     from jnius import autoclass
 
-    ProxyControl = autoclass("unofficial.tgws.tgwsproxy.ProxyControl")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
-    ProxyControl.stopProxy(PythonActivity.mActivity)
+    ServiceProxy = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
+    try:
+        ServiceProxy.stop(PythonActivity.mActivity)
+    except Exception:
+        pass
     _running = False
     _clear_service_start_ts()
     _clear_proxy_ready_notification()
