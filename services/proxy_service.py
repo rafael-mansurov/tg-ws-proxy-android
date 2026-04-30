@@ -194,23 +194,34 @@ def _start_idle_shutdown_watcher(
     return t
 
 
+def _svc_log(base, msg: str) -> None:
+    try:
+        if base:
+            with open(str(base / LOG_FILENAME), "a", encoding="utf-8") as f:
+                f.write(f"{time.strftime('%H:%M:%S')}  SVC    {msg}\n")
+    except Exception:
+        pass
+    sys.stderr.write(f"tgws-svc: {msg}\n")
+    sys.stderr.flush()
+
+
 def _run_proxy() -> None:
     global _started
     if _started:
         return
     _started = True
 
+    base = _app_base_path()
+    _svc_log(base, "service process started")
+
     secret = _resolve_secret()
     if not secret:
-        sys.stderr.write(
-            "tgws-proxy: нет секрета (env и "
-            f"{SECRET_FILENAME} в app storage). Сервис не стартует.\n"
-        )
-        sys.stderr.flush()
+        _svc_log(base, "ERROR: no secret — check pythonServiceArgument extra and app storage")
         sys.exit(1)
 
+    _svc_log(base, f"secret resolved (len={len(secret)})")
+
     log_file = None
-    base = _app_base_path()
     if base:
         log_file = str(base / LOG_FILENAME)
     _mark_service_start(base)
@@ -228,16 +239,26 @@ def _run_proxy() -> None:
     if log_file:
         argv.extend(["--log-file", log_file])
 
-    for dc in (2, 4):
-        ip = resolve_kws_edge_ipv4(dc)
-        argv.extend(["--dc-ip", f"{dc}:{ip}"])
+    try:
+        for dc in (2, 4):
+            ip = resolve_kws_edge_ipv4(dc)
+            argv.extend(["--dc-ip", f"{dc}:{ip}"])
+            _svc_log(base, f"dc{dc} ip={ip}")
+    except Exception as _e:
+        _svc_log(base, f"ERROR in dc_resolve: {_e!r}")
 
     sys.argv = argv
 
-    import proxy.tg_ws_proxy as tg_mod
+    try:
+        import proxy.tg_ws_proxy as tg_mod
+        _svc_log(base, "proxy module imported OK")
+    except Exception as _e:
+        _svc_log(base, f"ERROR importing proxy.tg_ws_proxy: {_e!r}")
+        raise
 
     _start_metrics_monitor(base, tg_mod)
     run_proxy = tg_mod.run_proxy
+    _svc_log(base, "starting run_proxy loop")
 
     while True:
         _mark_service_start(base)

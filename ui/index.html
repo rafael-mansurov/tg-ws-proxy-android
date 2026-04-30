@@ -4095,7 +4095,7 @@
     const turningOn = !running;
     if (turningOn) setStartBusy(true);
     try {
-      const r = await _localFetch(endpoint, { method: 'POST' }, 10000);
+      const r = await _localFetch(endpoint, { method: 'POST' }, 35000);
       let d = {};
       try {
         d = await r.json();
