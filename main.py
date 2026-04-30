@@ -697,14 +697,39 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
     payload = _json.dumps({"secret": SECRET})
     try:
-        ServiceLauncher = autoclass("unofficial.tgws.tgwsproxy.ServiceLauncher")
-        ServiceLauncher.start(activity, "", "TG WS Proxy", fg_text, payload)
+        # Используем только системные классы (Intent, ComponentName, Build) —
+        # app-классы (ServiceLauncher) недоступны из HTTP-handler потока
+        # из-за Android JNI thread ClassLoader restrictions.
+        Intent = autoclass("android.content.Intent")
+        ComponentName = autoclass("android.content.ComponentName")
+        Build = autoclass("android.os.Build")
+        pkg = activity.getPackageName()
+        private_dir = activity.getFilesDir().getAbsolutePath()
+        argument = private_dir + "/app"
+        intent = Intent()
+        intent.setComponent(ComponentName(pkg, pkg + ".ServiceProxy"))
+        intent.putExtra("androidPrivate", private_dir)
+        intent.putExtra("androidArgument", argument)
+        intent.putExtra("serviceTitle", "TG WS Proxy")
+        intent.putExtra("serviceEntrypoint", "services/proxy_service.py")
+        intent.putExtra("pythonName", "proxy")
+        intent.putExtra("serviceStartAsForeground", "true")
+        intent.putExtra("pythonHome", argument)
+        intent.putExtra("pythonPath", argument + ":" + argument + "/lib")
+        intent.putExtra("pythonServiceArgument", payload)
+        intent.putExtra("smallIconName", "")
+        intent.putExtra("contentTitle", "TG WS Proxy")
+        intent.putExtra("contentText", fg_text)
+        if Build.VERSION.SDK_INT >= 26:
+            activity.startForegroundService(intent)
+        else:
+            activity.startService(intent)
         started = True
     except Exception as _e:
-        _write_start_log(f"UI: ServiceLauncher.start exc: {_e!r}")
+        _write_start_log(f"UI: start intent exc: {_e!r}")
         started = False
     if not started and not _probe_proxy_port_open():
-        _write_start_log("UI: ServiceLauncher.start failed — class not found or permission denied")
+        _write_start_log("UI: start intent failed")
         return False, "Не удалось отправить команду запуска сервиса."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
@@ -730,10 +755,14 @@ def _start_service() -> Tuple[bool, Optional[str]]:
 
 
 def _stop_service_by_component(activity) -> None:
-    """Останавливает сервис через ServiceLauncher.stop() — p4a никогда не генерирует этот класс."""
+    """Останавливает сервис по явному ComponentName — только системные классы."""
     from jnius import autoclass
-    ServiceLauncher = autoclass("unofficial.tgws.tgwsproxy.ServiceLauncher")
-    ServiceLauncher.stop(activity)
+    Intent = autoclass("android.content.Intent")
+    ComponentName = autoclass("android.content.ComponentName")
+    pkg = activity.getPackageName()
+    intent = Intent()
+    intent.setComponent(ComponentName(pkg, pkg + ".ServiceProxy"))
+    activity.stopService(intent)
 
 
 def _stop_service() -> None:
