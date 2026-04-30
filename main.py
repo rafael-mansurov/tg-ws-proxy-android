@@ -697,13 +697,13 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
     payload = _json.dumps({"secret": SECRET})
     try:
-        ServiceProxy = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
-        ServiceProxy.start(activity, "", "TG WS Proxy", fg_text, payload)
+        ServiceLauncher = autoclass("unofficial.tgws.tgwsproxy.ServiceLauncher")
+        ServiceLauncher.start(activity, "", "TG WS Proxy", fg_text, payload)
         started = True
     except Exception:
         started = False
     if not started and not _probe_proxy_port_open():
-        _write_start_log("UI: ServiceProxy.start failed")
+        _write_start_log("UI: ServiceLauncher.start failed")
         return False, "Не удалось отправить команду запуска сервиса."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
@@ -729,14 +729,10 @@ def _start_service() -> Tuple[bool, Optional[str]]:
 
 
 def _stop_service_by_component(activity) -> None:
-    """Останавливает сервис по имени компонента — не требует класса ServiceProxy в DEX."""
+    """Останавливает сервис через ServiceLauncher.stop() — p4a никогда не генерирует этот класс."""
     from jnius import autoclass
-    Intent = autoclass("android.content.Intent")
-    ComponentName = autoclass("android.content.ComponentName")
-    pkg = activity.getPackageName()
-    intent = Intent()
-    intent.setComponent(ComponentName(pkg, pkg + ".ServiceProxy"))
-    activity.stopService(intent)
+    ServiceLauncher = autoclass("unofficial.tgws.tgwsproxy.ServiceLauncher")
+    ServiceLauncher.stop(activity)
 
 
 def _stop_service() -> None:
