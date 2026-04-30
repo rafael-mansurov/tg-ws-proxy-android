@@ -702,7 +702,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         # из-за Android JNI thread ClassLoader restrictions.
         Intent = autoclass("android.content.Intent")
         ComponentName = autoclass("android.content.ComponentName")
-        Build = autoclass("android.os.Build")
+        BuildVersion = autoclass("android.os.Build$VERSION")
         pkg = activity.getPackageName()
         private_dir = activity.getFilesDir().getAbsolutePath()
         argument = private_dir + "/app"
@@ -720,7 +720,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         intent.putExtra("smallIconName", "")
         intent.putExtra("contentTitle", "TG WS Proxy")
         intent.putExtra("contentText", fg_text)
-        if Build.VERSION.SDK_INT >= 26:
+        if BuildVersion.SDK_INT >= 26:
             activity.startForegroundService(intent)
         else:
             activity.startService(intent)
