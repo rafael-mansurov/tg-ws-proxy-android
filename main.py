@@ -679,11 +679,9 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     activity = PythonActivity.mActivity
 
-    # Вызываем ServiceProxy напрямую — p4a всегда генерирует этот класс в DEX.
-    # ProxyControl — наш кастомный класс, который может отсутствовать в старых сборках.
-    ServiceProxy = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
+    # Останавливаем предыдущий инстанс через явный ComponentName — не требует класса в DEX.
     try:
-        ServiceProxy.stop(activity)
+        _stop_service_by_component(activity)
         _write_start_log("UI: stop previous proxy")
     except Exception:
         pass
@@ -699,6 +697,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     try:
         fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
         payload = _json.dumps({"secret": SECRET})
+        ServiceProxy = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
         ServiceProxy.start(activity, "", "TG WS Proxy", fg_text, payload)
         started = True
     except Exception:
@@ -729,14 +728,24 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     return True, None
 
 
+def _stop_service_by_component(activity) -> None:
+    """Останавливает сервис по имени компонента — не требует класса ServiceProxy в DEX."""
+    from jnius import autoclass
+    Intent = autoclass("android.content.Intent")
+    ComponentName = autoclass("android.content.ComponentName")
+    pkg = activity.getPackageName()
+    intent = Intent()
+    intent.setComponent(ComponentName(pkg, pkg + ".ServiceProxy"))
+    activity.stopService(intent)
+
+
 def _stop_service() -> None:
     global _running
     from jnius import autoclass
 
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
-    ServiceProxy = autoclass("unofficial.tgws.tgwsproxy.ServiceProxy")
     try:
-        ServiceProxy.stop(PythonActivity.mActivity)
+        _stop_service_by_component(PythonActivity.mActivity)
     except Exception:
         pass
     _running = False

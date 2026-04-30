@@ -3139,6 +3139,7 @@
       if (event === 'SIGNED_OUT') {
         _subProfile = null;
         _subStatus  = null;
+        _subLoaded  = false;
         _showAuth();
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // SIGNED_IN срабатывает когда сессия восстановлена после старта или логина.
