@@ -1,0 +1,15 @@
+--- a/Modules/grpmodule.c
++++ b/Modules/grpmodule.c
+@@ -5,6 +5,13 @@
+ #include "posixmodule.h"
+
+ #include <grp.h>
++
++#ifdef __ANDROID__
++/* Android bionic does not implement POSIX group-enumeration functions */
++static void setgrent(void) {}
++static void endgrent(void) {}
++static struct group *getgrent(void) { return NULL; }
++#endif
+
+ #include "clinic/grpmodule.c.h"
