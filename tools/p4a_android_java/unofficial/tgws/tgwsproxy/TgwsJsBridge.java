@@ -50,6 +50,18 @@ public final class TgwsJsBridge {
         this.activity = activity;
     }
 
+    /** Открыть URL в системном браузере, не уводя WebView со страницы приложения. */
+    @JavascriptInterface
+    public void openUrl(String url) {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity.startActivity(i);
+        } catch (Exception e) {
+            Log.e(TAG, "openUrl failed: " + url, e);
+        }
+    }
+
     @JavascriptInterface
     public void shareApp() {
         shareAppWithPort(0);
