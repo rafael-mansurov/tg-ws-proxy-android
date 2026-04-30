@@ -683,8 +683,8 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     try:
         _stop_service_by_component(activity)
         _write_start_log("UI: stop previous proxy")
-    except Exception:
-        pass
+    except Exception as _e:
+        _write_start_log(f"UI: stop exc (ignored): {_e!r}")
     if not _wait_proxy_stopped():
         if _probe_proxy_port_open():
             _running = True
@@ -700,10 +700,11 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         ServiceLauncher = autoclass("unofficial.tgws.tgwsproxy.ServiceLauncher")
         ServiceLauncher.start(activity, "", "TG WS Proxy", fg_text, payload)
         started = True
-    except Exception:
+    except Exception as _e:
+        _write_start_log(f"UI: ServiceLauncher.start exc: {_e!r}")
         started = False
     if not started and not _probe_proxy_port_open():
-        _write_start_log("UI: ServiceLauncher.start failed")
+        _write_start_log("UI: ServiceLauncher.start failed — class not found or permission denied")
         return False, "Не удалось отправить команду запуска сервиса."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
