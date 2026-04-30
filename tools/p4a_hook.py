@@ -130,8 +130,8 @@ def _ensure_tile_service(app: ET.Element) -> None:
     )
 
 
-def _patch_manifest_components() -> None:
-    manifest = Path("src/main/AndroidManifest.xml")
+def _patch_manifest_components(dist: Path) -> None:
+    manifest = dist / "src" / "main" / "AndroidManifest.xml"
     if not manifest.is_file():
         return
     tree = ET.parse(manifest)
@@ -147,9 +147,9 @@ def _patch_manifest_components() -> None:
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
 
 
-def _patch_gradle_compile_sdk(min_sdk: int = 34) -> None:
+def _patch_gradle_compile_sdk(dist: Path, min_sdk: int = 34) -> None:
     """p4a шаблон часто фиксирует compileSdk 33; androidx.core:1.12+ требует compileSdk >= 34 (checkReleaseAarMetadata)."""
-    bg = Path("build.gradle")
+    bg = dist / "build.gradle"
     if not bg.is_file():
         return
     text = bg.read_text(encoding="utf-8")
@@ -191,11 +191,38 @@ def _patch_gradle_compile_sdk(min_sdk: int = 34) -> None:
         bg.write_text(text, encoding="utf-8")
 
 
+def _find_dist_dir() -> Path:
+    """Return the Gradle distribution directory (the one that owns src/main/AndroidManifest.xml).
+
+    p4a may call hooks with CWD set to the project root instead of the dist dir,
+    so we cannot rely on Path("src/main/...") being correct.  We resolve the dist
+    dir explicitly: first check CWD, then search inside .buildozer.
+    """
+    cwd = Path.cwd()
+    if (cwd / "src" / "main" / "AndroidManifest.xml").is_file():
+        return cwd
+
+    project_root = Path(__file__).resolve().parent.parent
+    manifests = list(
+        project_root.glob(
+            ".buildozer/android/platform/*/dists/*/src/main/AndroidManifest.xml"
+        )
+    )
+    if manifests:
+        # AndroidManifest.xml → src/main → src → dist_dir
+        return manifests[0].parent.parent.parent
+
+    return cwd  # fallback: hope CWD is correct
+
+
 def _apply_tgws_build_overlay():
     """Копирует Java/res и правит манифест. Дважды: после build.py и сразу перед gradle assemble (p4a toolchain)."""
     root = Path(__file__).resolve().parent
+    dist = _find_dist_dir()
 
-    assets = Path("src/main/assets")
+    print(f"[tgws-hook] dist_dir={dist}  cwd={Path.cwd()}", flush=True)
+
+    assets = dist / "src" / "main" / "assets"
     if assets.is_dir():
         loader = root / "p4a_webview_loader"
         if loader.is_dir():
@@ -205,32 +232,33 @@ def _apply_tgws_build_overlay():
                     shutil.copy2(src, assets / name)
 
     java_src = root / "p4a_python_activity" / "PythonActivity.java"
-    java_dest = Path("src/main/java/org/kivy/android/PythonActivity.java")
+    java_dest = dist / "src/main/java/org/kivy/android/PythonActivity.java"
     if java_src.is_file():
         java_dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(java_src, java_dest)
-        java_dest.touch()  # bump mtime so Gradle sees it as newer than cached .class
+        java_dest.touch()
 
     extra_java = root / "p4a_android_java"
     if extra_java.is_dir():
         for src in extra_java.rglob("*.java"):
             rel = src.relative_to(extra_java)
-            dest = Path("src/main/java") / rel
+            dest = dist / "src" / "main" / "java" / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
-            dest.touch()  # bump mtime so Gradle always recompiles our custom classes
+            dest.touch()
+            print(f"[tgws-hook] copied java: {dest}", flush=True)
 
     extra_res = root / "p4a_android_res"
     if extra_res.is_dir():
         for src in extra_res.rglob("*"):
             if src.is_file():
                 rel = src.relative_to(extra_res)
-                dest = Path("src/main/res") / rel
+                dest = dist / "src" / "main" / "res" / rel
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, dest)
 
-    _patch_manifest_components()
-    _patch_gradle_compile_sdk(34)
+    _patch_manifest_components(dist)
+    _patch_gradle_compile_sdk(dist)
 
 
 def before_apk_build(toolchain):
