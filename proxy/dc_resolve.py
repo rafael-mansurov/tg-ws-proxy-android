@@ -26,7 +26,7 @@ def _is_usable_edge_ipv4(ip: str) -> bool:
     return True
 
 
-def _tcp443_open(ip: str, timeout_s: float = 3.5) -> bool:
+def _tcp443_open(ip: str, timeout_s: float = 2.0) -> bool:
     try:
         with socket.create_connection((ip, 443), timeout=timeout_s):
             return True

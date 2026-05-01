@@ -240,10 +240,17 @@ def _run_proxy() -> None:
         argv.extend(["--log-file", log_file])
 
     try:
-        for dc in (2, 4):
-            ip = resolve_kws_edge_ipv4(dc)
-            argv.extend(["--dc-ip", f"{dc}:{ip}"])
-            _svc_log(base, f"dc{dc} ip={ip}")
+        from concurrent.futures import ThreadPoolExecutor, as_completed as _as_completed
+        with ThreadPoolExecutor(max_workers=2) as _pool:
+            _futures = {_pool.submit(resolve_kws_edge_ipv4, dc): dc for dc in (2, 4)}
+            for _fut in _as_completed(_futures):
+                dc = _futures[_fut]
+                try:
+                    ip = _fut.result()
+                    argv.extend(["--dc-ip", f"{dc}:{ip}"])
+                    _svc_log(base, f"dc{dc} ip={ip}")
+                except Exception as _e:
+                    _svc_log(base, f"ERROR in dc_resolve dc{dc}: {_e!r}")
     except Exception as _e:
         _svc_log(base, f"ERROR in dc_resolve: {_e!r}")
 
