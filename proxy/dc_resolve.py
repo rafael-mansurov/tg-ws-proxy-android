@@ -1,4 +1,4 @@
-"""IPv4 для --dc-ip: резолв kws*.web.telegram.org (как в APK-сервисе)."""
+"""IPv4 для --dc-ip: резолв kws*.t.me (IP-адрес), SNI — kws*.web.telegram.org."""
 from __future__ import annotations
 
 import ipaddress
@@ -39,8 +39,8 @@ def _candidate_ips_for_dc(dc: int) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
     for name in (
-        f"kws{dc}.web.telegram.org",
-        f"kws{dc}-1.web.telegram.org",
+        f"kws{dc}.t.me",
+        f"kws{dc}-1.t.me",
     ):
         try:
             infos = socket.getaddrinfo(
@@ -61,10 +61,10 @@ def _candidate_ips_for_dc(dc: int) -> list[str]:
 
 
 def resolve_kws_edge_ipv4(dc: int) -> str:
-    """IP для --dc-ip: из DNS, но только если с ноуты/телефона до него реально открыт :443.
+    """IP для --dc-ip: из DNS kws*.t.me, проверяем TCP :443.
 
-    Иначе провайдер/DNS отдаёт «левый» edge (например 149.154.167.99), а рабочий остаётся
-    149.154.167.220 — без проверки прокси вечно «недоступен» в Telegram.
+    kws*.web.telegram.org → 404, kws*.stel.com → 200 (не WS), kws*.t.me → 302, но
+    IP из kws*.t.me + SNI kws*.web.telegram.org → 101 Switching Protocols (работает).
     На Android тот же модуль вызывается из services/proxy_service перед стартом tg_ws_proxy.
     """
     global _last_edge_ip_ok
