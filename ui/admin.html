@@ -56,17 +56,84 @@
     .main { padding: 24px; max-width: 1100px; margin: 0 auto; }
 
     /* ── Stats row ── */
-    .stats-row {
-      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
+    /* ── Stats dashboard ── */
+    .st-hero {
+      background: linear-gradient(135deg, rgba(255,208,96,0.1) 0%, rgba(255,160,40,0.06) 100%);
+      border: 1px solid rgba(255,208,96,0.2); border-radius: 22px;
+      padding: 22px 20px 18px; margin-bottom: 12px;
     }
-    .stat-card {
-      display: flex; align-items: center; gap: 7px;
-      background: #111115; border: 1px solid #1c1c21;
-      border-radius: 12px; padding: 7px 12px;
+    .st-hero-eyebrow {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+      font-size: 11px; font-weight: 700; color: rgba(255,208,96,0.6);
+      text-transform: uppercase; letter-spacing: 0.07em;
     }
-    .stat-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.38); }
-    .stat-value { font-size: 15px; font-weight: 700; color: #fff; }
-    .stat-sub { display: none; }
+    .st-hero-eyebrow svg { width: 13px; height: 13px; stroke: rgba(255,208,96,0.6); }
+    .st-hero-mrr { font-size: 42px; font-weight: 800; color: #ffd060; line-height: 1; letter-spacing: -0.02em; }
+    .st-hero-sub { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 6px; }
+
+    .st-duo { display: flex; gap: 10px; margin-bottom: 12px; }
+    .st-duo-card {
+      flex: 1; border-radius: 20px; padding: 20px 14px 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      border: 1px solid;
+    }
+    .st-duo-card svg { width: 22px; height: 22px; margin-bottom: 4px; }
+    .st-duo-green { background: rgba(0,200,140,0.07); border-color: rgba(0,200,140,0.18); }
+    .st-duo-blue  { background: rgba(34,158,217,0.07); border-color: rgba(34,158,217,0.18); }
+    .st-duo-num { font-size: 46px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+    .st-duo-green .st-duo-num { color: #00c88c; }
+    .st-duo-blue  .st-duo-num { color: #229ED9; }
+    .st-duo-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .st-breakdown {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px; padding: 18px 18px 16px; margin-bottom: 12px;
+    }
+    .st-breakdown-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+    .st-breakdown-bar {
+      height: 10px; border-radius: 6px; overflow: hidden;
+      display: flex; gap: 2px; margin-bottom: 16px;
+    }
+    .st-breakdown-bar-seg { height: 100%; transition: width 0.7s cubic-bezier(0.4,0,0.2,1); min-width: 0; }
+    .st-bd-row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .st-bd-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .st-bd-lbl { font-size: 12px; color: rgba(255,255,255,0.45); flex: 1; }
+    .st-bd-num { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); width: 26px; text-align: right; }
+    .st-bd-pct { font-size: 11px; color: rgba(255,255,255,0.25); width: 30px; text-align: right; }
+    .st-bd-mini { flex: 1.5; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+    .st-bd-mini-fill { height: 100%; border-radius: 2px; transition: width 0.7s ease; }
+
+    .st-trio { display: flex; gap: 8px; margin-bottom: 12px; }
+    .st-trio-card {
+      flex: 1; border-radius: 18px; padding: 16px 8px 14px;
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+    }
+    .st-trio-card svg { width: 18px; height: 18px; }
+    .st-trio-num { font-size: 30px; font-weight: 800; line-height: 1; }
+    .st-trio-label { font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; }
+
+    /* ── Funnel ── */
+    .st-funnel {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px; padding: 16px 16px 14px; margin-bottom: 12px;
+    }
+    .st-funnel-title {
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3);
+      text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px;
+    }
+    .st-funnel-row {
+      display: grid; grid-template-columns: minmax(118px, 1.15fr) minmax(0, 2fr) 34px;
+      align-items: center; gap: 8px 10px; margin-bottom: 8px;
+    }
+    .st-funnel-row:last-of-type { margin-bottom: 10px; }
+    .st-funnel-lbl { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.25; }
+    .st-funnel-bar {
+      height: 8px; background: rgba(255,255,255,0.06);
+      border-radius: 4px; overflow: hidden;
+    }
+    .st-funnel-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; min-width: 0; }
+    .st-funnel-num { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.85); text-align: right; }
 
     /* ── Toolbar ── */
     .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -130,6 +197,11 @@
       width: fit-content;
     }
     .meta-pill svg { width: 12px; height: 12px; flex-shrink: 0; opacity: 0.6; }
+    .meta-pill-warn {
+      background: rgba(224, 100, 30, 0.12); border-color: rgba(224, 100, 30, 0.35);
+      color: #e0871e;
+    }
+    .meta-pill-warn svg { opacity: 1; }
 
     /* ── 3-dot menu button ── */
     .kebab-btn {
@@ -244,6 +316,72 @@
     .admin-tab-label { line-height: 1; }
     .main { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
 
+    /* ── Archive collapsible (users tab) ── */
+    .archive-block {
+      margin-top: 22px;
+      background: #111115;
+      border: 1px solid #1c1c21;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .archive-block-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .archive-block-head:active { background: rgba(255,255,255,0.04); }
+    .archive-block-head-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .archive-block-icon {
+      width: 20px; height: 20px;
+      flex-shrink: 0;
+      color: #e0871e;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .archive-block-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      letter-spacing: -0.02em;
+    }
+    .archive-count-pill {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(224,135,30,0.15);
+      color: #e8a045;
+      flex-shrink: 0;
+    }
+    .archive-block-chevron {
+      flex-shrink: 0;
+      color: rgba(255,255,255,0.28);
+      display: flex;
+      align-items: center;
+      transition: transform 0.28s cubic-bezier(0.34, 1.3, 0.64, 1);
+    }
+    .archive-block-chevron svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .archive-block.is-open .archive-block-chevron { transform: rotate(180deg); }
+    .archive-block-panel {
+      display: none;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 14px 16px;
+    }
+    .archive-block.is-open .archive-block-panel { display: block; }
+
     /* ── Promo cards ── */
     .promo-card { background: #111115; border: 1px solid #1c1c21; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
     .promo-code { font-size: 15px; font-weight: 700; letter-spacing: .05em; color: #fff; flex: 1; min-width: 0; }
@@ -351,23 +489,81 @@
   </div>
   <div class="main">
 
+    <!-- ── Stats tab ── -->
+    <div id="admin-tab-stats" style="display:none">
+
+      <!-- MRR hero -->
+      <div class="st-hero">
+        <div class="st-hero-eyebrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          Месячный доход
+        </div>
+        <div class="st-hero-mrr" id="stat-mrr">—</div>
+        <div class="st-hero-sub" id="stat-mrr-sub">—</div>
+      </div>
+
+      <!-- Active + Trial -->
+      <div class="st-duo">
+        <div class="st-duo-card st-duo-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#00c88c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div class="st-duo-num" id="stat-active">—</div>
+          <div class="st-duo-label">Активных</div>
+        </div>
+        <div class="st-duo-card st-duo-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#229ED9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="st-duo-num" id="stat-trial">—</div>
+          <div class="st-duo-label">На триале</div>
+        </div>
+      </div>
+
+      <!-- Conversion funnel: шаги согласованы с карточками (триал ≠ «все кроме не подтв.») -->
+      <div class="st-funnel">
+        <div class="st-funnel-title">Статистика</div>
+        <div class="st-funnel-row">
+          <span class="st-funnel-lbl">Подтвердили email</span>
+          <div class="st-funnel-bar"><div class="st-funnel-fill" id="funnel-confirmed" style="background:rgba(255,255,255,0.14)"></div></div>
+          <span class="st-funnel-num" id="stat-confirmed-f">—</span>
+        </div>
+        <div class="st-funnel-row">
+          <span class="st-funnel-lbl">На триале сейчас</span>
+          <div class="st-funnel-bar"><div class="st-funnel-fill" id="funnel-trial" style="background:#229ED9"></div></div>
+          <span class="st-funnel-num" id="stat-trial-f">—</span>
+        </div>
+        <div class="st-funnel-row">
+          <span class="st-funnel-lbl">Триал истёк, не платят</span>
+          <div class="st-funnel-bar"><div class="st-funnel-fill" id="funnel-expired" style="background:rgba(255,107,80,0.85)"></div></div>
+          <span class="st-funnel-num" id="stat-expired-f">—</span>
+        </div>
+        <div class="st-funnel-row">
+          <span class="st-funnel-lbl">Платят</span>
+          <div class="st-funnel-bar"><div class="st-funnel-fill" id="funnel-active" style="background:#00c88c"></div></div>
+          <span class="st-funnel-num" id="stat-active-f">—</span>
+        </div>
+      </div>
+
+      <!-- Expired / Archive / Unconfirmed -->
+      <div class="st-trio">
+        <div class="st-trio-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ff6b50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <div class="st-trio-num" id="stat-expired" style="color:#ff6b50">—</div>
+          <div class="st-trio-label">Истёкших</div>
+        </div>
+        <div class="st-trio-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#e0871e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          <div class="st-trio-num" id="stat-archived" style="color:#e0871e">—</div>
+          <div class="st-trio-label">В архиве</div>
+        </div>
+        <div class="st-trio-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <div class="st-trio-num" id="stat-unconfirmed" style="color:#666">—</div>
+          <div class="st-trio-label">Не подтв.</div>
+        </div>
+      </div>
+
+    </div><!-- /admin-tab-stats -->
+
     <!-- ── Users tab ── -->
     <div id="admin-tab-users">
-
-    <!-- Stats -->
-    <div class="stats-row" id="stats-row">
-      <div class="stat-card"><div class="stat-label">Всего</div><div class="stat-value" id="stat-total">—</div></div>
-      <div class="stat-card"><div class="stat-label">Активных</div><div class="stat-value" id="stat-active" style="color:#00c88c">—</div></div>
-      <div class="stat-card"><div class="stat-label">Триал</div><div class="stat-value" id="stat-trial" style="color:#229ED9">—</div></div>
-      <div class="stat-card"><div class="stat-label">Истёкших</div><div class="stat-value" id="stat-expired" style="color:#ff6b50">—</div></div>
-      <div class="stat-card"><div class="stat-label">Не подтв.</div><div class="stat-value" id="stat-unconfirmed" style="color:#aaa">—</div></div>
-      <div class="stat-card">
-        <div class="stat-label">MRR</div>
-        <div class="stat-value" id="stat-mrr" style="color:#ffd060">—</div>
-      </div>
-    </div>
-
-    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:4px 0 16px">
 
     <!-- Toolbar -->
     <div class="toolbar">
@@ -385,6 +581,23 @@
       <div class="loading" id="table-loading">Загрузка…</div>
       <div class="cards-list" id="users-tbody"></div>
       <div class="empty-state" id="table-empty" style="display:none">Нет пользователей</div>
+    </div>
+
+    <div class="archive-block" id="archive-block">
+      <div class="archive-block-head" role="button" tabindex="0" aria-expanded="false" aria-controls="archive-block-panel" id="archive-block-head"
+        onclick="toggleArchiveSection()"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleArchiveSection();}">
+        <div class="archive-block-head-left">
+          <svg class="archive-block-icon" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          <span class="archive-block-title">Архив</span>
+          <span class="archive-count-pill" id="archive-header-count">0</span>
+        </div>
+        <span class="archive-block-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+      </div>
+      <div class="archive-block-panel" id="archive-block-panel" role="region" aria-labelledby="archive-block-head">
+        <div class="cards-list" id="archive-tbody"></div>
+        <div class="empty-state" id="archive-empty" style="display:none">Архив пуст</div>
+      </div>
     </div>
 
     </div><!-- /admin-tab-users -->
@@ -591,32 +804,81 @@
 
     updateStats();
     renderTable();
+    updateArchiveSectionMeta();
+    const _archBlock = document.getElementById('archive-block');
+    if (_archBlock && _archBlock.classList.contains('is-open')) renderArchive();
     document.getElementById('table-loading').style.display = 'none';
     if (_usersRefBtn) _usersRefBtn.style.display = '';
+  }
+
+  function updateArchiveSectionMeta() {
+    const n = _allUsers.filter(u => u.deletion_warning_sent_at).length;
+    const pill = document.getElementById('archive-header-count');
+    if (pill) pill.textContent = String(n);
+  }
+
+  function toggleArchiveSection() {
+    const block = document.getElementById('archive-block');
+    if (!block) return;
+    const head = document.getElementById('archive-block-head');
+    const willOpen = !block.classList.contains('is-open');
+    block.classList.toggle('is-open', willOpen);
+    if (head) head.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    if (willOpen) renderArchive();
   }
 
   function updateStats() {
     const total       = _allUsers.length;
     const active      = _allUsers.filter(u => u._computed_status === 'active').length;
     const trial       = _allUsers.filter(u => u._computed_status === 'trial').length;
-    const expired     = _allUsers.filter(u => u._computed_status === 'expired').length;
+    const expired     = _allUsers.filter(u => u._computed_status === 'expired' && !u.deletion_warning_sent_at).length;
+    const archived    = _allUsers.filter(u => u.deletion_warning_sent_at).length;
     const unconfirmed = _allUsers.filter(u => u._computed_status === 'unconfirmed').length;
-    document.getElementById('stat-total').textContent       = total;
+
     document.getElementById('stat-active').textContent      = active;
     document.getElementById('stat-trial').textContent       = trial;
     document.getElementById('stat-expired').textContent     = expired;
+    document.getElementById('stat-archived').textContent    = archived;
     document.getElementById('stat-unconfirmed').textContent = unconfirmed;
 
+    const eligible = total - unconfirmed;
+
+    const confirmedF = document.getElementById('stat-confirmed-f');
+    const trialF     = document.getElementById('stat-trial-f');
+    const expiredF   = document.getElementById('stat-expired-f');
+    const activeF    = document.getElementById('stat-active-f');
+    if (confirmedF) confirmedF.textContent = eligible;
+    if (trialF)     trialF.textContent     = trial;
+    if (expiredF)   expiredF.textContent   = expired;
+    if (activeF)    activeF.textContent    = active;
+
+    const base = eligible || 1;
+    const fConfirmed = document.getElementById('funnel-confirmed');
+    const fTrial     = document.getElementById('funnel-trial');
+    const fExpired   = document.getElementById('funnel-expired');
+    const fActive    = document.getElementById('funnel-active');
+    if (fConfirmed) fConfirmed.style.width = '100%';
+    if (fTrial)     fTrial.style.width     = Math.round(trial / base * 100) + '%';
+    if (fExpired)   fExpired.style.width   = Math.round(expired / base * 100) + '%';
+    if (fActive)    fActive.style.width    = Math.round(active / base * 100) + '%';
+
+    // MRR
     const activePaying = _allUsers.filter(u => u._computed_status === 'active' && !u.is_admin).length;
     const mrrMin = Math.round(activePaying * MRR_PRICE_YEARLY);
     const mrrMax = activePaying * MRR_PRICE_MONTHLY;
     const mrrEl = document.getElementById('stat-mrr');
-    if (active === 0) {
+    const mrrSubEl = document.getElementById('stat-mrr-sub');
+    if (activePaying === 0) {
       mrrEl.textContent = '0 ₽';
     } else if (mrrMin === mrrMax) {
-      mrrEl.textContent = mrrMax.toLocaleString('ru') + ' ₽';
+      mrrEl.textContent = mrrMax.toLocaleString('ru') + ' ₽/мес';
     } else {
-      mrrEl.textContent = mrrMin.toLocaleString('ru') + '–' + mrrMax.toLocaleString('ru') + ' ₽';
+      mrrEl.textContent = mrrMin.toLocaleString('ru') + '–' + mrrMax.toLocaleString('ru') + ' ₽/мес';
+    }
+    if (mrrSubEl) {
+      mrrSubEl.textContent = activePaying
+        ? activePaying + ' ' + (activePaying === 1 ? 'платящий пользователь' : activePaying < 5 ? 'платящих пользователя' : 'платящих пользователей')
+        : 'нет платящих пользователей';
     }
   }
 
@@ -630,6 +892,9 @@
   function renderTable() {
     const search = (document.getElementById('search-input')?.value || '').toLowerCase();
     let users = _allUsers;
+
+    // Архивные (получили письмо) — скрыты из основного списка
+    users = users.filter(u => !u.deletion_warning_sent_at);
 
     if (_currentFilter !== 'all') {
       users = users.filter(u => u._computed_status === _currentFilter);
@@ -661,7 +926,8 @@
         `<span class="meta-pill"><i data-lucide="calendar"></i>Регистрация ${fmtDate(regDate)}</span>`,
         status === 'trial' ? `<span class="meta-pill"><i data-lucide="clock"></i>Триал до ${fmtDate(trialEnd)}</span>` : '',
         paidUntil ? `<span class="meta-pill"><i data-lucide="credit-card"></i>Оплачен до ${fmtDate(paidUntil)}</span>` : '',
-        u.app_version ? `<span class="meta-pill"><i data-lucide="smartphone"></i>APK ${esc(u.app_version)}</span>` : ''
+        u.app_version ? `<span class="meta-pill"><i data-lucide="smartphone"></i>APK ${esc(u.app_version)}</span>` : '',
+        u.deletion_warning_sent_at ? `<span class="meta-pill meta-pill-warn"><i data-lucide="mail-warning"></i>Письмо об удалении ${fmtDate(new Date(u.deletion_warning_sent_at))}</span>` : ''
       ].filter(Boolean).join('');
 
       return `<div class="user-card">
@@ -1033,8 +1299,9 @@
     document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('is-active'));
     const activeBtn = btn || document.getElementById('admin-tab-btn-' + tab);
     if (activeBtn) activeBtn.classList.add('is-active');
-    document.getElementById('admin-tab-users').style.display = tab === 'users' ? '' : 'none';
-    document.getElementById('admin-tab-promos').style.display = tab === 'promos' ? '' : 'none';
+    document.getElementById('admin-tab-stats').style.display   = tab === 'stats'   ? '' : 'none';
+    document.getElementById('admin-tab-users').style.display   = tab === 'users'   ? '' : 'none';
+    document.getElementById('admin-tab-promos').style.display  = tab === 'promos'  ? '' : 'none';
     if (tab === 'promos' && document.getElementById('promos-list').innerHTML === '') loadPromos();
     // sliding indicator
     const ind = document.getElementById('admin-tab-indicator');
@@ -1047,8 +1314,39 @@
     }
   }
 
+  function renderArchive() {
+    const archived = _allUsers.filter(u => u.deletion_warning_sent_at);
+    const tbody = document.getElementById('archive-tbody');
+    const empty = document.getElementById('archive-empty');
+    if (!archived.length) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    tbody.innerHTML = archived.map(u => { try {
+      const regDate   = new Date(u.created_at);
+      const archivedDate = new Date(u.deletion_warning_sent_at);
+      return `<div class="user-card">
+        <div class="user-card-top">
+          <div style="min-width:0;flex:1">
+            <div class="user-card-email">${esc(u.email || '—')}</div>
+          </div>
+          <button class="kebab-btn" onclick="openCtxMenu('${u.id}','${esc(u.email)}',${u.is_admin},${!!u.email_confirmed},${u.id === _currentUserId},'badge badge-expired','Истёк')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          <span class="meta-pill"><i data-lucide="calendar"></i>Регистрация ${fmtDate(regDate)}</span>
+          <span class="meta-pill meta-pill-warn"><i data-lucide="mail-warning"></i>Письмо ${fmtDate(archivedDate)}</span>
+        </div>
+      </div>`;
+    } catch(err) { return ''; } }).join('');
+    lucide.createIcons();
+  }
+
   // инициализация индикатора
-  window.addEventListener('load', () => switchAdminTab('users'));
+  window.addEventListener('load', () => switchAdminTab('stats'));
 
   // ── Promo codes ───────────────────────────────────────────────────────────
   let _allPromos = [];
@@ -1255,7 +1553,11 @@
 
 <nav class="admin-tab-bar" id="admin-tab-bar">
   <span class="admin-tab-indicator" id="admin-tab-indicator"></span>
-  <button class="admin-tab is-active" id="admin-tab-btn-users" onclick="switchAdminTab('users', this)">
+  <button class="admin-tab is-active" id="admin-tab-btn-stats" onclick="switchAdminTab('stats', this)">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span class="admin-tab-label">Статистика</span>
+  </button>
+  <button class="admin-tab" id="admin-tab-btn-users" onclick="switchAdminTab('users', this)">
     <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     <span class="admin-tab-label">Пользователи</span>
   </button>

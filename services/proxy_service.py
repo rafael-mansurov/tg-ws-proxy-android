@@ -194,11 +194,17 @@ def _start_idle_shutdown_watcher(
     return t
 
 
-def _svc_log(base, msg: str) -> None:
+def _svc_log(base, msg: str, level: str = "SVC") -> None:
+    col = f"{level.strip().upper()[:5]:<5}"
     try:
         if base:
             with open(str(base / LOG_FILENAME), "a", encoding="utf-8") as f:
-                f.write(f"{time.strftime('%H:%M:%S')}  SVC    {msg}\n")
+                f.write(f"{time.strftime('%H:%M:%S')}  {col} {msg}\n")
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except OSError:
+                    pass
     except Exception:
         pass
     sys.stderr.write(f"tgws-svc: {msg}\n")
@@ -213,14 +219,15 @@ def _run_proxy() -> None:
 
     base = _app_base_path()
     _t0 = time.monotonic()
-    _svc_log(base, "service process started")
+    _svc_log(base, f"процесс сервиса стартовал pid={os.getpid()}, base={base}")
 
     secret = _resolve_secret()
     if not secret:
-        _svc_log(base, "ERROR: no secret — check pythonServiceArgument extra and app storage")
+        _svc_log(base, "нет секрета — проверьте pythonServiceArgument и файл tgws_proxy_secret.hex", level="ERR")
         sys.exit(1)
 
-    _svc_log(base, f"secret resolved (len={len(secret)}) +{time.monotonic()-_t0:.1f}s")
+    arg_preview = (os.environ.get("PYTHON_SERVICE_ARGUMENT", "") or "")[:80]
+    _svc_log(base, f"секрет len={len(secret)} за {time.monotonic()-_t0:.1f}s, PYTHON_SERVICE_ARGUMENT[:80]={arg_preview!r}")
 
     log_file = None
     if base:
@@ -242,7 +249,7 @@ def _run_proxy() -> None:
 
     try:
         from concurrent.futures import ThreadPoolExecutor, as_completed as _as_completed
-        _svc_log(base, f"dc_resolve start +{time.monotonic()-_t0:.1f}s")
+        _svc_log(base, f"резолв DC2/DC4 (kws)… +{time.monotonic()-_t0:.1f}s")
         with ThreadPoolExecutor(max_workers=2) as _pool:
             _futures = {_pool.submit(resolve_kws_edge_ipv4, dc): dc for dc in (2, 4)}
             for _fut in _as_completed(_futures):
@@ -250,25 +257,27 @@ def _run_proxy() -> None:
                 try:
                     ip = _fut.result()
                     argv.extend(["--dc-ip", f"{dc}:{ip}"])
-                    _svc_log(base, f"dc{dc} ip={ip} +{time.monotonic()-_t0:.1f}s")
+                    _svc_log(base, f"dc{dc} → {ip} (+{time.monotonic()-_t0:.1f}s)")
                 except Exception as _e:
-                    _svc_log(base, f"ERROR in dc_resolve dc{dc}: {_e!r}")
+                    _svc_log(base, f"dc{dc} resolve: {_e!r}", level="ERR")
+        n_dc = argv.count("--dc-ip")
+        _svc_log(base, f"dc_resolve готово, передано --dc-ip пар: {n_dc}, +{time.monotonic()-_t0:.1f}s")
     except Exception as _e:
-        _svc_log(base, f"ERROR in dc_resolve: {_e!r}")
+        _svc_log(base, f"dc_resolve пул: {_e!r}", level="ERR")
 
     sys.argv = argv
 
-    _svc_log(base, f"importing tg_ws_proxy +{time.monotonic()-_t0:.1f}s")
+    _svc_log(base, f"import proxy.tg_ws_proxy… +{time.monotonic()-_t0:.1f}s")
     try:
         import proxy.tg_ws_proxy as tg_mod
-        _svc_log(base, f"proxy module imported OK +{time.monotonic()-_t0:.1f}s")
+        _svc_log(base, f"модуль tg_ws_proxy импортирован +{time.monotonic()-_t0:.1f}s")
     except Exception as _e:
-        _svc_log(base, f"ERROR importing proxy.tg_ws_proxy: {_e!r}")
+        _svc_log(base, f"импорт tg_ws_proxy: {_e!r}", level="ERR")
         raise
 
     _start_metrics_monitor(base, tg_mod)
     run_proxy = tg_mod.run_proxy
-    _svc_log(base, f"starting run_proxy loop +{time.monotonic()-_t0:.1f}s")
+    _svc_log(base, f"вход в run_proxy (слушать 0.0.0.0:{argv[argv.index('--port')+1]}) +{time.monotonic()-_t0:.1f}s")
 
     while True:
         _mark_service_start(base)

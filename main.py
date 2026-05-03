@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import traceback
 import secrets
 import struct
 import socket
@@ -22,7 +23,7 @@ PORT_PROXY = 1443
 LOG_FILENAME = "tgws_proxy.log"
 START_TS_FILENAME = "tgws_proxy_started_at.txt"
 METRICS_FILENAME = "tgws_proxy_metrics.json"
-LOG_TAIL_LINES = 120
+LOG_TAIL_LINES = 200
 LOG_MAX_AGE_SECONDS = 3600
 READY_NOTIFICATION_ID = 88302
 PREFS_NAME = "tgws_proxy_prefs"
@@ -489,26 +490,87 @@ def _read_json_body(handler: BaseHTTPRequestHandler) -> dict:
         return {}
 
 
+def _proxy_log_path() -> Path:
+    return _secret_storage_path().parent / LOG_FILENAME
+
+
+def _write_start_log(message: str, reset: bool = False, level: str = "INFO") -> None:
+    p = _proxy_log_path()
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        mode = "w" if reset else "a"
+        raw = (level or "INFO").strip().upper()
+        if raw.startswith("WARN"):
+            col = "WARN"
+        elif raw.startswith("ERR"):
+            col = "ERR"
+        else:
+            col = "INFO"
+        col = f"{col:<5}"
+        with p.open(mode, encoding="utf-8") as f:
+            f.write(time.strftime("%H:%M:%S"))
+            f.write(f"  {col} ")
+            f.write(message)
+            f.write("\n")
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except OSError:
+                pass
+    except OSError:
+        pass
+
+
 def _wait_proxy_stopped(timeout_s: float = 6.0) -> bool:
+    t0 = time.monotonic()
+    open0 = _probe_proxy_port_open()
+    _write_start_log(f"UI: ждём освобождения порта {PORT_PROXY}, сейчас занят={open0}, таймаут {timeout_s}s")
+    if not open0:
+        _write_start_log("UI: порт уже свободен — стоп не нужен")
+        return True
     deadline = time.monotonic() + timeout_s
+    last_log = t0
     while time.monotonic() < deadline:
         if not _probe_proxy_port_open():
+            elapsed = time.monotonic() - t0
+            _write_start_log(f"UI: порт освобождён за {elapsed:.1f}s")
             return True
+        now = time.monotonic()
+        if now - last_log >= 1.0:
+            elapsed = now - t0
+            _write_start_log(f"UI: порт {PORT_PROXY} ещё занят, прошло {elapsed:.1f}s / {timeout_s}s")
+            last_log = now
         time.sleep(0.1)
+    _write_start_log(f"UI: порт всё ещё занят после {timeout_s}s — прошлый процесс не остановился?", level="WARN")
     return False
 
 
 def _wait_proxy_listen(timeout_s: float = 60.0) -> bool:
+    t0 = time.monotonic()
+    _write_start_log(f"UI: ждём, пока прокси начнёт слушать {HOST_PROXY}:{PORT_PROXY} (таймаут {timeout_s}s)")
     deadline = time.monotonic() + timeout_s
+    last_log = t0
+    last_err: Optional[OSError] = None
     while time.monotonic() < deadline:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.4)
             s.connect((HOST_PROXY, PORT_PROXY))
             s.close()
+            elapsed = time.monotonic() - t0
+            _write_start_log(f"UI: прокси отвечает на {PORT_PROXY} через {elapsed:.1f}s")
             return True
-        except OSError:
-            time.sleep(0.12)
+        except OSError as e:
+            last_err = e
+        now = time.monotonic()
+        if now - last_log >= 5.0:
+            elapsed = now - t0
+            err = f", последняя ошибка: {last_err!r}" if last_err is not None else ""
+            _write_start_log(f"UI: connect к {PORT_PROXY} неуспешен, {elapsed:.0f}s / {timeout_s}s{err}")
+            last_log = now
+        time.sleep(0.12)
+    err = f", последняя ошибка: {last_err!r}" if last_err is not None else ""
+    _write_start_log(f"UI: за {timeout_s}s порт так и не открылся{err}", level="WARN")
     return False
 
 
@@ -537,24 +599,6 @@ def _filter_recent_log_lines(lines: list[str], max_age_seconds: int = LOG_MAX_AG
         if now - line_ts <= max_age_seconds:
             recent.append(line)
     return recent
-
-
-def _proxy_log_path() -> Path:
-    return _secret_storage_path().parent / LOG_FILENAME
-
-
-def _write_start_log(message: str, reset: bool = False) -> None:
-    p = _proxy_log_path()
-    try:
-        p.parent.mkdir(parents=True, exist_ok=True)
-        mode = "w" if reset else "a"
-        with p.open(mode, encoding="utf-8") as f:
-            f.write(time.strftime("%H:%M:%S"))
-            f.write("  INFO   ")
-            f.write(message)
-            f.write("\n")
-    except OSError:
-        pass
 
 
 def _toast(msg: str) -> None:
@@ -668,29 +712,37 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     from jnius import autoclass
 
     if len(SECRET) != 32:
+        _write_start_log("UI: секрет не 32 hex — старт невозможен", level="ERR")
         return False, "Секрет не готов. Закройте приложение и откройте снова."
 
     link_host = _proxy_link_host()
 
     # Сервис читает этот же файл, если PYTHON_SERVICE_ARGUMENT не доехал (типичная проблема p4a).
     _save_secret(SECRET)
-    _write_start_log("UI: start requested", reset=True)
+    _write_start_log(
+        f"UI: новая попытка старта, link_host={link_host}, secret_len={len(SECRET)}",
+        reset=True,
+    )
 
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     activity = PythonActivity.mActivity
+    if activity is None:
+        _write_start_log("UI: PythonActivity.mActivity is None", level="ERR")
+        return False, "Интерфейс не готов. Закройте приложение и откройте снова."
 
     # Останавливаем предыдущий инстанс через явный ComponentName — не требует класса в DEX.
     try:
+        _write_start_log("UI: stopService(ServiceProxy)…")
         _stop_service_by_component(activity)
-        _write_start_log("UI: stop previous proxy")
+        _write_start_log("UI: stopService вернул управление")
     except Exception as _e:
-        _write_start_log(f"UI: stop exc (ignored): {_e!r}")
+        _write_start_log(f"UI: stopService исключение (игнор): {_e!r}", level="WARN")
     if not _wait_proxy_stopped():
         if _probe_proxy_port_open():
             _running = True
-            _write_start_log(f"UI: proxy already listening for Telegram on {link_host}:{PORT_PROXY}")
+            _write_start_log(f"UI: порт уже слушает — прокси был запущен ({link_host}:{PORT_PROXY})")
             return True, None
-        _write_start_log("UI: previous proxy did not stop cleanly")
+        _write_start_log("UI: старый инстанс не остановился и порт не открыт", level="WARN")
         return False, "Не удалось остановить прошлый инстанс прокси. Попробуйте ещё раз."
 
     started = False
@@ -704,8 +756,10 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         ComponentName = autoclass("android.content.ComponentName")
         BuildVersion = autoclass("android.os.Build$VERSION")
         pkg = activity.getPackageName()
+        sdk = int(BuildVersion.SDK_INT)
         private_dir = activity.getFilesDir().getAbsolutePath()
         argument = private_dir + "/app"
+        _write_start_log(f"UI: pkg={pkg}, API={sdk}, private_dir={private_dir}")
         intent = Intent()
         intent.setComponent(ComponentName(pkg, pkg + ".ServiceProxy"))
         intent.putExtra("androidPrivate", private_dir)
@@ -720,28 +774,34 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         intent.putExtra("smallIconName", "")
         intent.putExtra("contentTitle", "TG WS Proxy")
         intent.putExtra("contentText", fg_text)
-        if BuildVersion.SDK_INT >= 26:
+        if sdk >= 26:
+            _write_start_log("UI: вызов startForegroundService(…)")
             activity.startForegroundService(intent)
         else:
+            _write_start_log("UI: вызов startService(…)")
             activity.startService(intent)
         started = True
+        _write_start_log("UI: системный вызов запуска сервиса завершился без исключения")
     except Exception as _e:
-        _write_start_log(f"UI: start intent exc: {_e!r}")
+        _write_start_log(f"UI: исключение при запуске сервиса: {_e!r}", level="ERR")
         started = False
     if not started and not _probe_proxy_port_open():
-        _write_start_log("UI: start intent failed")
+        _write_start_log("UI: сервис не стартовал и порт закрыт", level="ERR")
         return False, "Не удалось отправить команду запуска сервиса."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
             _running = True
             _notify_proxy_ready()
-            _write_start_log("UI: proxy port opened after delayed start")
+            _write_start_log("UI: порт открылся с задержкой после таймаута ожидания")
             return True, None
         try:
             _stop_service_by_component(activity)
         except Exception:
             pass
-        _write_start_log(f"UI: proxy failed to listen for Telegram on {link_host}:{PORT_PROXY}")
+        _write_start_log(
+            f"UI: прокси не поднялся на {link_host}:{PORT_PROXY} за отведённое время",
+            level="WARN",
+        )
         return False, "Прокси не поднялся за 60 с. Попробуйте ещё раз или перезапустите приложение."
     if _read_service_start_ts() is None:
         _write_service_start_ts_now()
@@ -750,7 +810,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     time.sleep(1.2)
     _running = True
     _notify_proxy_ready()
-    _write_start_log(f"UI: proxy is ready for Telegram on {link_host}:{PORT_PROXY}")
+    _write_start_log(f"UI: готово — Telegram: {link_host}:{PORT_PROXY}")
     return True, None
 
 
@@ -1149,6 +1209,9 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send_json({"ok": False, "running": False, "error": err})
             except Exception as e:
+                _write_start_log(f"UI: необработанное исключение в /api/start: {e!r}", level="ERR")
+                for ln in traceback.format_exc().rstrip().split("\n"):
+                    _write_start_log(f"UI: … {ln}", level="ERR")
                 self._send_json({"ok": False, "running": False, "error": str(e)})
 
         elif self.path == "/api/battery":
