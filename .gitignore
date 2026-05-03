@@ -1,3 +1,6 @@
+__pycache__/
+*.py[cod]
+
 preview/
 .buildozer/
 .DS_Store
