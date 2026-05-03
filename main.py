@@ -498,7 +498,7 @@ def _wait_proxy_stopped(timeout_s: float = 6.0) -> bool:
     return False
 
 
-def _wait_proxy_listen(timeout_s: float = 25.0) -> bool:
+def _wait_proxy_listen(timeout_s: float = 60.0) -> bool:
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         try:
@@ -742,7 +742,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         except Exception:
             pass
         _write_start_log(f"UI: proxy failed to listen for Telegram on {link_host}:{PORT_PROXY}")
-        return False, "Прокси не поднялся за 25 с. Попробуйте ещё раз или перезапустите приложение."
+        return False, "Прокси не поднялся за 60 с. Попробуйте ещё раз или перезапустите приложение."
     if _read_service_start_ts() is None:
         _write_service_start_ts_now()
     # Короткая пауза: прокси теперь обрабатывает клиентов параллельно с warmup, но первому
