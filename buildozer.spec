@@ -3,8 +3,9 @@ title = TG WS Proxy
 package.name = tgwsproxy
 package.domain = unofficial.tgws
 source.dir = .
-source.include_exts = py,html,png,css,jpg,js
-source.include_patterns = ui/*,icon.png,cover.jpg
+# json — чтобы в APK попал tgws_supabase_public.json рядом с main.py (иначе WebView без Supabase).
+source.include_exts = py,html,png,css,jpg,js,json
+source.include_patterns = ui/*,icon.png,cover.jpg,tgws_supabase_public.json
 version = 1.6.0
 # Принудительно держим растущий Android versionCode отдельно от versionName,
 # чтобы обновления не ломались при переходе с 1.5.200 на 1.6.x.

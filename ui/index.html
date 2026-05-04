@@ -2552,6 +2552,17 @@
   const SUPA_URL = String(TGWS_CFG.url || '').trim();
   const SUPA_ANON = String(TGWS_CFG.anon || '').trim();
   const _supa = (SUPA_URL && SUPA_ANON) ? supabase.createClient(SUPA_URL, SUPA_ANON) : null;
+
+  function _msgSupabaseMissingBuild() {
+    return 'Не заданы параметры Supabase. Для сборки добавьте файл tgws_supabase_public.json (см. пример в репозитории) или переменные TGWS_SUPABASE_URL и TGWS_SUPABASE_ANON_KEY.';
+  }
+  /** Без клиента Supabase не вызывать _supa.auth — иначе «Cannot read properties of null (reading \'auth\')». */
+  function _requireSupaForAuth() {
+    if (_supa) return true;
+    _setAuthError(_msgSupabaseMissingBuild());
+    return false;
+  }
+
   const LAVA_PUBLISHABLE = 'sb_publishable_AdNjeo9XjfEYwIp27WQFKw_wHTWm9h1';
   // ВАЖНО: заменить на реальный ID продукта после создания в lava.top
   const LAVA_PRODUCT_ID  = 'd64db378-a328-4b86-ba8e-0a0f4b9f4eb3';
@@ -2895,6 +2906,7 @@
   }
 
   async function authVerifyOtp() {
+    if (!_requireSupaForAuth()) return;
     const token = document.getElementById('auth-otp-input').value.trim();
     const errEl = document.getElementById('auth-otp-error');
     const btn   = document.getElementById('auth-otp-btn');
@@ -2940,6 +2952,7 @@
 
   async function resendConfirmation() {
     if (!_pendingConfirmEmail) return;
+    if (!_requireSupaForAuth()) return;
     const link = document.querySelector('#auth-sent-resend span');
     if (link) { link.textContent = 'Отправляем…'; }
     let error;
@@ -3065,6 +3078,10 @@
     const pw  = document.getElementById(inputId).value;
     const err = document.getElementById(errId);
     const btn = document.getElementById(btnId);
+    if (!_supa) {
+      if (err) err.textContent = _msgSupabaseMissingBuild();
+      return;
+    }
     if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
     err.textContent = '';
     _btnLoading(btn, 'Сохраняем…');
@@ -3087,6 +3104,8 @@
   async function authSubmit() {
     const email = document.getElementById('auth-email').value.trim();
     const btn   = document.getElementById('auth-submit-btn');
+
+    if (!_requireSupaForAuth()) return;
 
     if (_authMode === 'forgot') {
       if (!email) { _setAuthError('Введите email'); return; }
@@ -3200,7 +3219,11 @@
   async function authLogout() {
     document.getElementById('acct-backdrop')?.classList.remove('is-open');
     document.body.style.overflow = '';
-    try { await Promise.race([_supa.auth.signOut(), new Promise(r => setTimeout(r, 1500))]); } catch(_) {}
+    try {
+      if (_supa) {
+        await Promise.race([_supa.auth.signOut(), new Promise(r => setTimeout(r, 1500))]);
+      }
+    } catch(_) {}
     window.location.reload();
   }
 
@@ -3244,6 +3267,7 @@
   let _lavaPayPoll = null;
 
   async function openLavaPayment() {
+    if (!_supa) { await _appAlert(_msgSupabaseMissingBuild()); return; }
     const { data: { session } } = await _supa.auth.getSession();
     const email = session?.user?.email || '';
     const url = `https://app.lava.top/products/${LAVA_PRODUCT_ID}/${LAVA_OFFER_ID}?email=${encodeURIComponent(email)}`;
@@ -3290,6 +3314,7 @@
     if (btn) { btn.disabled = true; btn.textContent = 'Применяем…'; }
     _promoMsg('', '');
     try {
+      if (!_supa) { _promoMsg(_msgSupabaseMissingBuild(), '#ff6b50'); return; }
       const { data: { session } } = await _supa.auth.getSession();
       if (!session) { _promoMsg('Войдите в аккаунт', '#ff6b50'); return; }
       const res = await fetch(`${SUPA_URL}/functions/v1/redeem-promo`, {
@@ -3312,6 +3337,11 @@
   async function checkPaymentManually() {
     const checkBtn = document.getElementById('paywall-check-btn');
     if (checkBtn) { checkBtn.disabled = true; checkBtn.textContent = 'Проверяем…'; }
+    if (!_supa) {
+      if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = 'Я уже оплатил — проверить'; }
+      await _appAlert(_msgSupabaseMissingBuild());
+      return;
+    }
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) { if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = 'Я уже оплатил — проверить'; } return; }
     const { data: profile } = await _supa.from('profiles').select('status,paid_until').eq('id', session.user.id).single();
@@ -3342,7 +3372,7 @@
   async function initAuth() {
     if (!_supa) {
       _subLoaded = true;
-      _appAlert('Не заданы параметры Supabase. Для сборки добавьте файл tgws_supabase_public.json (см. пример в репозитории) или переменные TGWS_SUPABASE_URL и TGWS_SUPABASE_ANON_KEY.');
+      _appAlert(_msgSupabaseMissingBuild());
       _showAuth();
       return;
     }
