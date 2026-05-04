@@ -17,6 +17,7 @@ import java.io.File;
 //imports for channel definition
 import android.app.NotificationManager;
 import android.app.NotificationChannel;
+import android.content.pm.ServiceInfo;
 import android.graphics.Color;
 
 public class PythonService extends Service implements Runnable {
@@ -178,7 +179,16 @@ public class PythonService extends Service implements Runnable {
             builder.setOngoing(true);
             notification = builder.build();
         }
-        startForeground(getServiceId(), notification);
+        // API 34+: тип FGS обязателен и в манифесте, и в вызове startForeground (см. FOREGROUND_SERVICE_DATA_SYNC).
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(
+                getServiceId(),
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            );
+        } else {
+            startForeground(getServiceId(), notification);
+        }
     }
 
     @Override

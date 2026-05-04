@@ -18,7 +18,8 @@ presplash.filename = %(source.dir)s/presplash.png
 android.presplash_color = #0f0f11
 services = proxy:services/proxy_service.py:foreground:sticky
 
-android.api = 33
+# API 34+ константы ServiceInfo для startForeground(…, type); compileSdk подтягивает hook до ≥34.
+android.api = 34
 android.minapi = 24
 android.ndk = 25b
 android.accept_sdk_license = True
