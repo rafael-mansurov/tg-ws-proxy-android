@@ -14,6 +14,8 @@ from typing import Optional
 
 from proxy.dc_resolve import resolve_kws_edge_ipv4
 
+from app_log import append_plain_timestamp_line
+
 _started = False
 
 SECRET_FILENAME = "tgws_proxy_secret.hex"
@@ -198,13 +200,8 @@ def _svc_log(base, msg: str, level: str = "SVC") -> None:
     col = f"{level.strip().upper()[:5]:<5}"
     try:
         if base:
-            with open(str(base / LOG_FILENAME), "a", encoding="utf-8") as f:
-                f.write(f"{time.strftime('%H:%M:%S')}  {col} {msg}\n")
-                f.flush()
-                try:
-                    os.fsync(f.fileno())
-                except OSError:
-                    pass
+            append_plain_timestamp_line(
+                base / LOG_FILENAME, f"  {col} {msg}\n", reset=False)
     except Exception:
         pass
     sys.stderr.write(f"tgws-svc: {msg}\n")
@@ -226,8 +223,7 @@ def _run_proxy() -> None:
         _svc_log(base, "нет секрета — проверьте pythonServiceArgument и файл tgws_proxy_secret.hex", level="ERR")
         sys.exit(1)
 
-    arg_preview = (os.environ.get("PYTHON_SERVICE_ARGUMENT", "") or "")[:80]
-    _svc_log(base, f"секрет len={len(secret)} за {time.monotonic()-_t0:.1f}s, PYTHON_SERVICE_ARGUMENT[:80]={arg_preview!r}")
+    _svc_log(base, f"секрет загружен из хранилища приложения, за {time.monotonic()-_t0:.1f}s")
 
     log_file = None
     if base:

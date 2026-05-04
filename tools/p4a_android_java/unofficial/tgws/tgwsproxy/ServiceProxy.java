@@ -9,7 +9,7 @@ public class ServiceProxy extends PythonService {
 
     @Override
     public int startType() {
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override

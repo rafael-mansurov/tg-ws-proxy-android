@@ -9,3 +9,4 @@ SWIFTBAR.md
 .secrets/
 .ci/
 .claude/
+tgws_supabase_public.json

@@ -11,6 +11,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
 import android.widget.Toast;
 
 import androidx.core.app.ShareCompat;
@@ -35,6 +36,12 @@ import java.util.regex.Pattern;
 public final class TgwsJsBridge {
     private static final String TAG = "TgwsJsBridge";
 
+    /**
+     * Админка открыта поверх index в iframe; основной URL WebView не меняется.
+     * Без этого флага KEYCODE_BACK не закрывает админку (в истории WebView нет второй записи).
+     */
+    private static volatile boolean sAdminOverlayOpen;
+
     private static final Pattern SERVE_PORT_JSON =
             Pattern.compile("\"serve_port\"\\s*:\\s*(\\d+)");
 
@@ -48,6 +55,25 @@ public final class TgwsJsBridge {
 
     public TgwsJsBridge(Activity activity) {
         this.activity = activity;
+    }
+
+    @JavascriptInterface
+    public void setAdminOverlayOpen(boolean open) {
+        sAdminOverlayOpen = open;
+    }
+
+    /**
+     * @return true если событие «Назад» обработано (закрытие админ-оверлея в JS).
+     */
+    public static boolean tryConsumeAdminBack(WebView webView) {
+        if (!sAdminOverlayOpen || webView == null) {
+            return false;
+        }
+        webView.evaluateJavascript(
+                "(function(){ try { if (typeof window.__tgwsCloseAdmin === 'function') "
+                        + "window.__tgwsCloseAdmin(); } catch (e) {} })()",
+                null);
+        return true;
     }
 
     /** Открыть URL в системном браузере, не уводя WebView со страницы приложения. */

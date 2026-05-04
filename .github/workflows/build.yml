@@ -81,6 +81,23 @@ jobs:
           restore-keys: |
             buildozer-${{ hashFiles('tools/p4a_android_java/**', 'tools/p4a_python_activity/**', 'tools/p4a_hook.py', 'tools/p4a_android_res/**') }}-v10-
 
+      - name: Подготовка публичного конфига Supabase
+        env:
+          TGWS_SUPABASE_URL: ${{ secrets.TGWS_SUPABASE_URL }}
+          TGWS_SUPABASE_ANON_KEY: ${{ secrets.TGWS_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TGWS_SUPABASE_URL}" ] || [ -z "${TGWS_SUPABASE_ANON_KEY}" ]; then
+            echo "::error::Missing TGWS_SUPABASE_URL or TGWS_SUPABASE_ANON_KEY secrets."
+            exit 1
+          fi
+          cat > tgws_supabase_public.json <<EOF
+          {
+            "url": "${TGWS_SUPABASE_URL}",
+            "anon": "${TGWS_SUPABASE_ANON_KEY}"
+          }
+          EOF
+
       - name: Build APK (kivy/buildozer docker)
         env:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}

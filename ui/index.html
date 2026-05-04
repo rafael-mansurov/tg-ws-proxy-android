@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<!--TGWS_SUPABASE_INJECT-->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>TG WS Proxy</title>
-  <link rel="preconnect" href="https://fahpfsterakqentqqazz.supabase.co">
-  <link rel="dns-prefetch" href="https://fahpfsterakqentqqazz.supabase.co">
   <script src="/supabase.min.js"></script>
   <style>
 
@@ -219,7 +218,127 @@
       box-shadow: 0 0 12px rgba(0,255,200,0.9), 0 0 24px rgba(0,255,200,0.4);
       animation: pulse 2s ease-in-out infinite;
     }
+    @media (prefers-reduced-motion: reduce) {
+      .status.on .dot { animation: none !important; }
+    }
+    body.doc-hidden .status.on .dot {
+      animation: none !important;
+    }
     @keyframes pulse { 0%,100%{opacity:1; filter: brightness(1);} 50%{opacity:0.65; filter: brightness(0.85);} }
+
+    /* ── Ошибка сети / баннеры (классы вместо длинных inline-style) ── */
+    #offline-banner {
+      display: none;
+      margin-bottom: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(180, 60, 60, 0.12);
+      border: 1px solid rgba(255, 120, 100, 0.35);
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 200, 190, 0.95);
+      line-height: 1.45;
+      text-align: center;
+    }
+    .banner-stack {
+      border-radius: 22px;
+      padding: 16px;
+      margin-bottom: 8px;
+    }
+    .battery-banner-main {
+      display: none;
+      background: linear-gradient(165deg, rgba(60,25,15,0.9) 0%, rgba(25,12,8,0.95) 100%);
+      border: 1px solid rgba(255,120,60,0.35);
+      box-shadow: 0 0 40px rgba(255,80,40,0.12), inset 0 1px 0 rgba(255,200,150,0.08);
+    }
+    .battery-banner-main .banner-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+      text-shadow: 0 0 20px rgba(255,140,80,0.4);
+    }
+    .battery-banner-main .banner-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255,220,200,0.75);
+      margin-bottom: 12px;
+      line-height: 1.45;
+    }
+    .battery-banner-main .banner-cta {
+      width: 100%;
+      background: linear-gradient(180deg, #ff6b35 0%, #c41e1e 100%);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 0 28px rgba(255,80,60,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .update-banner-main {
+      display: none;
+      margin-bottom: 8px;
+      background: linear-gradient(165deg, rgba(10,40,80,0.92) 0%, rgba(5,25,55,0.96) 100%);
+      border: 1px solid rgba(34,158,217,0.40);
+      box-shadow: 0 0 40px rgba(34,158,217,0.10), inset 0 1px 0 rgba(100,200,255,0.08);
+    }
+    .update-banner-main .update-banner-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .update-banner-main .update-banner-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(34,158,217,0.5);
+    }
+    .update-banner-main .update-banner-dismiss {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.4);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    .update-banner-main .update-banner-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(160,210,255,0.72);
+      margin: 6px 0 12px;
+      line-height: 1.45;
+    }
+    .update-banner-main .update-banner-link {
+      display: block;
+      text-align: center;
+      background: linear-gradient(180deg, #229ed9 0%, #1565c0 100%);
+      color: #fff;
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 0 28px rgba(34,158,217,0.40), inset 0 1px 0 rgba(255,255,255,0.20);
+    }
+
+    .perm-info-card {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.52);
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+    .perm-info-card strong { color: rgba(255,255,255,0.72); font-weight: 700; }
     .status-texts { display: flex; flex-direction: column; gap: 4px; }
     .status-title { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; transition: color 0.3s; }
     .status.off .status-title { color: rgba(255,255,255,0.92); }
@@ -1261,6 +1380,22 @@
       opacity: 0.9;
       background: rgba(255, 255, 255, 0.09);
     }
+
+    /* Админка в iframe: главный index не перезагружается при «Назад» */
+    #admin-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 120000;
+      background: #0a0a0c;
+    }
+    #admin-overlay.is-open { display: block; }
+    #admin-overlay iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -1300,19 +1435,21 @@
         <div class="starting-sub">Сервис поднимается — это не зависание. Обычно 10–30 секунд, не закрывайте приложение.</div>
       </div>
     </div>
-    <div id="battery-banner" style="display:none;background:linear-gradient(165deg,rgba(60,25,15,0.9) 0%,rgba(25,12,8,0.95) 100%);border:1px solid rgba(255,120,60,0.35);border-radius:22px;padding:16px 16px;margin-bottom:8px;box-shadow:0 0 40px rgba(255,80,40,0.12),inset 0 1px 0 rgba(255,200,150,0.08)">
-      <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;text-shadow:0 0 20px rgba(255,140,80,0.4)">⚠ Оптимизация батареи включена</div>
-      <div style="font-size:12px;font-weight:500;color:rgba(255,220,200,0.75);margin-bottom:12px;line-height:1.45">Прокси будет останавливаться когда вы закрываете приложение. Отключите оптимизацию батареи, чтобы сервис работал в фоне.</div>
-      <button onclick="openBatterySettings()" style="width:100%;background:linear-gradient(180deg,#ff6b35 0%,#c41e1e 100%);color:#fff;border:none;border-radius:16px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 0 28px rgba(255,80,60,0.45),inset 0 1px 0 rgba(255,255,255,0.25)">Отключить оптимизацию →</button>
+    <div id="offline-banner" role="status">Нет подключения к интернету — проверьте Wi‑Fi или мобильную сеть.</div>
+
+    <div id="battery-banner" class="banner-stack battery-banner-main">
+      <div class="banner-title">⚠ Оптимизация батареи включена</div>
+      <div class="banner-text">Прокси будет останавливаться когда вы закрываете приложение. Отключите оптимизацию батареи, чтобы сервис работал в фоне.</div>
+      <button type="button" class="banner-cta" onclick="openBatterySettings()">Отключить оптимизацию →</button>
     </div>
 
-    <div id="update-banner" style="display:none;background:linear-gradient(165deg,rgba(10,40,80,0.92) 0%,rgba(5,25,55,0.96) 100%);border:1px solid rgba(34,158,217,0.40);border-radius:22px;padding:16px 16px;box-shadow:0 0 40px rgba(34,158,217,0.10),inset 0 1px 0 rgba(100,200,255,0.08)">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-        <div style="font-size:14px;font-weight:700;color:#fff;text-shadow:0 0 20px rgba(34,158,217,0.5)">Доступно обновление <span id="update-version-label" style="color:#4fc3f7"></span></div>
-        <button onclick="dismissUpdate()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;line-height:1;cursor:pointer;padding:0;flex-shrink:0" aria-label="Закрыть">✕</button>
+    <div id="update-banner" class="banner-stack update-banner-main">
+      <div class="update-banner-head">
+        <div class="update-banner-title">Доступно обновление <span id="update-version-label" style="color:#4fc3f7"></span></div>
+        <button type="button" class="update-banner-dismiss" onclick="dismissUpdate()" aria-label="Закрыть">✕</button>
       </div>
-      <div style="font-size:12px;font-weight:500;color:rgba(160,210,255,0.72);margin:6px 0 12px;line-height:1.45">Скачайте новый&nbsp;APK и установите поверх текущей версии.</div>
-      <a id="update-download-link" href="#" target="_blank" style="display:block;text-align:center;background:linear-gradient(180deg,#229ed9 0%,#1565c0 100%);color:#fff;border:none;border-radius:16px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 0 28px rgba(34,158,217,0.40),inset 0 1px 0 rgba(255,255,255,0.20)">Скачать&nbsp;APK →</a>
+      <div class="update-banner-text">Скачайте новый&nbsp;APK и установите поверх текущей версии.</div>
+      <a id="update-download-link" class="update-banner-link" href="#" target="_blank">Скачать&nbsp;APK →</a>
     </div>
 
     <div class="status off" id="status">
@@ -1387,6 +1524,18 @@
         </div>
       </div>
 
+      <!-- Зачем системные разрешения -->
+      <div class="sett-section">
+        <div class="sett-section-title">Разрешения и фон</div>
+        <div class="sett-card">
+          <div class="perm-info-card">
+            <strong>Уведомления</strong> — нужны, чтобы Android разрешил работу прокси как <em>foreground service</em>: постоянное уведомление показывает, что локальный сервер активен (так устроена система с Android&nbsp;8+).<br><br>
+            <strong>Исключение из оптимизации батареи</strong> — иначе система может гасить процесс в фоне и обрывать прокси.<br><br>
+            <strong>Автозапуск</strong> ниже — чтобы после перезагрузки телефона прокси снова поднимался без ручного открытия приложения (если вы это включите).
+          </div>
+        </div>
+      </div>
+
       <!-- Прокси -->
       <div class="sett-section">
         <div class="sett-section-title">Прокси</div>
@@ -1397,7 +1546,7 @@
             </div>
             <div class="sett-row-body">
               <div class="sett-row-label">Автозапуск при загрузке</div>
-              <div class="sett-row-sub">Включать прокси после перезагрузки телефона</div>
+              <div class="sett-row-sub">После перезагрузки телефона снова включать прокси (нужен автозапуск в системе, если OEM его отключает)</div>
             </div>
             <div class="sett-row-right">
               <label class="toggle-wrap" style="cursor:pointer">
@@ -1672,7 +1821,7 @@
     <div class="sett-section" id="profile-admin-section" style="display:none">
       <div class="sett-section-title">Администрирование</div>
       <div class="sett-card">
-        <div class="sett-row" onclick="window.location.href='/admin.html'" style="cursor:pointer">
+        <div class="sett-row" onclick="openAdminPanel()" style="cursor:pointer">
           <div class="sett-row-icon" style="background:rgba(255,255,255,0.06)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
@@ -2399,14 +2548,15 @@
 <script src="/lucide.min.js"></script>
 <script>
   // ── Supabase / Subscription ────────────────────────────────────────────────
-  const SUPA_URL  = 'https://fahpfsterakqentqqazz.supabase.co';
-  const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg';
+  const TGWS_CFG = window.__TGWS_SUPABASE__ || {};
+  const SUPA_URL = String(TGWS_CFG.url || '').trim();
+  const SUPA_ANON = String(TGWS_CFG.anon || '').trim();
+  const _supa = (SUPA_URL && SUPA_ANON) ? supabase.createClient(SUPA_URL, SUPA_ANON) : null;
   const LAVA_PUBLISHABLE = 'sb_publishable_AdNjeo9XjfEYwIp27WQFKw_wHTWm9h1';
   // ВАЖНО: заменить на реальный ID продукта после создания в lava.top
   const LAVA_PRODUCT_ID  = 'd64db378-a328-4b86-ba8e-0a0f4b9f4eb3';
   const LAVA_OFFER_ID    = '353bf7ea-ae02-4633-9cac-92c2d3806f21';
 
-  const _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
   let _subProfile   = null;   // текущий профиль из БД
   let _authMode     = 'login'; // 'register' | 'login'
   let _subStatus    = null;   // 'trial' | 'active' | 'expired'
@@ -2476,6 +2626,57 @@
     });
   }
 
+  function _tgwsHideAdminOverlay() {
+    const ov = document.getElementById('admin-overlay');
+    const fr = document.getElementById('admin-frame');
+    if (ov) {
+      ov.classList.remove('is-open');
+      ov.setAttribute('aria-hidden', 'true');
+    }
+    if (fr) fr.src = 'about:blank';
+    try {
+      if (window.TgwsAndroid && window.TgwsAndroid.setAdminOverlayOpen) {
+        window.TgwsAndroid.setAdminOverlayOpen(false);
+      }
+    } catch (_) {}
+  }
+
+  /** Закрытие админки (iframe); вызывается из admin.html и из Android через мост */
+  function __tgwsCloseAdmin() {
+    const ov = document.getElementById('admin-overlay');
+    if (!ov || !ov.classList.contains('is-open')) return;
+    try {
+      if (history.state && history.state.tgwsAdmin === 1) {
+        history.back();
+        setTimeout(() => {
+          const o = document.getElementById('admin-overlay');
+          if (o && o.classList.contains('is-open')) _tgwsHideAdminOverlay();
+        }, 400);
+        return;
+      }
+    } catch (_) {}
+    _tgwsHideAdminOverlay();
+  }
+
+  function openAdminPanel() {
+    const ov = document.getElementById('admin-overlay');
+    const fr = document.getElementById('admin-frame');
+    if (!ov || !fr) {
+      location.href = new URL('admin.html', location.href).href;
+      return;
+    }
+    const url = new URL('admin.html', location.href).href;
+    fr.src = url;
+    ov.classList.add('is-open');
+    ov.setAttribute('aria-hidden', 'false');
+    try { history.pushState({ tgwsAdmin: 1 }, ''); } catch (_) {}
+    try {
+      if (window.TgwsAndroid && window.TgwsAndroid.setAdminOverlayOpen) {
+        window.TgwsAndroid.setAdminOverlayOpen(true);
+      }
+    } catch (_) {}
+  }
+
   // Проверить статус подписки и показать нужный экран
   function _jwtClaims(session) {
     try {
@@ -2485,6 +2686,11 @@
   }
 
   async function checkSubscription() {
+    if (!_supa) {
+      _subLoaded = true;
+      _showAuth();
+      return;
+    }
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) { _subLoaded = true; _showAuth(); return; }
 
@@ -3134,22 +3340,40 @@
 
   // ── Инициализация ──────────────────────────────────────────────────────────
   async function initAuth() {
-    // Слушаем изменения сессии
-    _supa.auth.onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_OUT') {
-        _subProfile = null;
-        _subStatus  = null;
-        _subLoaded  = false;
-        _showAuth();
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // SIGNED_IN срабатывает когда сессия восстановлена после старта или логина.
-        // Без этого обработчика пользователь оставался на экране входа если getSession()
-        // вернул null до того как SDK восстановил сессию из localStorage.
-        checkSubscription().catch(() => {});
-      }
+    if (!_supa) {
+      _subLoaded = true;
+      _appAlert('Не заданы параметры Supabase. Для сборки добавьте файл tgws_supabase_public.json (см. пример в репозитории) или переменные TGWS_SUPABASE_URL и TGWS_SUPABASE_ANON_KEY.');
+      _showAuth();
+      return;
+    }
+    // Первый колбэк onAuthStateChange (INITIAL_SESSION / и др.) приходит после чтения
+    // сессии из хранилища. Раньше checkSubscription() вызывался сразу — getSession()
+    // успевал вернуть null → на секунду экран входа и пропадали плашки подписки
+    // (типично после возврата с admin.html с полной перезагрузкой index).
+    let _authHydrated = false;
+    const _whenAuthHydrated = new Promise((resolve) => {
+      _supa.auth.onAuthStateChange(async (event, _session) => {
+        if (!_authHydrated) {
+          _authHydrated = true;
+          resolve();
+        }
+        if (event === 'SIGNED_OUT') {
+          _subProfile = null;
+          _subStatus  = null;
+          _subLoaded  = false;
+          _showAuth();
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // SIGNED_IN — логин; TOKEN_REFRESHED — продление токена.
+          checkSubscription().catch(() => {});
+        }
+      });
     });
 
-    // Проверяем deep link и подписку параллельно
+    await Promise.race([
+      _whenAuthHydrated,
+      new Promise((r) => setTimeout(r, 2500)),
+    ]);
+
     await _checkDeepLink();
     if (_authMode === 'reset') return;
 
@@ -3246,12 +3470,52 @@
   let restartIntervalSeconds = 3600;
   let uiBusy = false;
   let _pollBusy = false;
+  let _startPhaseTimer = null;
+
+  const STARTING_SUB_DEFAULT =
+    'Сервис поднимается — это не зависание. Обычно 10–30 секунд, не закрывайте приложение.';
+
+  function syncOfflineBanner() {
+    const el = document.getElementById('offline-banner');
+    if (!el) return;
+    const off = typeof navigator !== 'undefined' && navigator.onLine === false;
+    el.style.display = off ? 'block' : 'none';
+  }
+  window.addEventListener('online', syncOfflineBanner);
+  window.addEventListener('offline', syncOfflineBanner);
+
+  function clearStartPhaseTimer() {
+    if (_startPhaseTimer) {
+      clearInterval(_startPhaseTimer);
+      _startPhaseTimer = null;
+    }
+  }
+
+  function bumpStartingPhase(step) {
+    const sub = document.querySelector('.starting-sub');
+    const phases = [
+      'Останавливаем предыдущий процесс…',
+      'Запуск системного сервиса…',
+      'Ожидание порта прокси…',
+      'Подключение Telegram будет доступно после готовности…',
+    ];
+    if (sub) sub.textContent = phases[Math.min(step, phases.length - 1)];
+  }
 
   // fetch с таймаутом для локального Python-бэкенда
   function _localFetch(url, options = {}, timeoutMs = 5000) {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      syncOfflineBanner();
+      return Promise.reject(new DOMException('offline', 'NetworkError'));
+    }
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(t));
+    return fetch(url, { ...options, signal: ctrl.signal })
+      .catch((e) => {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) syncOfflineBanner();
+        throw e;
+      })
+      .finally(() => clearTimeout(t));
   }
   let currentPage = 'main';
   const HEADER_TITLE_MAIN = 'TG WS Proxy';
@@ -3768,6 +4032,8 @@
     if (gear && currentPage === 'main') gear.disabled = on;
     const panel = document.getElementById('starting-panel');
     if (panel) panel.classList.toggle('is-on', on);
+    const subStart = document.querySelector('.starting-sub');
+    if (subStart && !on) subStart.textContent = STARTING_SUB_DEFAULT;
     const hsub = document.getElementById('header-sub');
     if (hsub) {
       if (on) hsub.textContent = 'Запуск прокси…';
@@ -3832,7 +4098,10 @@
     const sv = document.getElementById('secret-val');
     sv.textContent = running && secret ? secret : '––––––––––––––––';
     sv.classList.toggle('dim', !running);
-    document.getElementById('tg-btn').className = 'btn ' + (running ? 'on' : 'off');
+    const tgBtn = document.getElementById('tg-btn');
+    tgBtn.className = 'btn ' + (running ? 'on' : 'off');
+    tgBtn.disabled = !running;
+    tgBtn.setAttribute('aria-disabled', running ? 'false' : 'true');
 
     // Подсказка: прокси работает, но Telegram ещё не подключался (нет сессий с трафиком)
     const hintEl = document.getElementById('no-traffic-hint');
@@ -4093,7 +4362,16 @@
     if (!running && _subStatus === 'expired') { _showPaywall(); return; }
     const endpoint = running ? '/api/stop' : '/api/start';
     const turningOn = !running;
-    if (turningOn) setStartBusy(true);
+    if (turningOn) {
+      setStartBusy(true);
+      clearStartPhaseTimer();
+      let step = 0;
+      bumpStartingPhase(0);
+      _startPhaseTimer = setInterval(() => {
+        step += 1;
+        bumpStartingPhase(step);
+      }, 2800);
+    }
     try {
       const r = await _localFetch(endpoint, { method: 'POST' }, 70000);
       let d = {};
@@ -4114,8 +4392,13 @@
     } catch (e) {
       console.error(e);
       if (turningOn) updateUI(false, null, null, null, 0, 0);
-      _appAlert('Сервис не отвечает. Попробуйте перезапустить приложение.');
+      const msg = (e && e.name === 'NetworkError') || (e && String(e.message || '').toLowerCase().includes('offline'))
+        ? 'Нет подключения к интернету — проверьте сеть.'
+        : 'Сервис не отвечает. Попробуйте перезапустить приложение.';
+      _appAlert(msg);
+      syncOfflineBanner();
     } finally {
+      clearStartPhaseTimer();
       if (turningOn) setStartBusy(false);
     }
   }
@@ -4199,6 +4482,8 @@
 
   function openTelegram() {
     if (!running || !secret) return;
+    const tgBtn = document.getElementById('tg-btn');
+    if (tgBtn && tgBtn.disabled) return;
     window.location.href = proxyUrl();
   }
 
@@ -5064,6 +5349,7 @@
   // (пользователь нажал ссылку из письма пока приложение уже было открыто)
   let _visibilityCheckTs = 0;
   document.addEventListener('visibilitychange', async () => {
+    document.body.classList.toggle('doc-hidden', document.visibilityState === 'hidden');
     if (document.visibilityState !== 'visible') return;
     if (_authMode === 'reset') return; // уже на форме нового пароля
     await _checkDeepLink();
@@ -5076,7 +5362,14 @@
     }
   });
 
+  window.addEventListener('popstate', () => {
+    const ov = document.getElementById('admin-overlay');
+    if (ov && ov.classList.contains('is-open')) _tgwsHideAdminOverlay();
+  });
+
   initHeaderIcon();
+  syncOfflineBanner();
+  document.body.classList.toggle('doc-hidden', document.hidden);
   initAuth().then(() => {
     setTimeout(checkForUpdate, 4000); // показывать всем, независимо от подписки
     if (_subStatus === 'expired') return; // paywall уже показан
@@ -5117,6 +5410,10 @@
     <span class="tab-label">Настройки</span>
   </button>
 </nav>
+
+<div id="admin-overlay" class="admin-overlay" aria-hidden="true">
+  <iframe id="admin-frame" title="Админка" src="about:blank"></iframe>
+</div>
 
 </body>
 </html>

@@ -18,6 +18,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional, Tuple
 
+from app_log import append_plain_timestamp_line
+
 HOST_PROXY = "127.0.0.1"
 PORT_PROXY = 1443
 LOG_FILENAME = "tgws_proxy.log"
@@ -180,6 +182,7 @@ SERVE_PORT = int(os.environ.get("APP_SERVING_PORT", 8080))
 
 UI_FILE = Path(__file__).parent / "ui" / "index.html"
 ADMIN_FILE = Path(__file__).parent / "ui" / "admin.html"
+SUPABASE_PUBLIC_JSON = Path(__file__).resolve().parent / "tgws_supabase_public.json"
 ROUNDED_QR_FILE = Path(__file__).parent / "ui" / "rounded-qr.js"
 SUPABASE_JS_FILE = Path(__file__).parent / "ui" / "supabase.min.js"
 QRCODE_JS_FILE = Path(__file__).parent / "ui" / "qrcode.min.js"
@@ -302,12 +305,44 @@ def _load_persisted_secret() -> Optional[str]:
 
 
 def _save_secret(hex32: str) -> None:
+    """Persist proxy secret in app-internal storage (MODE_PRIVATE on Android)."""
     p = _secret_storage_path()
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(hex32, encoding="utf-8")
     except OSError:
         pass
+
+
+def _public_supabase_config() -> Tuple[str, str]:
+    """Public Supabase URL + anon key for admin WebView — never commit real keys in HTML."""
+    url = os.environ.get("TGWS_SUPABASE_URL", "").strip()
+    anon = os.environ.get("TGWS_SUPABASE_ANON_KEY", "").strip()
+    if url and anon:
+        return url, anon
+    try:
+        raw = json.loads(SUPABASE_PUBLIC_JSON.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            u = str(raw.get("url", "")).strip()
+            a = str(raw.get("anon", "")).strip()
+            if u and a:
+                return u, a
+    except Exception:
+        pass
+    return "", ""
+
+
+def _inject_supabase_public(html: bytes) -> bytes:
+    url, anon = _public_supabase_config()
+    payload = json.dumps({"url": url, "anon": anon}, ensure_ascii=False)
+    inject = f"<script>window.__TGWS_SUPABASE__={payload};</script>\n".encode("utf-8")
+    needle = b"<!--TGWS_SUPABASE_INJECT-->"
+    if needle in html:
+        return html.replace(needle, inject, 1)
+    ins = b"<head>"
+    if ins in html:
+        return html.replace(ins, ins + b"\n" + inject, 1)
+    return inject + html
 
 
 def _ensure_secret() -> str:
@@ -399,6 +434,7 @@ def _webview_open_tg_and_https_externally() -> None:
 # ── service control ──────────────────────────────────────────────────────────
 
 def _request_permissions() -> None:
+    """Запрос POST_NOTIFICATIONS: нужен для постоянного уведомления foreground-service (Android 13+)."""
     try:
         from android.permissions import Permission, check_permission, request_permissions
         if not check_permission(Permission.POST_NOTIFICATIONS):
@@ -496,29 +532,16 @@ def _proxy_log_path() -> Path:
 
 def _write_start_log(message: str, reset: bool = False, level: str = "INFO") -> None:
     p = _proxy_log_path()
-    try:
-        p.parent.mkdir(parents=True, exist_ok=True)
-        mode = "w" if reset else "a"
-        raw = (level or "INFO").strip().upper()
-        if raw.startswith("WARN"):
-            col = "WARN"
-        elif raw.startswith("ERR"):
-            col = "ERR"
-        else:
-            col = "INFO"
-        col = f"{col:<5}"
-        with p.open(mode, encoding="utf-8") as f:
-            f.write(time.strftime("%H:%M:%S"))
-            f.write(f"  {col} ")
-            f.write(message)
-            f.write("\n")
-            f.flush()
-            try:
-                os.fsync(f.fileno())
-            except OSError:
-                pass
-    except OSError:
-        pass
+    raw = (level or "INFO").strip().upper()
+    if raw.startswith("WARN"):
+        col = "WARN"
+    elif raw.startswith("ERR"):
+        col = "ERR"
+    else:
+        col = "INFO"
+    col = f"{col:<5}"
+    body = f"  {col} {message}\n"
+    append_plain_timestamp_line(p, body, reset=reset)
 
 
 def _wait_proxy_stopped(timeout_s: float = 6.0) -> bool:
@@ -708,19 +731,16 @@ def _clear_proxy_ready_notification() -> None:
 def _start_service() -> Tuple[bool, Optional[str]]:
     """Start foreground service from a clean state."""
     global _running
-    import json as _json
     from jnius import autoclass
 
     if len(SECRET) != 32:
         _write_start_log("UI: секрет не 32 hex — старт невозможен", level="ERR")
         return False, "Секрет не готов. Закройте приложение и откройте снова."
 
-    link_host = _proxy_link_host()
-
-    # Сервис читает этот же файл, если PYTHON_SERVICE_ARGUMENT не доехал (типичная проблема p4a).
+    # Сервис читает секрет только из этого файла (не передаём секрет в Intent / PYTHON_SERVICE_ARGUMENT).
     _save_secret(SECRET)
     _write_start_log(
-        f"UI: новая попытка старта, link_host={link_host}, secret_len={len(SECRET)}",
+        "UI: новая попытка старта прокси (секрет записан во внутреннее хранилище приложения)",
         reset=True,
     )
 
@@ -740,14 +760,13 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     if not _wait_proxy_stopped():
         if _probe_proxy_port_open():
             _running = True
-            _write_start_log(f"UI: порт уже слушает — прокси был запущен ({link_host}:{PORT_PROXY})")
+            _write_start_log("UI: порт уже слушает — прокси был запущен ранее")
             return True, None
         _write_start_log("UI: старый инстанс не остановился и порт не открыт", level="WARN")
         return False, "Не удалось остановить прошлый инстанс прокси. Попробуйте ещё раз."
 
     started = False
-    fg_text = f"Прокси {link_host}:{PORT_PROXY} · нажми, чтобы открыть приложение"
-    payload = _json.dumps({"secret": SECRET})
+    fg_text = "TG WS Proxy · сервис активен · нажмите, чтобы открыть приложение"
     try:
         # Используем только системные классы (Intent, ComponentName, Build) —
         # app-классы (ServiceLauncher) недоступны из HTTP-handler потока
@@ -759,7 +778,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         sdk = int(BuildVersion.SDK_INT)
         private_dir = activity.getFilesDir().getAbsolutePath()
         argument = private_dir + "/app"
-        _write_start_log(f"UI: pkg={pkg}, API={sdk}, private_dir={private_dir}")
+        _write_start_log(f"UI: pkg={pkg}, API={sdk}")
         intent = Intent()
         intent.setComponent(ComponentName(pkg, pkg + ".ServiceProxy"))
         intent.putExtra("androidPrivate", private_dir)
@@ -770,7 +789,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         intent.putExtra("serviceStartAsForeground", "true")
         intent.putExtra("pythonHome", argument)
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib")
-        intent.putExtra("pythonServiceArgument", payload)
+        intent.putExtra("pythonServiceArgument", "{}")
         intent.putExtra("smallIconName", "")
         intent.putExtra("contentTitle", "TG WS Proxy")
         intent.putExtra("contentText", fg_text)
@@ -799,7 +818,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         except Exception:
             pass
         _write_start_log(
-            f"UI: прокси не поднялся на {link_host}:{PORT_PROXY} за отведённое время",
+            "UI: прокси не поднялся за отведённое время ожидания",
             level="WARN",
         )
         return False, "Прокси не поднялся за 60 с. Попробуйте ещё раз или перезапустите приложение."
@@ -810,7 +829,7 @@ def _start_service() -> Tuple[bool, Optional[str]]:
     time.sleep(1.2)
     _running = True
     _notify_proxy_ready()
-    _write_start_log(f"UI: готово — Telegram: {link_host}:{PORT_PROXY}")
+    _write_start_log("UI: готово — прокси слушает локальный порт (данные для Telegram на экране приложения)")
     return True, None
 
 
@@ -1035,7 +1054,7 @@ class Handler(BaseHTTPRequestHandler):
         global _running
         if self.path in ("/", "/index.html"):
             try:
-                html = UI_FILE.read_bytes()
+                html = _inject_supabase_public(UI_FILE.read_bytes())
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(html)))
@@ -1046,7 +1065,7 @@ class Handler(BaseHTTPRequestHandler):
 
         elif self.path == "/admin.html":
             try:
-                html = ADMIN_FILE.read_bytes()
+                html = _inject_supabase_public(ADMIN_FILE.read_bytes())
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(html)))

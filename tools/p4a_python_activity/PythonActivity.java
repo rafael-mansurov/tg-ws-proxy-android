@@ -303,6 +303,9 @@ public class PythonActivity extends Activity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (TgwsJsBridge.tryConsumeAdminBack(mWebView)) {
+                return true;
+            }
             WebBackForwardList webViewBackForwardList = mWebView.copyBackForwardList();
             if (webViewBackForwardList.getCurrentIndex() > 1) {
                 mWebView.goBack();

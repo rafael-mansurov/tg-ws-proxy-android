@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<!--TGWS_SUPABASE_INJECT-->
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Admin · TG WS Proxy</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/supabase.min.js"></script>
+  <script src="/lucide.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -16,6 +17,8 @@
       background: #0a0a0c;
       color: #e8e8ec;
       min-height: 100vh;
+      padding-left: env(safe-area-inset-left, 0);
+      padding-right: env(safe-area-inset-right, 0);
       -webkit-font-smoothing: antialiased;
     }
 
@@ -153,13 +156,6 @@
       color-scheme: dark;
     }
     .filter-select:focus { border-color: rgba(34,158,217,0.4); }
-    .search-input {
-      padding: 8px 14px; border-radius: 10px; border: 1px solid #1c1c21;
-      background: #111115; color: #fff; font-size: 13px; font-family: inherit;
-      outline: none; width: 220px;
-    }
-    .search-input::placeholder { color: rgba(255,255,255,0.25); }
-    .search-input:focus { border-color: rgba(34,158,217,0.4); }
     .refresh-btn {
       margin-left: auto; padding: 7px 16px; border-radius: 10px;
       border: 1px solid #1c1c21;
@@ -173,6 +169,24 @@
       background: #111115; border: 1px solid #1c1c21;
       border-radius: 16px; padding: 14px 16px;
       display: flex; flex-direction: column; gap: 10px;
+    }
+    .user-card-skeleton {
+      pointer-events: none;
+      opacity: 0.9;
+      min-height: 72px;
+    }
+    .user-card-skeleton .sk-line {
+      height: 14px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.11) 40%, rgba(255,255,255,0.06) 65%);
+      background-size: 420% 100%;
+      animation: sk-shimmer 1.15s ease-in-out infinite;
+    }
+    .user-card-skeleton .sk-line-lg { width: 74%; margin-bottom: 10px; }
+    .user-card-skeleton .sk-line-sm { width: 42%; height: 11px; }
+    @keyframes sk-shimmer {
+      0% { background-position: 100% 0; }
+      100% { background-position: 0 0; }
     }
     .user-card-top {
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -468,7 +482,6 @@
       .topbar { padding: 12px 16px; }
       th:nth-child(3), td:nth-child(3),
       th:nth-child(4), td:nth-child(4) { display: none; }
-      .search-input { width: 140px; }
     }
   </style>
 </head>
@@ -485,7 +498,7 @@
   <div class="topbar">
     <div class="topbar-title"><i data-lucide="shield-check"></i> Admin · TG WS Proxy</div>
     <div class="topbar-user" id="adm-user-email"></div>
-    <a class="topbar-back" href="/"><i data-lucide="arrow-left"></i> Назад</a>
+    <a class="topbar-back" href="#" onclick="adminGoIndex(); return false;"><i data-lucide="arrow-left"></i> Назад</a>
   </div>
   <div class="main">
 
@@ -643,12 +656,14 @@
     <div id="setpw-email" style="font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:16px;"></div>
     <div class="modal-label">Новый пароль</div>
     <div style="position:relative;margin-bottom:6px;">
-      <input class="modal-input" id="setpw-input" type="password" placeholder="Минимум 6 символов" style="margin-bottom:0;padding-right:42px;" />
+      <input class="modal-input" id="setpw-input" type="password" placeholder="Минимум 6 символов" style="margin-bottom:0;padding-right:42px;" autocomplete="new-password" />
       <button type="button" onclick="toggleSetPw()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0;color:rgba(255,255,255,0.4);">
         <i data-lucide="eye" id="setpw-icon-eye"></i>
         <i data-lucide="eye-off" id="setpw-icon-eyeoff" style="display:none"></i>
       </button>
     </div>
+    <div class="modal-label">Повторите пароль</div>
+    <input class="modal-input" id="setpw-input2" type="password" placeholder="Ещё раз" autocomplete="new-password" />
     <div id="setpw-error" style="font-size:12px;color:#ff6b50;min-height:18px;margin-bottom:14px;"></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeSetPwModal()">Отмена</button>
@@ -701,10 +716,22 @@
 </div>
 
 <script>
-  const SUPA_URL  = 'https://fahpfsterakqentqqazz.supabase.co';
-  const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg';
+  const TGWS_CFG = window.__TGWS_SUPABASE__ || {};
+  const SUPA_URL = String(TGWS_CFG.url || '').trim();
+  const SUPA_ANON = String(TGWS_CFG.anon || '').trim();
+  const _supa = (SUPA_URL && SUPA_ANON) ? supabase.createClient(SUPA_URL, SUPA_ANON) : null;
 
-  const _supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+  function adminGoIndex() {
+    if (window.parent && window.parent !== window && typeof window.parent.__tgwsCloseAdmin === 'function') {
+      window.parent.__tgwsCloseAdmin();
+      return;
+    }
+    if (window.history.length > 1) {
+      try { history.back(); return; } catch (_) {}
+    }
+    location.href = new URL('index.html', location.href).href;
+  }
+
   // ── Константы ─────────────────────────────────────────────────────────────
   const TRIAL_DAYS       = 7;
   const MRR_PRICE_YEARLY = 108;   // ₽/мес при годовом тарифе
@@ -752,15 +779,31 @@
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   async function adminLogout() {
-    await _supa.auth.signOut();
-    location.replace('http://127.0.0.1:8080/index.html');
+    if (_supa) await _supa.auth.signOut();
+    if (window.parent && window.parent !== window && typeof window.parent.__tgwsCloseAdmin === 'function') {
+      window.parent.__tgwsCloseAdmin();
+      if (typeof window.parent.checkSubscription === 'function') {
+        window.parent.checkSubscription().catch(() => {});
+      }
+      return;
+    }
+    location.replace(new URL('index.html', location.href).href);
   }
 
   // ── Load users ────────────────────────────────────────────────────────────
 
+  function renderUsersSkeleton(n = 6) {
+    const tbody = document.getElementById('users-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = Array.from({ length: n }, () =>
+      `<div class="user-card user-card-skeleton" aria-hidden="true"><div class="sk-line sk-line-lg"></div><div class="sk-line sk-line-sm"></div></div>`
+    ).join('');
+  }
+
   async function loadUsers() {
-    document.getElementById('table-loading').style.display = 'block';
-    document.getElementById('users-tbody').innerHTML = '';
+    if (!_supa) return;
+    document.getElementById('table-loading').style.display = 'none';
+    renderUsersSkeleton(7);
     document.getElementById('table-empty').style.display = 'none';
     const _usersRefBtn = document.getElementById('users-refresh-btn');
     if (_usersRefBtn) _usersRefBtn.style.display = 'none';
@@ -775,7 +818,15 @@
     });
     if (!resp.ok) {
       if (resp.status === 401 || resp.status === 403) {
-        location.replace('http://127.0.0.1:8080/index.html'); return;
+        if (window.parent && window.parent !== window && typeof window.parent.__tgwsCloseAdmin === 'function') {
+          window.parent.__tgwsCloseAdmin();
+          if (typeof window.parent.checkSubscription === 'function') {
+            window.parent.checkSubscription().catch(() => {});
+          }
+          return;
+        }
+        location.replace(new URL('index.html', location.href).href);
+        return;
       }
       const txt = await resp.text();
       let msg = txt;
@@ -890,7 +941,6 @@
   }
 
   function renderTable() {
-    const search = (document.getElementById('search-input')?.value || '').toLowerCase();
     let users = _allUsers;
 
     // Архивные (получили письмо) — скрыты из основного списка
@@ -898,9 +948,6 @@
 
     if (_currentFilter !== 'all') {
       users = users.filter(u => u._computed_status === _currentFilter);
-    }
-    if (search) {
-      users = users.filter(u => (u.email || '').toLowerCase().includes(search));
     }
 
     const tbody = document.getElementById('users-tbody');
@@ -1017,33 +1064,6 @@
     return false;
   }
 
-  async function _adminAction(body) {
-    if (_actionInProgress) return false;
-    _lockActions();
-    try {
-      const { data: { session } } = await _supa.auth.getSession();
-      const resp = await fetch('https://fahpfsterakqentqqazz.supabase.co/functions/v1/admin-action', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + session.access_token,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhaHBmc3RlcmFrcWVudHFxYXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTczMDksImV4cCI6MjA5MTYzMzMwOX0.59IqmwQqcBul7BtBHUDurxa0EU_6EuhUlcin8RV2yvg',
-        },
-        body: JSON.stringify(body),
-      });
-      const text = await resp.text();
-      if (!resp.ok) {
-        let msg = text;
-        try { const j = JSON.parse(text); msg = j.error || j.message || text; } catch(_) {}
-        _toast('Ошибка: ' + msg, 'err');
-        return false;
-      }
-      return true;
-    } finally {
-      _unlockActions();
-    }
-  }
-
   async function confirmExtend() {
     const days = parseInt(document.getElementById('modal-days').value) || DEFAULT_EXTEND_DAYS;
     const ok = await _adminAction({ action: 'extend', userId: _modalUserId, days });
@@ -1073,12 +1093,16 @@
     _setpwUserId = userId;
     document.getElementById('setpw-email').textContent = email;
     document.getElementById('setpw-input').value = '';
+    const pw2 = document.getElementById('setpw-input2');
+    if (pw2) pw2.value = '';
     document.getElementById('setpw-error').textContent = '';
     document.getElementById('setpw-confirm-btn').disabled = false;
     document.getElementById('setpw-confirm-btn').textContent = 'Сменить';
     document.getElementById('setpw-icon-eye').style.display = '';
     document.getElementById('setpw-icon-eyeoff').style.display = 'none';
     document.getElementById('setpw-input').type = 'password';
+    const pw2 = document.getElementById('setpw-input2');
+    if (pw2) pw2.type = 'password';
     document.getElementById('setpw-modal').classList.add('open');
     lucide.createIcons();
     setTimeout(() => document.getElementById('setpw-input').focus(), 100);
@@ -1091,19 +1115,24 @@
 
   function toggleSetPw() {
     const inp  = document.getElementById('setpw-input');
+    const inp2 = document.getElementById('setpw-input2');
     const eye  = document.getElementById('setpw-icon-eye');
     const eoff = document.getElementById('setpw-icon-eyeoff');
     const show = inp.type === 'password';
-    inp.type           = show ? 'text' : 'password';
+    const t = show ? 'text' : 'password';
+    inp.type = t;
+    if (inp2) inp2.type = t;
     eye.style.display  = show ? 'none' : '';
     eoff.style.display = show ? '' : 'none';
   }
 
   async function confirmSetPassword() {
     const pw  = document.getElementById('setpw-input').value;
+    const pw2 = (document.getElementById('setpw-input2') || {}).value || '';
     const err = document.getElementById('setpw-error');
     const btn = document.getElementById('setpw-confirm-btn');
     if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
+    if (pw !== pw2) { err.textContent = 'Пароли не совпадают'; return; }
     err.textContent = '';
     btn.disabled = true;
     btn.textContent = 'Меняем…';
@@ -1143,21 +1172,6 @@
 
   function _badge(cls, txt) {
     return `<span class="${cls}">${txt}</span>`;
-  }
-
-  // Дебаунс для поиска (если search-input присутствует)
-  const _sinp = document.getElementById('search-input');
-  if (_sinp) {
-    let _sInputTouched = false;
-    _sinp.addEventListener('focus', () => { _sInputTouched = true; });
-    [0, 100, 300, 600, 1000, 2000].forEach(t =>
-      setTimeout(() => { if (!_sInputTouched) _sinp.value = ''; }, t)
-    );
-    let _searchTimer = null;
-    _sinp.addEventListener('input', () => {
-      clearTimeout(_searchTimer);
-      _searchTimer = setTimeout(renderTable, 200);
-    });
   }
 
   // Закрыть модал по клику на backdrop
@@ -1352,6 +1366,7 @@
   let _allPromos = [];
 
   async function loadPromos() {
+    if (!_supa) return;
     const _promosRefBtn = document.getElementById('promos-refresh-btn');
     if (_promosRefBtn) _promosRefBtn.style.display = 'none';
     document.getElementById('promos-loading').style.display = 'block';
@@ -1472,9 +1487,8 @@
     if (ok) { _toast(isActive ? 'Промокод отключён' : 'Промокод включён'); loadPromos(); }
   }
 
-  // Перегружаем _adminAction чтобы поддерживать возврат данных (list-promos)
-  const _adminActionOrig = _adminAction;
   async function _adminAction(body, returnData = false) {
+    if (!_supa) return false;
     if (_actionInProgress) return false;
     _lockActions();
     const ctrl = new AbortController();
@@ -1534,8 +1548,19 @@
   // Проверяем сессию — права проверяет admin-profiles (403 → редирект)
   (async () => {
     try {
+      if (!_supa) {
+        _bootError('Задайте TGWS_SUPABASE_URL и TGWS_SUPABASE_ANON_KEY (окружение) или файл tgws_supabase_public.json рядом с сервером приложения.');
+        return;
+      }
       const { data: { session } } = await _supa.auth.getSession();
-      if (!session) { location.replace('http://127.0.0.1:8080/index.html'); return; }
+      if (!session) {
+        if (window.parent && window.parent !== window && typeof window.parent.__tgwsCloseAdmin === 'function') {
+          window.parent.__tgwsCloseAdmin();
+          return;
+        }
+        location.replace(new URL('index.html', location.href).href);
+        return;
+      }
 
       _currentUserId = session.user.id;
       document.getElementById('adm-user-email').textContent = session.user.email;

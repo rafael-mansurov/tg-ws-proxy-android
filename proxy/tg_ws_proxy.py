@@ -62,6 +62,12 @@ DC_DEFAULT_IPS: Dict[int, str] = {
 }
 
 HANDSHAKE_LEN = 64
+HANDSHAKE_READ_TIMEOUT_S = 10.0
+TCP_CONNECT_TIMEOUT_S = 10.0
+WS_LINE_READ_TIMEOUT_MAX_S = 10.0
+WS_MEDIA_OPEN_TIMEOUT_S = 8.0
+READ_CHUNK_BYTES = 65536
+FRAME_LENGTH_SMALL_THRESHOLD = 65536
 SKIP_LEN = 8
 PREKEY_LEN = 32
 KEY_LEN = 32
@@ -173,7 +179,7 @@ class RawWebSocket:
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(ip, 443, ssl=_ssl_ctx,
                                     server_hostname=domain),
-            timeout=min(timeout, 10))
+            timeout=min(timeout, WS_LINE_READ_TIMEOUT_MAX_S))
         _set_sock_opts(writer.transport)
 
         ws_key = base64.b64encode(os.urandom(16)).decode()
@@ -302,14 +308,14 @@ class RawWebSocket:
         if not mask:
             if length < 126:
                 return _st_BB.pack(fb, length) + data
-            if length < 65536:
+            if length < FRAME_LENGTH_SMALL_THRESHOLD:
                 return _st_BBH.pack(fb, 126, length) + data
             return _st_BBQ.pack(fb, 127, length) + data
         mask_key = os.urandom(4)
         masked = _xor_mask(data, mask_key)
         if length < 126:
             return _st_BB4s.pack(fb, 0x80 | length, mask_key) + masked
-        if length < 65536:
+        if length < FRAME_LENGTH_SMALL_THRESHOLD:
             return _st_BBH4s.pack(fb, 0x80 | 126, length, mask_key) + masked
         return _st_BBQ4s.pack(fb, 0x80 | 127, length, mask_key) + masked
 
@@ -593,7 +599,7 @@ class _WsPool:
         for domain in domains:
             try:
                 return await RawWebSocket.connect(
-                    target_ip, domain, timeout=8)
+                    target_ip, domain, timeout=WS_MEDIA_OPEN_TIMEOUT_S)
             except WsHandshakeError as exc:
                 if exc.is_redirect:
                     continue
@@ -643,7 +649,7 @@ async def _bridge_ws_reencrypt(reader, writer, ws: RawWebSocket, label,
         nonlocal up_bytes, up_packets
         try:
             while True:
-                chunk = await reader.read(65536)
+                chunk = await reader.read(READ_CHUNK_BYTES)
                 if not chunk:
                     if splitter:
                         tail = splitter.flush()
@@ -739,7 +745,7 @@ async def _bridge_tcp_reencrypt(reader, writer, remote_reader, remote_writer,
     async def forward(src, dst_w, is_up):
         try:
             while True:
-                data = await src.read(65536)
+                data = await src.read(READ_CHUNK_BYTES)
                 if not data:
                     break
                 n = len(data)
@@ -786,7 +792,7 @@ async def _tcp_fallback(reader, writer, dst, port, relay_init, label,
                         tg_encryptor=None, tg_decryptor=None):
     try:
         rr, rw = await asyncio.wait_for(
-            asyncio.open_connection(dst, port), timeout=10)
+            asyncio.open_connection(dst, port), timeout=TCP_CONNECT_TIMEOUT_S)
     except Exception as exc:
         log.warning("[%s] TCP fallback to %s:%d failed: %s",
                     label, dst, port, exc)
@@ -818,7 +824,7 @@ async def _handle_client(reader, writer, secret: bytes, peer_label: str = "?"):
     try:
         try:
             handshake = await asyncio.wait_for(
-                reader.readexactly(HANDSHAKE_LEN), timeout=10)
+                reader.readexactly(HANDSHAKE_LEN), timeout=HANDSHAKE_READ_TIMEOUT_S)
         except asyncio.IncompleteReadError as exc:
             # Telegram делает probe-соединения (TCP connect → сразу close) перед реальным
             # подключением — это нормально, не ошибка.
@@ -831,8 +837,8 @@ async def _handle_client(reader, writer, secret: bytes, peer_label: str = "?"):
         result = _try_handshake(handshake, secret)
         if result is None:
             _stats.connections_bad += 1
-            log.warning("[%s] ✗ Неверный секрет — Telegram настроен на другой прокси. Нажмите «Открыть в Telegram» заново. first16=%s",
-                        label, handshake[:16].hex())
+            log.warning("[%s] ✗ Неверный секрет — Telegram настроен на другой прокси. Нажмите «Открыть в Telegram» заново.",
+                        label)
             try:
                 while await reader.read(4096):
                     pass
@@ -1066,20 +1072,14 @@ async def _run(stop_event: Optional[asyncio.Event] = None):
         except (OSError, AttributeError):
             pass
 
-    link_host = get_link_host(proxy_config.host)
-    tg_link = f"tg://proxy?server={link_host}&port={proxy_config.port}&secret=dd{proxy_config.secret}"
-
     log.info("=" * 60)
     log.info("  Telegram MTProto WS Bridge Proxy")
     log.info("  Listening on   %s:%d", proxy_config.host, proxy_config.port)
-    log.info("  Secret:        %s", proxy_config.secret)
+    log.info("  Secret:        (%d hex chars, redacted)", len(proxy_config.secret))
     log.info("  Target DC IPs:")
     for dc in sorted(proxy_config.dc_redirects.keys()):
         ip = proxy_config.dc_redirects.get(dc)
         log.info("    DC%d: %s", dc, ip)
-    log.info("=" * 60)
-    log.info("  Connect link:")
-    log.info("    %s", tg_link)
     log.info("=" * 60)
 
     async def log_stats():
