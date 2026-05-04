@@ -109,6 +109,18 @@ def _ensure_loopback_network_security(app: ET.Element) -> None:
     app.set(_an("networkSecurityConfig"), "@xml/network_security_config")
 
 
+def _ensure_python_service_foreground_type(app: ET.Element) -> None:
+    """API 34+: foreground service должен объявить тип (см. FOREGROUND_SERVICE_DATA_SYNC в buildozer.spec)."""
+    for svc in app.findall("service"):
+        name = svc.get(_an("name")) or ""
+        if "ServiceProxy" not in name:
+            continue
+        existing = (svc.get(_an("foregroundServiceType")) or "").strip()
+        if existing:
+            continue
+        svc.set(_an("foregroundServiceType"), "dataSync")
+
+
 def _ensure_tile_service(app: ET.Element) -> None:
     cls = "unofficial.tgws.tgwsproxy.ProxyTileService"
     if _has_component(app, "service", cls):
@@ -144,6 +156,7 @@ def _patch_manifest_components(dist: Path) -> None:
     _ensure_tile_service(app)
     _ensure_file_provider(app, root)
     _ensure_loopback_network_security(app)
+    _ensure_python_service_foreground_type(app)
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
 
 
