@@ -31,6 +31,10 @@ READY_NOTIFICATION_ID = 88302
 PREFS_NAME = "tgws_proxy_prefs"
 PREF_AUTOSTART_ON_BOOT = "autostart_on_boot"
 PREF_RESTART_INTERVAL_SECONDS = "restart_interval_seconds"
+# Синхронизируется из WebView (подписка); читают BootCompletedReceiver и QS tile.
+PREF_PROXY_ALLOWED_BY_SUBSCRIPTION = "proxy_allowed_by_subscription"
+LISTEN_WAIT_TIMEOUT_S = 120.0
+STOP_PORT_WAIT_TIMEOUT_S = 12.0
 DEFAULT_RESTART_INTERVAL_SECONDS = 3600
 
 try:
@@ -509,6 +513,40 @@ def _set_restart_interval_seconds(seconds: int) -> bool:
         return False
 
 
+def _get_subscription_proxy_allowed() -> bool:
+    """Фоновый старт (boot / tile) разрешён только если подписка trial/active."""
+    try:
+        from jnius import autoclass
+
+        Context = autoclass("android.content.Context")
+        PyAct = autoclass("org.kivy.android.PythonActivity")
+        activity = PyAct.mActivity
+        if activity is None:
+            return True
+        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        # default False: не поднимать прокси с boot/tile до первой синхронизации из WebView
+        return bool(prefs.getBoolean(PREF_PROXY_ALLOWED_BY_SUBSCRIPTION, False))
+    except Exception:
+        return True
+
+
+def _set_subscription_proxy_allowed(allowed: bool) -> bool:
+    try:
+        from jnius import autoclass
+
+        Context = autoclass("android.content.Context")
+        PyAct = autoclass("org.kivy.android.PythonActivity")
+        activity = PyAct.mActivity
+        if activity is None:
+            return False
+        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        editor = prefs.edit()
+        editor.putBoolean(PREF_PROXY_ALLOWED_BY_SUBSCRIPTION, bool(allowed))
+        return bool(editor.commit())
+    except Exception:
+        return False
+
+
 def _read_json_body(handler: BaseHTTPRequestHandler) -> dict:
     try:
         n = int(handler.headers.get("Content-Length", "0") or "0")
@@ -544,7 +582,7 @@ def _write_start_log(message: str, reset: bool = False, level: str = "INFO") -> 
     append_plain_timestamp_line(p, body, reset=reset)
 
 
-def _wait_proxy_stopped(timeout_s: float = 6.0) -> bool:
+def _wait_proxy_stopped(timeout_s: float = STOP_PORT_WAIT_TIMEOUT_S) -> bool:
     t0 = time.monotonic()
     open0 = _probe_proxy_port_open()
     _write_start_log(f"UI: ждём освобождения порта {PORT_PROXY}, сейчас занят={open0}, таймаут {timeout_s}s")
@@ -568,7 +606,7 @@ def _wait_proxy_stopped(timeout_s: float = 6.0) -> bool:
     return False
 
 
-def _wait_proxy_listen(timeout_s: float = 60.0) -> bool:
+def _wait_proxy_listen(timeout_s: float = LISTEN_WAIT_TIMEOUT_S) -> bool:
     t0 = time.monotonic()
     _write_start_log(f"UI: ждём, пока прокси начнёт слушать {HOST_PROXY}:{PORT_PROXY} (таймаут {timeout_s}s)")
     deadline = time.monotonic() + timeout_s
@@ -821,7 +859,10 @@ def _start_service() -> Tuple[bool, Optional[str]]:
             "UI: прокси не поднялся за отведённое время ожидания",
             level="WARN",
         )
-        return False, "Прокси не поднялся за 60 с. Попробуйте ещё раз или перезапустите приложение."
+        return False, (
+            f"Прокси не поднялся за {int(LISTEN_WAIT_TIMEOUT_S)} с. "
+            "Попробуйте ещё раз или перезапустите приложение."
+        )
     if _read_service_start_ts() is None:
         _write_service_start_ts_now()
     # Короткая пауза: прокси теперь обрабатывает клиентов параллельно с warmup, но первому
@@ -1166,6 +1207,9 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/autostart":
             self._send_json({"enabled": _get_autostart_enabled()})
 
+        elif self.path == "/api/subscription-gate":
+            self._send_json({"allowed": _get_subscription_proxy_allowed()})
+
         elif self.path == "/api/restart-interval":
             self._send_json({"seconds": _get_restart_interval_seconds()})
 
@@ -1245,6 +1289,17 @@ class Handler(BaseHTTPRequestHandler):
             enabled = bool(body.get("enabled", False))
             ok = _set_autostart_enabled(enabled)
             self._send_json({"ok": ok, "enabled": enabled if ok else _get_autostart_enabled()})
+
+        elif self.path == "/api/subscription-gate":
+            body = _read_json_body(self)
+            if "allowed" not in body:
+                self._send_json({"ok": False, "error": "missing_allowed"}, 400)
+                return
+            ok = _set_subscription_proxy_allowed(bool(body.get("allowed")))
+            self._send_json({
+                "ok": ok,
+                "allowed": bool(body.get("allowed")) if ok else _get_subscription_proxy_allowed(),
+            })
 
         elif self.path == "/api/restart-interval":
             body = _read_json_body(self)

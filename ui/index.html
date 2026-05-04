@@ -2703,7 +2703,12 @@
       return;
     }
     const { data: { session } } = await _supa.auth.getSession();
-    if (!session) { _subLoaded = true; _showAuth(); return; }
+    if (!session) {
+      _subLoaded = true;
+      _showAuth();
+      await _syncSubscriptionGateForBoot(false);
+      return;
+    }
 
     // JWT-клеймы используем только если они явно подтверждают активную оплаченную подписку.
     // Токен живёт до 1 часа: за это время paid_until мог быть выставлен в БД, а старый JWT
@@ -2746,10 +2751,18 @@
           })
           .select('id,email,status,trial_start,paid_until,is_admin')
           .single();
-        if (insertError || !newProfile) { _subLoaded = true; _showAuth(); return; }
+        if (insertError || !newProfile) {
+          _subLoaded = true;
+          _showAuth();
+          await _syncSubscriptionGateForBoot(false);
+          return;
+        }
         _subProfile = newProfile;
       } else if (error) {
-        _subLoaded = true; _showAuth(); return;
+        _subLoaded = true;
+        _showAuth();
+        await _syncSubscriptionGateForBoot(false);
+        return;
       } else {
         _subProfile = profile;
       }
@@ -2776,6 +2789,7 @@
       _subLoaded = true;
       _hideAllOverlays();
       _updateSubBadge();
+      await _syncSubscriptionGateForBoot(true);
       return;
     }
     if (_subProfile.status === 'expired') {
@@ -2784,6 +2798,7 @@
       _subStatus = 'expired';
       _subLoaded = true;
       _showPaywall();
+      await _syncSubscriptionGateForBoot(false);
       return;
     }
     if (now < trialEnd) {
@@ -2791,6 +2806,7 @@
       _subLoaded = true;
       _hideAllOverlays();
       _updateSubBadge();
+      await _syncSubscriptionGateForBoot(true);
       return;
     }
 
@@ -2803,6 +2819,7 @@
     _subStatus = 'expired';
     _subLoaded = true;
     _showPaywall();
+    await _syncSubscriptionGateForBoot(false);
   }
 
   // Бэдж в хедере (показывает «Триал · N дн» или «Активна»)
@@ -3294,6 +3311,7 @@
         _subStatus = 'active';
         _hideAllOverlays();
         _updateSubBadge();
+        _syncSubscriptionGateForBoot(true).catch(() => {});
       }
     }, 5000);
   }
@@ -3352,6 +3370,7 @@
       _subStatus = 'active';
       _hideAllOverlays();
       _updateSubBadge();
+      _syncSubscriptionGateForBoot(true).catch(() => {});
     } else {
       if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = 'Оплата не найдена — попробовать снова'; }
       // запускаем автополлинг если ещё не идёт
@@ -3392,6 +3411,7 @@
           _subStatus  = null;
           _subLoaded  = false;
           _showAuth();
+          _syncSubscriptionGateForBoot(false).catch(() => {});
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           // SIGNED_IN — логин; TOKEN_REFRESHED — продление токена.
           checkSubscription().catch(() => {});
@@ -3547,6 +3567,18 @@
       })
       .finally(() => clearTimeout(t));
   }
+
+  /** SharedPreferences: разрешение для автозапуска и QS-плитки (не для тумблера внутри приложения). */
+  async function _syncSubscriptionGateForBoot(allowed) {
+    try {
+      await _localFetch('/api/subscription-gate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowed: !!allowed }),
+      }, 3000);
+    } catch (_) {}
+  }
+
   let currentPage = 'main';
   const HEADER_TITLE_MAIN = 'TG WS Proxy';
   const HEADER_SUB_DEFAULT = 'MTProto · локальный';
@@ -4403,7 +4435,7 @@
       }, 2800);
     }
     try {
-      const r = await _localFetch(endpoint, { method: 'POST' }, 70000);
+      const r = await _localFetch(endpoint, { method: 'POST' }, 140000);
       let d = {};
       try {
         d = await r.json();
@@ -4583,7 +4615,7 @@
 
   // Poll status every 3s to stay in sync with the service
   async function pollStatus() {
-    if (uiBusy || _pollBusy) return;
+    if (_pollBusy) return;
     _pollBusy = true;
     try {
       const r = await _localFetch('/api/status', {}, 4000);

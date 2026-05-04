@@ -24,6 +24,8 @@ import java.util.Locale;
 public final class ProxyControl {
     public static final String PREFS_NAME = "tgws_proxy_prefs";
     public static final String PREF_AUTOSTART_ON_BOOT = "autostart_on_boot";
+    /** Записывается из WebView после проверки подписки; без этого boot/tile не стартуют прокси. */
+    public static final String PREF_PROXY_ALLOWED_BY_SUBSCRIPTION = "proxy_allowed_by_subscription";
     public static final String SECRET_FILENAME = "tgws_proxy_secret.hex";
     public static final int PROXY_PORT = 1443;
     private static final String ALERT_CHANNEL_ID = "tgws_proxy_boot_alerts";
@@ -37,6 +39,11 @@ public final class ProxyControl {
 
     public static boolean isAutostartEnabled(Context context) {
         return prefs(context).getBoolean(PREF_AUTOSTART_ON_BOOT, false);
+    }
+
+    /** Trial или активная оплата — иначе фоновый запуск (перезагрузка, плитка) отключён. */
+    public static boolean isProxyAllowedBySubscription(Context context) {
+        return prefs(context).getBoolean(PREF_PROXY_ALLOWED_BY_SUBSCRIPTION, false);
     }
 
     public static String readSecret(Context context) {
@@ -82,6 +89,9 @@ public final class ProxyControl {
     }
 
     public static boolean startProxy(Context context) {
+        if (!isProxyAllowedBySubscription(context)) {
+            return false;
+        }
         String secret = readSecret(context);
         if (secret == null) {
             return false;

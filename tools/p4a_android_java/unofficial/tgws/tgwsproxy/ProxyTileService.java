@@ -1,5 +1,6 @@
 package unofficial.tgws.tgwsproxy;
 
+import android.widget.Toast;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
@@ -33,7 +34,19 @@ public class ProxyTileService extends TileService {
         if (ProxyControl.isProxyRunning()) {
             ProxyControl.stopProxy(this);
         } else {
-            ProxyControl.startProxy(this);
+            if (!ProxyControl.isProxyAllowedBySubscription(this)) {
+                Toast.makeText(
+                    this,
+                    "Откройте приложение: нужна активная подписка или пробный период",
+                    Toast.LENGTH_LONG
+                ).show();
+            } else if (!ProxyControl.startProxy(this)) {
+                Toast.makeText(
+                    this,
+                    "Не удалось запустить прокси — откройте приложение",
+                    Toast.LENGTH_LONG
+                ).show();
+            }
         }
         refreshTile();
     }

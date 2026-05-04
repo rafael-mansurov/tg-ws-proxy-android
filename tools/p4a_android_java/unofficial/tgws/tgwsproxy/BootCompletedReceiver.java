@@ -48,6 +48,10 @@ public class BootCompletedReceiver extends BroadcastReceiver {
             return;
         }
 
+        if (!ProxyControl.isProxyAllowedBySubscription(context)) {
+            return;
+        }
+
         if (Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(action) && ProxyControl.readSecret(context) == null) {
             scheduleRetry(context, attempt, 20_000L);
             return;
