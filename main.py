@@ -859,6 +859,12 @@ def _start_service() -> Tuple[bool, Optional[str]]:
             "UI: прокси не поднялся за отведённое время ожидания",
             level="WARN",
         )
+        _write_start_log(
+            "UI: диагностика: Logcat по тегу «python service»; файл лога — tgws_proxy.log "
+            "во внутреннем хранилище приложения. После падения worker p4a мог игнорировать "
+            "повторный старт — нужна сборка с исправленным PythonService.onStartCommand.",
+            level="INFO",
+        )
         return False, (
             f"Прокси не поднялся за {int(LISTEN_WAIT_TIMEOUT_S)} с. "
             "Попробуйте ещё раз или перезапустите приложение."

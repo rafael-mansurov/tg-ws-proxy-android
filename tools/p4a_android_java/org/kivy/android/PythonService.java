@@ -60,9 +60,15 @@ public class PythonService extends Service implements Runnable {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (pythonThread != null) {
+        // Ссылка на Thread остаётся non-null даже после завершения потока — без isAlive()
+        // повторный startForegroundService игнорируется, а порт 1443 так и не слушает.
+        if (pythonThread != null && pythonThread.isAlive()) {
             Log.v("python service", "service exists, do not start again");
             return startType();
+        }
+        if (pythonThread != null) {
+            Log.w("python service", "previous python thread is dead; starting a new worker");
+            pythonThread = null;
         }
 	//intent is null if OS restarts a STICKY service
         if (intent == null) {
