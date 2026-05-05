@@ -23,25 +23,6 @@ def _has_component(app: ET.Element, tag: str, class_name: str) -> bool:
     return False
 
 
-def _ensure_boot_receiver(app: ET.Element) -> None:
-    cls = "unofficial.tgws.tgwsproxy.BootCompletedReceiver"
-    if _has_component(app, "receiver", cls):
-        return
-    receiver = ET.SubElement(
-        app,
-        "receiver",
-        {
-            _an("name"): cls,
-            _an("enabled"): "true",
-            _an("exported"): "true",
-        },
-    )
-    filt = ET.SubElement(receiver, "intent-filter")
-    ET.SubElement(filt, "action", {_an("name"): "android.intent.action.BOOT_COMPLETED"})
-    ET.SubElement(filt, "action", {_an("name"): "android.intent.action.LOCKED_BOOT_COMPLETED"})
-    ET.SubElement(filt, "action", {_an("name"): "android.intent.action.MY_PACKAGE_REPLACED"})
-
-
 def _manifest_package(manifest_root: ET.Element):
     pkg = manifest_root.get("package")
     if pkg:
@@ -155,7 +136,6 @@ def _patch_manifest_components(dist: Path) -> None:
     if app is None:
         return
     _ensure_share_queries(root)
-    _ensure_boot_receiver(app)
     _ensure_tile_service(app)
     _ensure_file_provider(app, root)
     _ensure_loopback_network_security(app)

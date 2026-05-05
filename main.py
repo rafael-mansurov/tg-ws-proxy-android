@@ -18,7 +18,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
+from urllib import request as urlrequest
+from urllib import error as urlerror
 
 from app_log import append_plain_timestamp_line
 
@@ -40,13 +42,10 @@ LOG_TAIL_LINES = 200
 LOG_MAX_AGE_SECONDS = 3600
 READY_NOTIFICATION_ID = 88302
 PREFS_NAME = "tgws_proxy_prefs"
-PREF_AUTOSTART_ON_BOOT = "autostart_on_boot"
-PREF_RESTART_INTERVAL_SECONDS = "restart_interval_seconds"
-# Синхронизируется из WebView (подписка); читают BootCompletedReceiver и QS tile.
+# Синхронизируется из WebView (подписка); читает QS tile.
 PREF_PROXY_ALLOWED_BY_SUBSCRIPTION = "proxy_allowed_by_subscription"
 LISTEN_WAIT_TIMEOUT_S = 120.0
 STOP_PORT_WAIT_TIMEOUT_S = 12.0
-DEFAULT_RESTART_INTERVAL_SECONDS = 3600
 
 _embedded_proxy_thread: Optional[threading.Thread] = None
 _embedded_proxy_stop: Optional[threading.Event] = None
@@ -461,72 +460,6 @@ def _request_permissions() -> None:
         pass
 
 
-def _get_autostart_enabled() -> bool:
-    try:
-        from jnius import autoclass
-
-        Context = autoclass("android.content.Context")
-        PyAct = autoclass("org.kivy.android.PythonActivity")
-        activity = PyAct.mActivity
-        if activity is None:
-            return False
-        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return bool(prefs.getBoolean(PREF_AUTOSTART_ON_BOOT, False))
-    except Exception:
-        return False
-
-
-def _set_autostart_enabled(enabled: bool) -> bool:
-    try:
-        from jnius import autoclass
-
-        Context = autoclass("android.content.Context")
-        PyAct = autoclass("org.kivy.android.PythonActivity")
-        activity = PyAct.mActivity
-        if activity is None:
-            return False
-        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        editor = prefs.edit()
-        editor.putBoolean(PREF_AUTOSTART_ON_BOOT, bool(enabled))
-        return bool(editor.commit())
-    except Exception:
-        return False
-
-
-def _get_restart_interval_seconds() -> int:
-    try:
-        from jnius import autoclass
-
-        Context = autoclass("android.content.Context")
-        PyAct = autoclass("org.kivy.android.PythonActivity")
-        activity = PyAct.mActivity
-        if activity is None:
-            return DEFAULT_RESTART_INTERVAL_SECONDS
-        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val = int(prefs.getInt(PREF_RESTART_INTERVAL_SECONDS, DEFAULT_RESTART_INTERVAL_SECONDS))
-        return max(0, val)
-    except Exception:
-        return DEFAULT_RESTART_INTERVAL_SECONDS
-
-
-def _set_restart_interval_seconds(seconds: int) -> bool:
-    sec = max(0, int(seconds))
-    try:
-        from jnius import autoclass
-
-        Context = autoclass("android.content.Context")
-        PyAct = autoclass("org.kivy.android.PythonActivity")
-        activity = PyAct.mActivity
-        if activity is None:
-            return False
-        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        editor = prefs.edit()
-        editor.putInt(PREF_RESTART_INTERVAL_SECONDS, sec)
-        return bool(editor.commit())
-    except Exception:
-        return False
-
-
 def _get_subscription_proxy_allowed() -> bool:
     """Фоновый старт (boot / tile) разрешён только если подписка trial/active."""
     try:
@@ -576,6 +509,46 @@ def _read_json_body(handler: BaseHTTPRequestHandler) -> dict:
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
+
+
+def _call_supabase_function(
+    name: str,
+    method: str = "GET",
+    payload: Optional[dict] = None,
+    authorization: str = "",
+    apikey: str = "",
+    timeout_s: float = 18.0,
+) -> tuple[int, bytes, str]:
+    base_url, anon = _public_supabase_config()
+    if not base_url:
+        return 503, b'{"error":"supabase_url_missing"}', "application/json; charset=utf-8"
+    target = base_url.rstrip("/") + "/functions/v1/" + name.lstrip("/")
+    body = None
+    if payload is not None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = urlrequest.Request(target, data=body, method=method.upper())
+    req.add_header("Accept", "application/json")
+    if body is not None:
+        req.add_header("Content-Type", "application/json")
+    auth = (authorization or "").strip()
+    if auth:
+        req.add_header("Authorization", auth)
+    key = (apikey or "").strip() or anon
+    if key:
+        req.add_header("apikey", key)
+    try:
+        with urlrequest.urlopen(req, timeout=timeout_s) as resp:
+            raw = resp.read()
+            ctype = resp.headers.get("Content-Type", "application/json; charset=utf-8")
+            return int(resp.status), raw, ctype
+    except urlerror.HTTPError as e:
+        raw = e.read() if hasattr(e, "read") else b""
+        if not raw:
+            raw = json.dumps({"error": f"http_{e.code}"}).encode("utf-8")
+        ctype = e.headers.get("Content-Type", "application/json; charset=utf-8") if e.headers else "application/json; charset=utf-8"
+        return int(e.code), raw, ctype
+    except Exception as e:
+        return 502, json.dumps({"error": f"upstream_failed:{e}"}).encode("utf-8"), "application/json; charset=utf-8"
 
 
 def _proxy_log_path() -> Path:
@@ -1345,14 +1318,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/battery":
             self._send_json({"optimized": not _is_ignoring_battery_optimizations()})
 
-        elif path == "/api/autostart":
-            self._send_json({"enabled": _get_autostart_enabled()})
-
         elif path == "/api/subscription-gate":
             self._send_json({"allowed": _get_subscription_proxy_allowed()})
-
-        elif path == "/api/restart-interval":
-            self._send_json({"seconds": _get_restart_interval_seconds()})
 
         elif path == "/api/logs":
             try:
@@ -1392,6 +1359,54 @@ class Handler(BaseHTTPRequestHandler):
                 **(_read_live_metrics() if alive else {"rx_bps": 0.0, "tx_bps": 0.0, "last_session_ok_ts": 0.0}),
             })
 
+        elif path == "/api/admin-profiles":
+            code, body, ctype = _call_supabase_function(
+                "admin-profiles",
+                method="GET",
+                payload=None,
+                authorization=self.headers.get("Authorization", ""),
+                apikey=self.headers.get("apikey", ""),
+            )
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        elif path == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
+
+        elif path == "/api/ext-source":
+            parsed = urlparse(self.path or "")
+            query = parse_qs(parsed.query or "")
+            src_url = (query.get("u", [""])[0] or "").strip()
+            if not src_url.startswith(("http://", "https://")):
+                self._send_json({"error": "bad_url"}, 400)
+                return
+            try:
+                req = urlrequest.Request(src_url, headers={"User-Agent": "tgws-proxy-apk/1.0"})
+                with urlrequest.urlopen(req, timeout=15.0) as resp:
+                    raw = resp.read()
+                    ctype = resp.headers.get("Content-Type", "application/octet-stream")
+                    self.send_response(int(resp.status))
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Content-Length", str(len(raw)))
+                    self.end_headers()
+                    self.wfile.write(raw)
+            except urlerror.HTTPError as e:
+                raw = e.read() if hasattr(e, "read") else b""
+                if not raw:
+                    raw = json.dumps({"error": f"http_{e.code}"}).encode("utf-8")
+                self.send_response(int(e.code))
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+            except Exception as e:
+                self._send_json({"error": f"upstream_failed:{e}"}, 502)
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -1426,12 +1441,6 @@ class Handler(BaseHTTPRequestHandler):
                 pass
             self._send_json({"ok": True})
 
-        elif path == "/api/autostart":
-            body = _read_json_body(self)
-            enabled = bool(body.get("enabled", False))
-            ok = _set_autostart_enabled(enabled)
-            self._send_json({"ok": ok, "enabled": enabled if ok else _get_autostart_enabled()})
-
         elif path == "/api/subscription-gate":
             body = _read_json_body(self)
             if "allowed" not in body:
@@ -1441,18 +1450,6 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({
                 "ok": ok,
                 "allowed": bool(body.get("allowed")) if ok else _get_subscription_proxy_allowed(),
-            })
-
-        elif path == "/api/restart-interval":
-            body = _read_json_body(self)
-            try:
-                requested = int(body.get("seconds", DEFAULT_RESTART_INTERVAL_SECONDS))
-            except (TypeError, ValueError):
-                requested = DEFAULT_RESTART_INTERVAL_SECONDS
-            ok = _set_restart_interval_seconds(requested)
-            self._send_json({
-                "ok": ok,
-                "seconds": requested if ok else _get_restart_interval_seconds(),
             })
 
         elif path == "/api/stop":
@@ -1469,6 +1466,21 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 ok = False
             self._send_json({"ok": ok})
+
+        elif path == "/api/admin-action":
+            body = _read_json_body(self)
+            code, out, ctype = _call_supabase_function(
+                "admin-action",
+                method="POST",
+                payload=body,
+                authorization=self.headers.get("Authorization", ""),
+                apikey=self.headers.get("apikey", ""),
+            )
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
 
         elif path == "/api/proxy-lab-probe":
             body = _read_json_body(self)

@@ -719,7 +719,12 @@
   const TGWS_CFG = window.__TGWS_SUPABASE__ || {};
   const SUPA_URL = String(TGWS_CFG.url || '').trim();
   const SUPA_ANON = String(TGWS_CFG.anon || '').trim();
-  const _supa = (SUPA_URL && SUPA_ANON) ? supabase.createClient(SUPA_URL, SUPA_ANON) : null;
+  const _supa = (
+    SUPA_URL &&
+    SUPA_ANON &&
+    window.supabase &&
+    typeof window.supabase.createClient === 'function'
+  ) ? window.supabase.createClient(SUPA_URL, SUPA_ANON) : null;
   const ADMIN_BOOT_TIMEOUT_MS = 12000;
   const ADMIN_AUTH_SNAP_KEY = 'tgws_admin_auth_snap';
 
@@ -735,6 +740,14 @@
 
   function _readAdminAuthSnap() {
     try {
+      // Fallback: если снап прилип в URL (например, после старой версии index), подхватим и сохраним.
+      const usp = new URLSearchParams(location.search || '');
+      const t = usp.get('at');
+      if (t && /^[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\./.test(t)) {
+        const fromUrl = { ts: Date.now(), access_token: t, user_id: null, email: '' };
+        try { sessionStorage.setItem(ADMIN_AUTH_SNAP_KEY, JSON.stringify(fromUrl)); } catch (_) {}
+        return fromUrl;
+      }
       const raw = sessionStorage.getItem(ADMIN_AUTH_SNAP_KEY);
       if (!raw) return null;
       const v = JSON.parse(raw);
@@ -746,8 +759,44 @@
     }
   }
 
+  function _readSessionTokenFromLocalStorage() {
+    // Fallback для браузера/localhost: если getSession() не отдал сессию, читаем persist key Supabase.
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const k = localStorage.key(i) || '';
+        if (!k.includes('-auth-token')) continue;
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        let v;
+        try { v = JSON.parse(raw); } catch (_) { continue; }
+        const s = (
+          v?.currentSession ||
+          v?.session ||
+          v?.data?.session ||
+          (Array.isArray(v) ? v[0] : null) ||
+          v
+        );
+        const token = s?.access_token;
+        if (!token || typeof token !== 'string') continue;
+        return {
+          ts: Date.now(),
+          access_token: token,
+          user_id: s?.user?.id || null,
+          email: s?.user?.email || '',
+        };
+      }
+    } catch (_) {}
+    return null;
+  }
+
   async function _getAdminAccessToken(timeoutMs = ADMIN_BOOT_TIMEOUT_MS) {
     if (_adminAuthSnap?.access_token) return _adminAuthSnap.access_token;
+    const lsSnap = _readSessionTokenFromLocalStorage();
+    if (lsSnap?.access_token) {
+      _adminAuthSnap = lsSnap;
+      try { sessionStorage.setItem(ADMIN_AUTH_SNAP_KEY, JSON.stringify(lsSnap)); } catch (_) {}
+      return lsSnap.access_token;
+    }
     const { data: { session } } = await _sessionWithTimeout(timeoutMs);
     if (!session?.access_token) return null;
     _adminAuthSnap = {
@@ -851,23 +900,36 @@
   }
 
   async function loadUsers() {
-    if (!_supa) return;
-    document.getElementById('table-loading').style.display = 'none';
+    const tableLoading = document.getElementById('table-loading');
+    const tableEmpty = document.getElementById('table-empty');
+    if (!_supa) {
+      if (tableLoading) {
+        tableLoading.style.display = 'block';
+        tableLoading.textContent = 'Ошибка: Supabase не инициализирован';
+      }
+      return;
+    }
+    if (tableLoading) tableLoading.style.display = 'none';
     renderUsersSkeleton(7);
-    document.getElementById('table-empty').style.display = 'none';
+    if (tableEmpty) tableEmpty.style.display = 'none';
     const _usersRefBtn = document.getElementById('users-refresh-btn');
     if (_usersRefBtn) _usersRefBtn.style.display = 'none';
     try {
       const token = await _getAdminAccessToken();
       if (!token) {
-        adminGoIndex();
+        const tbody = document.getElementById('users-tbody');
+        if (tbody) tbody.innerHTML = '';
+        if (tableLoading) {
+          tableLoading.style.display = 'block';
+          tableLoading.textContent = 'Сессия не найдена. Вернитесь на главную и войдите снова.';
+        }
         return;
       }
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 12000);
       let resp;
       try {
-        resp = await fetch(SUPA_URL + '/functions/v1/admin-profiles', {
+        resp = await fetch('/api/admin-profiles', {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer ' + token,
@@ -894,7 +956,7 @@
       let msg = txt;
       try { const j = JSON.parse(txt); msg = j.error || j.message || txt; } catch(_) {}
       await _admAlert('Ошибка загрузки ' + resp.status + ': ' + msg);
-      document.getElementById('table-loading').style.display = 'none';
+      if (tableLoading) tableLoading.style.display = 'none';
       if (_usersRefBtn) _usersRefBtn.style.display = '';
       return;
       }
@@ -920,11 +982,18 @@
       updateArchiveSectionMeta();
       const _archBlock = document.getElementById('archive-block');
       if (_archBlock && _archBlock.classList.contains('is-open')) renderArchive();
-      document.getElementById('table-loading').style.display = 'none';
+      if (tableLoading) tableLoading.style.display = 'none';
       if (_usersRefBtn) _usersRefBtn.style.display = '';
     } catch (e) {
-      document.getElementById('table-loading').style.display = 'none';
+      if (tableLoading) {
+        tableLoading.style.display = 'block';
+        tableLoading.textContent = e?.name === 'AbortError'
+          ? 'Таймаут загрузки админки'
+          : 'Ошибка загрузки админки';
+      }
       if (_usersRefBtn) _usersRefBtn.style.display = '';
+      const tbody = document.getElementById('users-tbody');
+      if (tbody) tbody.innerHTML = '';
       _toast(e?.name === 'AbortError' ? 'Таймаут загрузки админки' : 'Ошибка загрузки админки', 'err');
       console.error(e);
     }
@@ -1169,7 +1238,6 @@
     document.getElementById('setpw-icon-eye').style.display = '';
     document.getElementById('setpw-icon-eyeoff').style.display = 'none';
     document.getElementById('setpw-input').type = 'password';
-    const pw2 = document.getElementById('setpw-input2');
     if (pw2) pw2.type = 'password';
     document.getElementById('setpw-modal').classList.add('open');
     lucide.createIcons();
@@ -1567,7 +1635,7 @@
         _toast('Сессия не найдена. Откройте админку снова.', 'err');
         return false;
       }
-      const resp = await fetch(SUPA_URL + '/functions/v1/admin-action', {
+      const resp = await fetch('/api/admin-action', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1637,6 +1705,15 @@
   let _appReady = false;
   window.onerror = (msg, src, line) => { if (!_appReady) _bootError('Ошибка загрузки (' + line + ')'); else console.error(msg, src, line); };
   window.onunhandledrejection = (e) => { if (!_appReady) _bootError('Ошибка загрузки'); else console.error(e.reason); };
+  setTimeout(() => {
+    if (_appReady) return;
+    const m = document.getElementById('boot-msg');
+    if (!m) return;
+    const txt = (m.textContent || '').trim();
+    if (!txt || txt === 'Загрузка…') {
+      _bootError('Не удалось инициализировать админку. Проверьте интернет и откройте снова.');
+    }
+  }, 4500);
 
   // Проверяем сессию — права проверяет admin-profiles (403 → редирект)
   (async () => {
@@ -1651,25 +1728,22 @@
       if (_adminAuthSnap?.access_token) {
         _currentUserId = _adminAuthSnap.user_id || null;
         document.getElementById('adm-user-email').textContent = _adminAuthSnap.email || '';
-        loadUsers().catch((e) => {
-          console.error(e);
-          _toast('Ошибка загрузки пользователей', 'err');
-        });
-        return;
-      }
-      _bootMsg('Проверка сессии…');
-      const token = await _getAdminAccessToken();
-      if (!token) {
-        if (window.parent && window.parent !== window && typeof window.parent.__tgwsCloseAdmin === 'function') {
-          window.parent.__tgwsCloseAdmin();
+      } else {
+        _bootMsg('Проверка сессии…');
+        const token = await _getAdminAccessToken();
+        if (!token) {
+          const tbody = document.getElementById('users-tbody');
+          const loading = document.getElementById('table-loading');
+          if (tbody) tbody.innerHTML = '';
+          if (loading) {
+            loading.style.display = 'block';
+            loading.textContent = 'Сессия не найдена. Вернитесь на главную и войдите снова.';
+          }
           return;
         }
-        location.replace(new URL('index.html', location.href).href);
-        return;
+        _currentUserId = _adminAuthSnap?.user_id || null;
+        document.getElementById('adm-user-email').textContent = _adminAuthSnap?.email || '';
       }
-
-      _currentUserId = _adminAuthSnap?.user_id || null;
-      document.getElementById('adm-user-email').textContent = _adminAuthSnap?.email || '';
       loadUsers().catch((e) => {
         console.error(e);
         _toast('Ошибка загрузки пользователей', 'err');

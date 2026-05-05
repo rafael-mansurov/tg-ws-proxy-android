@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
  */
 public final class TgwsJsBridge {
     private static final String TAG = "TgwsJsBridge";
+    private static final String APK_CACHE_NAME = "tgws-update.apk";
 
     /**
      * Админка открыта поверх index в iframe; основной URL WebView не меняется.
@@ -52,6 +53,14 @@ public final class TgwsJsBridge {
                     + "download/latest-apk/tg-ws-proxy-release.apk";
 
     private final Activity activity;
+    private volatile boolean apkDownloadRunning = false;
+    private volatile String apkDownloadState = "idle"; // idle | downloading | done | error
+    private volatile int apkDownloadPercent = -1;
+    private volatile long apkDownloadedBytes = 0;
+    private volatile long apkTotalBytes = -1;
+    private volatile String apkDownloadError = "";
+    private volatile String apkDownloadUrl = "";
+    private volatile File downloadedApkFile = null;
 
     public TgwsJsBridge(Activity activity) {
         this.activity = activity;
@@ -113,6 +122,147 @@ public final class TgwsJsBridge {
                                     Toast.LENGTH_LONG)
                             .show();
                 });
+    }
+
+    @JavascriptInterface
+    public boolean startApkDownload(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            apkDownloadState = "error";
+            apkDownloadError = "empty_url";
+            return false;
+        }
+        if (apkDownloadRunning) {
+            return false;
+        }
+        apkDownloadRunning = true;
+        apkDownloadState = "downloading";
+        apkDownloadPercent = 0;
+        apkDownloadedBytes = 0;
+        apkTotalBytes = -1;
+        apkDownloadError = "";
+        apkDownloadUrl = url.trim();
+        downloadedApkFile = null;
+
+        Thread t = new Thread(
+                () -> {
+                    HttpURLConnection conn = null;
+                    File out = new File(new File(activity.getCacheDir(), "share"), APK_CACHE_NAME);
+                    try {
+                        File dir = out.getParentFile();
+                        if (dir != null && !dir.isDirectory() && !dir.mkdirs()) {
+                            throw new IOException("cache_dir_mkdirs_failed");
+                        }
+                        URL u = new URL(apkDownloadUrl);
+                        conn = (HttpURLConnection) u.openConnection();
+                        conn.setConnectTimeout(12000);
+                        conn.setReadTimeout(20000);
+                        conn.setInstanceFollowRedirects(true);
+                        int code = conn.getResponseCode();
+                        if (code < 200 || code >= 300) {
+                            throw new IOException("http_" + code);
+                        }
+                        long total = conn.getContentLengthLong();
+                        apkTotalBytes = total > 0 ? total : -1;
+                        try (InputStream in = conn.getInputStream();
+                                FileOutputStream fos = new FileOutputStream(out, false)) {
+                            byte[] buf = new byte[32 * 1024];
+                            int n;
+                            long got = 0;
+                            while ((n = in.read(buf)) > 0) {
+                                fos.write(buf, 0, n);
+                                got += n;
+                                apkDownloadedBytes = got;
+                                if (apkTotalBytes > 0) {
+                                    apkDownloadPercent =
+                                            Math.max(
+                                                    0,
+                                                    Math.min(
+                                                            100,
+                                                            (int)
+                                                                    ((apkDownloadedBytes * 100L)
+                                                                            / apkTotalBytes)));
+                                } else {
+                                    apkDownloadPercent = -1;
+                                }
+                            }
+                        }
+                        if (!out.isFile() || out.length() < 256 * 1024) {
+                            throw new IOException("apk_too_small");
+                        }
+                        downloadedApkFile = out;
+                        apkDownloadState = "done";
+                        apkDownloadPercent = 100;
+                    } catch (Exception e) {
+                        apkDownloadState = "error";
+                        apkDownloadError = e.getClass().getSimpleName() + ":" + e.getMessage();
+                        downloadedApkFile = null;
+                        try {
+                            // noinspection ResultOfMethodCallIgnored
+                            out.delete();
+                        } catch (Exception ignored) {
+                        }
+                        Log.e(TAG, "startApkDownload failed", e);
+                    } finally {
+                        if (conn != null) {
+                            conn.disconnect();
+                        }
+                        apkDownloadRunning = false;
+                    }
+                },
+                "tgws-apk-download");
+        t.setDaemon(true);
+        t.start();
+        return true;
+    }
+
+    @JavascriptInterface
+    public String getApkDownloadStatus() {
+        String file = downloadedApkFile != null ? downloadedApkFile.getAbsolutePath() : "";
+        return "{\"state\":\""
+                + _jsonEsc(apkDownloadState)
+                + "\",\"progress\":"
+                + apkDownloadPercent
+                + ",\"received\":"
+                + apkDownloadedBytes
+                + ",\"total\":"
+                + apkTotalBytes
+                + ",\"error\":\""
+                + _jsonEsc(apkDownloadError)
+                + "\",\"file\":\""
+                + _jsonEsc(file)
+                + "\"}";
+    }
+
+    @JavascriptInterface
+    public boolean installDownloadedApk() {
+        final File apk = downloadedApkFile;
+        if (apk == null || !apk.isFile()) {
+            return false;
+        }
+        try {
+            String authority = activity.getPackageName() + ".tgws.share";
+            Uri uri = FileProvider.getUriForFile(activity, authority, apk);
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(uri, "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            activity.startActivity(i);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "installDownloadedApk failed", e);
+            return false;
+        }
+    }
+
+    private static String _jsonEsc(String v) {
+        if (v == null) {
+            return "";
+        }
+        return v.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 
     private boolean tryShareWithCover(int portHint) {

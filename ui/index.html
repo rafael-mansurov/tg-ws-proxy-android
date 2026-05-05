@@ -158,10 +158,7 @@
       z-index: 99990;
       display: none;
       pointer-events: none;
-      background: rgba(8, 8, 12, 0.76);
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
-      padding: calc(env(safe-area-inset-top, 16px) + 84px) 18px calc(env(safe-area-inset-bottom, 16px) + 90px);
+      background: #0b0c10;
     }
     .ptr-refresh-mask.is-on { display: block; }
     .ptr-sk {
@@ -170,11 +167,52 @@
       background-size: 220% 100%;
       animation: ptrShimmer 1.15s linear infinite;
     }
-    .ptr-sk + .ptr-sk { margin-top: 12px; }
-    .ptr-sk.status { height: 92px; }
+    .ptr-refresh-shell {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top, 0);
+    }
+    .ptr-refresh-header {
+      padding: 14px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .ptr-sk.header-icon { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; }
+    .ptr-refresh-header-text { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+    .ptr-sk.header-title { width: 132px; height: 14px; border-radius: 8px; }
+    .ptr-sk.header-sub { width: 96px; height: 10px; border-radius: 6px; opacity: 0.72; }
+    .ptr-sk.header-toggle { width: 50px; height: 28px; border-radius: 14px; flex-shrink: 0; }
+    .ptr-refresh-content {
+      flex: 1;
+      padding: 16px 18px calc(90px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ptr-sk.status { height: 92px; border-radius: 22px; }
     .ptr-sk.row { height: 74px; }
     .ptr-sk.secret { height: 86px; }
-    .ptr-sk.cta { height: 48px; border-radius: 24px; margin-top: 16px; }
+    .ptr-sk.cta { height: 48px; border-radius: 24px; margin-top: 6px; }
+    .ptr-refresh-tabbar {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      width: calc(100% - 32px);
+      max-width: 400px;
+      height: 66px;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(18,18,22,0.96);
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      gap: 6px;
+    }
+    .ptr-sk.tab-item { flex: 1; height: 54px; border-radius: 24px; }
     @keyframes ptrShimmer {
       from { background-position: 100% 0; }
       to   { background-position: -100% 0; }
@@ -355,6 +393,50 @@
       text-decoration: none;
       box-shadow: 0 0 28px rgba(34,158,217,0.40), inset 0 1px 0 rgba(255,255,255,0.20);
     }
+    .update-banner-main .update-progress-wrap {
+      display: none;
+      margin-top: 10px;
+      gap: 8px;
+      flex-direction: column;
+    }
+    .update-banner-main .update-progress-wrap.is-on { display: flex; }
+    .update-banner-main .update-progress-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: rgba(180,220,255,0.9);
+    }
+    .update-banner-main .update-progress-bar {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      overflow: hidden;
+    }
+    .update-banner-main .update-progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #33d1ff 0%, #229ed9 100%);
+      transition: width 0.2s ease;
+    }
+    .update-banner-main .update-install-btn {
+      display: none;
+      margin-top: 10px;
+      width: 100%;
+      background: linear-gradient(180deg, #00c88c 0%, #0e996d 100%);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 0 24px rgba(0,200,140,0.32), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .update-banner-main .update-install-btn.is-on { display: block; }
 
     .perm-info-card {
       padding: 12px 14px;
@@ -1439,10 +1521,28 @@
   </svg>
 </div>
 <div id="ptr-refresh-mask" class="ptr-refresh-mask" aria-hidden="true">
-  <div class="ptr-sk status"></div>
-  <div class="ptr-sk row"></div>
-  <div class="ptr-sk secret"></div>
-  <div class="ptr-sk cta"></div>
+  <div class="ptr-refresh-shell">
+    <div class="ptr-refresh-header">
+      <div class="ptr-sk header-icon"></div>
+      <div class="ptr-refresh-header-text">
+        <div class="ptr-sk header-title"></div>
+        <div class="ptr-sk header-sub"></div>
+      </div>
+      <div class="ptr-sk header-toggle"></div>
+    </div>
+    <div class="ptr-refresh-content">
+      <div class="ptr-sk status"></div>
+      <div class="ptr-sk row"></div>
+      <div class="ptr-sk secret"></div>
+      <div class="ptr-sk cta"></div>
+    </div>
+    <div class="ptr-refresh-tabbar">
+      <div class="ptr-sk tab-item"></div>
+      <div class="ptr-sk tab-item"></div>
+      <div class="ptr-sk tab-item"></div>
+      <div class="ptr-sk tab-item"></div>
+    </div>
+  </div>
 </div>
 
   <div class="header">
@@ -1484,7 +1584,15 @@
         <button type="button" class="update-banner-dismiss" onclick="dismissUpdate()" aria-label="Закрыть">✕</button>
       </div>
       <div class="update-banner-text">Скачайте новый&nbsp;APK и установите поверх текущей версии.</div>
-      <a id="update-download-link" class="update-banner-link" href="#" target="_blank">Скачать&nbsp;APK →</a>
+      <a id="update-download-link" class="update-banner-link" href="#" target="_blank" onclick="return onUpdateDownloadClick(event)">Скачать&nbsp;APK →</a>
+      <div id="update-progress-wrap" class="update-progress-wrap" aria-hidden="true">
+        <div class="update-progress-head">
+          <span id="update-progress-label">Скачивание…</span>
+          <span id="update-progress-value">0%</span>
+        </div>
+        <div class="update-progress-bar"><div id="update-progress-fill" class="update-progress-fill"></div></div>
+      </div>
+      <button id="update-install-btn" type="button" class="update-install-btn" onclick="onUpdateInstallClick()">Установить обновление</button>
     </div>
 
     <div class="status off" id="status">
@@ -1554,62 +1662,6 @@
             </div>
             <div class="sett-row-right">
               <button id="battery-settings-btn" onclick="openBatterySettings()" style="background:rgba(124,150,201,0.2);color:rgba(200,220,255,0.9);border:1px solid rgba(145,170,219,0.3);border-radius:12px;padding:7px 12px;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap">Открыть</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Зачем системные разрешения -->
-      <div class="sett-section">
-        <div class="sett-section-title">Разрешения и фон</div>
-        <div class="sett-card">
-          <div class="perm-info-card">
-            <strong>Уведомления</strong> — нужны, чтобы Android разрешил работу прокси как <em>foreground service</em>: постоянное уведомление показывает, что локальный сервер активен (так устроена система с Android&nbsp;8+).<br><br>
-            <strong>Исключение из оптимизации батареи</strong> — иначе система может гасить процесс в фоне и обрывать прокси.<br><br>
-            <strong>Автозапуск</strong> ниже — чтобы после перезагрузки телефона прокси снова поднимался без ручного открытия приложения (если вы это включите).
-          </div>
-        </div>
-      </div>
-
-      <!-- Прокси -->
-      <div class="sett-section">
-        <div class="sett-section-title">Прокси</div>
-        <div class="sett-card">
-          <div class="sett-row">
-            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
-              <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" x2="12" y1="2" y2="12"/></svg>
-            </div>
-            <div class="sett-row-body">
-              <div class="sett-row-label">Автозапуск при загрузке</div>
-              <div class="sett-row-sub">После перезагрузки телефона снова включать прокси (нужен автозапуск в системе, если OEM его отключает)</div>
-            </div>
-            <div class="sett-row-right">
-              <label class="toggle-wrap" style="cursor:pointer">
-                <input id="autostart-toggle" type="checkbox" style="display:none" onchange="toggleAutostart(this.checked)">
-                <span class="toggle-track" id="autostart-toggle-track"><span class="toggle-thumb"></span></span>
-              </label>
-            </div>
-          </div>
-          <div class="sett-row">
-            <div class="sett-row-icon" style="background:rgba(255,255,255,0.08)">
-              <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
-            </div>
-            <div class="sett-row-body">
-              <div class="sett-row-label">Автоперезапуск</div>
-              <div class="sett-row-sub">Периодически перезапускать для стабильности</div>
-            </div>
-            <div class="sett-row-right">
-              <div class="sett-select-wrap">
-                <select id="restart-interval-select" onchange="saveRestartInterval()">
-                  <option value="0">Выкл.</option>
-                  <option value="900">15&nbsp;мин</option>
-                  <option value="1800">30&nbsp;мин</option>
-                  <option value="3600">1&nbsp;час</option>
-                  <option value="7200">2&nbsp;часа</option>
-                  <option value="10800">3&nbsp;часа</option>
-                </select>
-                <span class="sett-select-arrow"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
-              </div>
             </div>
           </div>
         </div>
@@ -1716,7 +1768,7 @@
           </div>
           <div class="faq-qa">
             <div class="faq-q">Как включить прокси сам после перезагрузки телефона?</div>
-            <div class="faq-a">Откройте Настройки по иконке шестерёнки. В блоке «Прокси» включите «Автозапуск при загрузке». Перезагрузите телефон и проверьте главный экран: тумблер должен встать в «вкл» без ручного старта. Автоперезапуск сервиса настраивается там же — выберите интервал или «Выкл.».</div>
+            <div class="faq-a">После перезагрузки телефона откройте приложение и запустите прокси тумблером на главном экране.</div>
           </div>
           <div class="faq-qa">
             <div class="faq-q">Как не пропустить новую версию приложения?</div>
@@ -1748,12 +1800,6 @@
 <!-- ── Page: Внешние прокси ── -->
 <div id="page-ext-proxies" class="page">
   <div class="content">
-
-    <div id="ext-probe-bar" class="ext-probe-bar">
-      <span id="ext-probe-left" class="ext-probe-left"></span>
-      <span id="ext-probe-right" class="ext-probe-right"></span>
-    </div>
-
     <div style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.40);margin-bottom:14px;line-height:1.5">
       Публичные MTProto-прокси — работают на мобильном интернете и&nbsp;Wi-Fi. Выберите любой, Telegram применит автоматически.
     </div>
@@ -1767,6 +1813,11 @@
         <div class="ext-proxy-tip-sub">Чтобы Telegram работал везде, добавьте 15–20 разных прокси из этого списка. Затем в Telegram откройте настройки прокси и включите тумблер автопереключения с таймаутом в 5&nbsp;секунд</div>
       </div>
       <button class="ext-proxy-tip-close" onclick="dismissExtProxyTip()" aria-label="Закрыть">✕</button>
+    </div>
+
+    <div id="ext-probe-bar" class="ext-probe-bar">
+      <span id="ext-probe-left" class="ext-probe-left"></span>
+      <span id="ext-probe-right" class="ext-probe-right"></span>
     </div>
 
     <div id="ext-proxy-list" class="ext-proxy-list">
@@ -1870,7 +1921,9 @@
     </div>
 
     <!-- Выход -->
-    <button class="profile-logout-text-btn" onclick="authLogout()" style="margin-top:auto;padding-bottom:24px">Выйти из аккаунта</button>
+    <div class="sett-section" style="margin-top: 8px;">
+      <button class="profile-logout-text-btn" onclick="authLogout()">Выйти из аккаунта</button>
+    </div>
 
   </div>
 </div>
@@ -2059,6 +2112,7 @@
     display: none;
   }
   .auth-error.is-on { display: block; }
+  .auth-error.is-info { color: #37d39a; }
 
   /* Trial badge */
     background: rgba(34,158,217,0.12); border: 1px solid rgba(34,158,217,0.22);
@@ -2077,6 +2131,40 @@
     overflow-y: auto;
   }
   .paywall-overlay.is-hidden { display: none !important; }
+  .offline-lock-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 130000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(7,8,12,0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    pointer-events: auto;
+    text-align: center;
+  }
+  .offline-lock-overlay.is-on { display: flex; }
+  .offline-lock-card {
+    width: min(380px, 100%);
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(20,22,30,0.94);
+    padding: 18px 16px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+  }
+  .offline-lock-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .offline-lock-sub {
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.68);
+  }
 
   .paywall-header {
     width: 100%; display: flex; align-items: center; justify-content: flex-end;
@@ -2407,6 +2495,7 @@
         <svg id="changepw-icon-eyeoff" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
       </button>
     </div>
+    <input class="auth-input" id="changepw-input2" type="password" placeholder="Повторите пароль" style="width:100%;margin-bottom:8px"/>
     <div class="auth-error" id="changepw-error" style="margin-bottom:8px"></div>
     <button class="auth-btn" id="changepw-btn" onclick="saveChangedPassword()" style="width:100%">Сохранить</button>
   </div>
@@ -2553,7 +2642,7 @@
       </div>
       <div class="paywall-feature">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Автозапуск и фоновая работа
+        Фоновая работа и стабильность
       </div>
       <div class="paywall-feature">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -2574,6 +2663,12 @@
       Оплата через lava.top · защищённое соединение<br>
       Доступ откроется сразу после оплаты
     </div>
+  </div>
+</div>
+<div id="offline-lock-overlay" class="offline-lock-overlay" aria-hidden="true">
+  <div class="offline-lock-card">
+    <div class="offline-lock-title">Нет интернета</div>
+    <div class="offline-lock-sub">Подключите Wi-Fi или мобильную сеть. Пока сеть недоступна, действия в приложении временно заблокированы.</div>
   </div>
 </div>
 
@@ -2607,6 +2702,7 @@
   let _authMode     = 'login'; // 'register' | 'login'
   let _subStatus    = null;   // 'trial' | 'active' | 'expired'
   let _subLoaded    = false;  // true после первой завершённой проверки подписки
+  let _sessionMissStreak = 0; // защита от кратковременного null-session при сетевых сбоях
   let _deepLinkPollTimer = null;
 
 
@@ -2629,7 +2725,7 @@
     const appRoot = document.querySelector('body > :not(#auth-overlay):not(#paywall-overlay):not(style):not(script)');
     // скрываем body-children кроме overlays
     document.querySelectorAll('body > .header, body > .page, body > [class]').forEach(el => {
-      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay') {
+      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay' && el.id !== 'offline-lock-overlay') {
         el.style.display = (name === 'app') ? '' : 'none';
       }
     });
@@ -2661,14 +2757,22 @@
     document.getElementById('paywall-overlay').classList.remove('is-hidden');
     document.getElementById('auth-overlay').classList.add('is-hidden');
     document.querySelectorAll('body > .header, body > .page, body > [class]').forEach(el => {
-      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay') el.style.display = 'none';
+      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay' && el.id !== 'offline-lock-overlay') el.style.display = 'none';
     });
+  }
+
+  function _shouldKeepSessionUiOnMiss() {
+    // Если пользователь уже авторизован в UI, одиночный miss session трактуем как transient.
+    if (!_subProfile) return false;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+    _sessionMissStreak += 1;
+    return _sessionMissStreak < 2;
   }
   function _hideAllOverlays() {
     document.getElementById('auth-overlay').classList.add('is-hidden');
     document.getElementById('paywall-overlay').classList.add('is-hidden');
     document.querySelectorAll('body > .header, body > .page, body > [class]').forEach(el => {
-      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay') el.style.display = '';
+      if (el.id !== 'auth-overlay' && el.id !== 'paywall-overlay' && el.id !== 'offline-lock-overlay') el.style.display = '';
     });
   }
 
@@ -2704,7 +2808,21 @@
     _tgwsHideAdminOverlay();
   }
 
-  function openAdminPanel() {
+  async function _captureAdminAuthSnap(timeoutMs = 1500) {
+    if (!_supa) return;
+    const t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), timeoutMs));
+    const out = await Promise.race([_supa.auth.getSession(), t]);
+    const s = out?.data?.session;
+    if (!s?.access_token) return;
+    sessionStorage.setItem('tgws_admin_auth_snap', JSON.stringify({
+      ts: Date.now(),
+      access_token: s.access_token,
+      user_id: s.user?.id || null,
+      email: s.user?.email || '',
+    }));
+  }
+
+  async function openAdminPanel() {
     const ov = document.getElementById('admin-overlay');
     const fr = document.getElementById('admin-frame');
     // Android WebView: iframe часто не делится тем же контекстом хранилища / зависает на Supabase.
@@ -2722,29 +2840,13 @@
               loaded: _subLoaded,
             }),
           );
-          // Передаём админке уже полученную в index сессию, чтобы не зависеть от getSession() на новой странице.
-          // Если чтение сессии затянется — просто откроем админку без снапа (там есть fallback/redirect).
-          const _storeSnap = async () => {
-            if (!_supa) return;
-            const t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1200));
-            try {
-              const out = await Promise.race([_supa.auth.getSession(), t]);
-              const s = out?.data?.session;
-              if (!s?.access_token) return;
-              sessionStorage.setItem('tgws_admin_auth_snap', JSON.stringify({
-                ts: Date.now(),
-                access_token: s.access_token,
-                user_id: s.user?.id || null,
-                email: s.user?.email || '',
-              }));
-            } catch (_) {}
-          };
-          _storeSnap();
+          try { await _captureAdminAuthSnap(1200); } catch (_) {}
         } catch (_) {}
         location.href = new URL('admin.html', location.href).href;
         return;
       }
     } catch (_) {}
+    try { await _captureAdminAuthSnap(1200); } catch (_) {}
     if (!ov || !fr) {
       location.href = new URL('admin.html', location.href).href;
       return;
@@ -2813,6 +2915,7 @@
       _hideAllOverlays();
       _updateSubBadge();
       await _syncSubscriptionGateForBoot(true);
+      _warmupExtProxies();
       return true;
     }
     if (_subProfile.status === 'expired') {
@@ -2827,6 +2930,7 @@
       _hideAllOverlays();
       _updateSubBadge();
       await _syncSubscriptionGateForBoot(true);
+      _warmupExtProxies();
       return true;
     }
     if (_subStatus !== 'expired') _stopProxyOnExpiry();
@@ -2844,11 +2948,19 @@
     }
     const { data: { session } } = await _supa.auth.getSession();
     if (!session) {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        syncOfflineBanner();
+        return;
+      }
+      if (_shouldKeepSessionUiOnMiss()) {
+        return;
+      }
       _subLoaded = true;
       _showAuth();
       await _syncSubscriptionGateForBoot(false);
       return;
     }
+    _sessionMissStreak = 0;
 
     // JWT-клеймы используем только если они явно подтверждают активную оплаченную подписку.
     // Токен живёт до 1 часа: за это время paid_until мог быть выставлен в БД, а старый JWT
@@ -2930,6 +3042,7 @@
       _hideAllOverlays();
       _updateSubBadge();
       await _syncSubscriptionGateForBoot(true);
+      _warmupExtProxies();
       return;
     }
     if (_subProfile.status === 'expired') {
@@ -2947,6 +3060,7 @@
       _hideAllOverlays();
       _updateSubBadge();
       await _syncSubscriptionGateForBoot(true);
+      _warmupExtProxies();
       return;
     }
 
@@ -3101,7 +3215,7 @@
     await _doSavePassword('auth-otp-newpw', 'auth-otp-newpw-error', 'auth-otp-newpw-btn', 'Сменить пароль', async () => {
       await _supa.auth.signOut();
       authBackToLogin();
-      _setAuthError('Пароль изменён — войдите с новым паролем');
+      _setAuthInfo('Пароль изменён — войдите с новым паролем');
     });
   }
 
@@ -3208,6 +3322,14 @@
   function _setAuthError(msg) {
     const el = document.getElementById('auth-error');
     el.textContent = msg;
+    el.classList.remove('is-info');
+    el.classList.toggle('is-on', !!msg);
+  }
+
+  function _setAuthInfo(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.classList.add('is-info');
     el.classList.toggle('is-on', !!msg);
   }
 
@@ -3231,15 +3353,17 @@
   }
 
   // ── Shared password helpers ────────────────────────────────────────────────
-  async function _doSavePassword(inputId, errId, btnId, btnLabel, onSuccess) {
+  async function _doSavePassword(inputId, errId, btnId, btnLabel, onSuccess, confirmInputId = '') {
     const pw  = document.getElementById(inputId).value;
     const err = document.getElementById(errId);
     const btn = document.getElementById(btnId);
+    const confirmPw = confirmInputId ? ((document.getElementById(confirmInputId) || {}).value || '') : '';
     if (!_supa) {
       if (err) err.textContent = _msgSupabaseMissingBuild();
       return;
     }
     if (pw.length < 6) { err.textContent = 'Минимум 6 символов'; return; }
+    if (confirmInputId && pw !== confirmPw) { err.textContent = 'Пароли не совпадают'; return; }
     err.textContent = '';
     _btnLoading(btn, 'Сохраняем…');
     const { error } = await _supa.auth.updateUser({ password: pw });
@@ -3326,7 +3450,7 @@
 
         // Не держим пользователя на экране входа ещё одним round-trip до profiles.
         _hideAllOverlays();
-        checkSubscription().catch(() => _showAuth());
+        checkSubscription().catch(() => {});
         return;
       }
     } catch (e) {
@@ -3387,9 +3511,15 @@
   // ── Смена пароля ──────────────────────────────────────────────────────────
   function openChangePwSheet() {
     document.getElementById('changepw-input').value = '';
+    const pw2 = document.getElementById('changepw-input2');
+    if (pw2) pw2.value = '';
     document.getElementById('changepw-error').textContent = '';
     document.getElementById('changepw-btn').disabled = false;
     document.getElementById('changepw-btn').textContent = 'Сохранить';
+    document.getElementById('changepw-input').type = 'password';
+    if (pw2) pw2.type = 'password';
+    document.getElementById('changepw-icon-eye').style.display = '';
+    document.getElementById('changepw-icon-eyeoff').style.display = 'none';
     document.getElementById('changepw-backdrop').classList.add('is-open');
     document.body.style.overflow = 'hidden';
   }
@@ -3401,10 +3531,15 @@
     }
   }
 
-  function toggleChangePw() { _togglePwField('changepw-input', 'changepw-icon-eye', 'changepw-icon-eyeoff'); }
+  function toggleChangePw() {
+    _togglePwField('changepw-input', 'changepw-icon-eye', 'changepw-icon-eyeoff');
+    const inp = document.getElementById('changepw-input');
+    const inp2 = document.getElementById('changepw-input2');
+    if (inp && inp2) inp2.type = inp.type;
+  }
 
   async function saveChangedPassword() {
-    await _doSavePassword('changepw-input', 'changepw-error', 'changepw-btn', 'Сохранить', closeChangePwSheet);
+    await _doSavePassword('changepw-input', 'changepw-error', 'changepw-btn', 'Сохранить', closeChangePwSheet, 'changepw-input2');
   }
 
   _initSheetSwipe(
@@ -3547,6 +3682,7 @@
           resolve();
         }
         if (event === 'SIGNED_OUT') {
+          _sessionMissStreak = 0;
           _subProfile = null;
           _subStatus  = null;
           _subLoaded  = false;
@@ -3569,14 +3705,6 @@
 
     const restoredFromAdmin = await _restoreSubscriptionAfterAdminFullReload();
     if (!restoredFromAdmin) await checkSubscription();
-
-    // Прогрев Edge Function админки — только для админов, fire-and-forget
-    if (_subProfile?.is_admin) {
-      fetch(`${SUPA_URL}/functions/v1/admin-profiles`, {
-        method: 'OPTIONS',
-        headers: { 'apikey': SUPA_ANON },
-      }).catch(() => {});
-    }
 
     _startSubPolling();
   }
@@ -3652,13 +3780,17 @@
     return _subStatus === 'active' || _subStatus === 'trial';
   }
 
+  function _warmupExtProxies() {
+    if (_extProxiesLoaded || _extProxiesLoading) return;
+    if (!_canUseExtProxies()) return;
+    loadExtProxies().catch(() => {});
+  }
+
   // ── Конец блока Supabase / Subscription ───────────────────────────────────
 
   let running = false;
   let secret = null;
   let linkHost = null;
-  let autostartEnabled = false;
-  let restartIntervalSeconds = 3600;
   let uiBusy = false;
   let _pollBusy = false;
   let _startPhaseTimer = null;
@@ -3668,9 +3800,14 @@
 
   function syncOfflineBanner() {
     const el = document.getElementById('offline-banner');
+    const lock = document.getElementById('offline-lock-overlay');
     if (!el) return;
     const off = typeof navigator !== 'undefined' && navigator.onLine === false;
     el.style.display = off ? 'block' : 'none';
+    if (lock) {
+      lock.classList.toggle('is-on', off);
+      lock.setAttribute('aria-hidden', off ? 'false' : 'true');
+    }
   }
   window.addEventListener('online', syncOfflineBanner);
   window.addEventListener('offline', syncOfflineBanner);
@@ -3709,7 +3846,7 @@
       .finally(() => clearTimeout(t));
   }
 
-  /** SharedPreferences: разрешение для автозапуска и QS-плитки (не для тумблера внутри приложения). */
+  /** SharedPreferences: разрешение для фонового старта из QS-плитки (не для тумблера внутри приложения). */
   async function _syncSubscriptionGateForBoot(allowed) {
     try {
       await _localFetch('/api/subscription-gate', {
@@ -3723,7 +3860,7 @@
   let currentPage = 'main';
   const HEADER_TITLE_MAIN = 'TG WS Proxy';
   const HEADER_SUB_DEFAULT = 'MTProto · локальный';
-  const HEADER_SUB_SETTINGS = 'Автозапуск, ссылки и справка';
+  const HEADER_SUB_SETTINGS = 'Фон, ссылки и справка';
   const HEADER_SUB_FAQ = 'Ответы на типичные вопросы';
   const APP_VERSION_FALLBACK = '—';
   const APP_MIN_ANDROID = '7.0+';
@@ -4352,16 +4489,20 @@
   function _moveTabIndicator(tab) {
     const bar = document.getElementById('tab-bar');
     const indicator = document.getElementById('tab-indicator');
-    const btn = document.getElementById('tab-btn-' + tab);
+    const btn = tab
+      ? (document.getElementById('tab-btn-' + tab) || document.querySelector('.tab-item.is-active'))
+      : document.querySelector('.tab-item.is-active');
     if (!bar || !indicator || !btn) return;
-    const barRect = bar.getBoundingClientRect();
-    const btnRect = btn.getBoundingClientRect();
-    const borderL = parseFloat(getComputedStyle(bar).borderLeftWidth) || 0;
-    // left в abs-позиционировании считается от padding-edge (после border)
-    const left = btnRect.left - barRect.left - borderL;
-    indicator.style.width = btnRect.width + 'px';
-    indicator.style.left = left + 'px';
+    // Через offset* в Android WebView стабильнее, чем getBoundingClientRect при быстрых переключениях.
+    indicator.style.width = btn.offsetWidth + 'px';
+    indicator.style.left = btn.offsetLeft + 'px';
     indicator.style.transform = '';
+  }
+
+  function _syncTabIndicatorToActive() {
+    const activeBtn = document.querySelector('.tab-item.is-active');
+    const activeTab = (activeBtn && activeBtn.dataset && activeBtn.dataset.tab) || _activeTab || 'main';
+    _moveTabIndicator(activeTab);
   }
 
   let _toastTimer = null;
@@ -4395,7 +4536,10 @@
     if (page) { page.classList.add('is-active'); page.scrollTop = 0; }
 
     document.querySelectorAll('.tab-item').forEach(btn => btn.classList.toggle('is-active', btn.dataset.tab === tab));
-    _moveTabIndicator(tab);
+    _syncTabIndicatorToActive();
+    // Второй проход после layout pass: на ряде WebView первый расчёт может быть "старым".
+    requestAnimationFrame(() => _syncTabIndicatorToActive());
+    requestAnimationFrame(() => requestAnimationFrame(() => _syncTabIndicatorToActive()));
     updateHeader(tab);
 
     if (tab === 'ext-proxies') {
@@ -4406,13 +4550,6 @@
     }
     if (tab === 'profile') {
       refreshProfilePage();
-      // Прогреваем Edge Function админки заранее (fire-and-forget)
-      if (_subProfile?.is_admin) {
-        fetch(`${SUPA_URL}/functions/v1/admin-profiles`, {
-          method: 'OPTIONS',
-          headers: { 'apikey': SUPA_ANON },
-        }).catch(() => {});
-      }
     }
   }
 
@@ -4488,76 +4625,6 @@
   function openSettings() { switchTab('settings'); }
 
   function closeSettings() { switchTab('main'); }
-
-  function renderAutostart(enabled) {
-    autostartEnabled = !!enabled;
-    const input = document.getElementById('autostart-toggle');
-    const track = document.getElementById('autostart-toggle-track');
-    if (input) input.checked = autostartEnabled;
-    if (track) track.classList.toggle('on', autostartEnabled);
-  }
-
-  async function fetchAutostart() {
-    try {
-      const r = await _localFetch('/api/autostart', {}, 3000);
-      if (!r.ok) return;
-      const d = await r.json();
-      renderAutostart(!!d.enabled);
-    } catch(e) {}
-  }
-
-  async function toggleAutostart(enabled) {
-    const want = !!enabled;
-    renderAutostart(want);
-    try {
-      const r = await _localFetch('/api/autostart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: want }),
-      }, 3000);
-      const d = await r.json();
-      renderAutostart(!!d.enabled);
-    } catch(e) {
-      renderAutostart(!want);
-    }
-  }
-
-  function renderRestartInterval(seconds) {
-    const val = Math.max(0, Number(seconds) || 0);
-    restartIntervalSeconds = val;
-    const sel = document.getElementById('restart-interval-select');
-    if (!sel) return;
-    const exists = Array.from(sel.options).some(o => Number(o.value) === val);
-    sel.value = String(exists ? val : 3600);
-  }
-
-  async function fetchRestartInterval() {
-    try {
-      const r = await _localFetch('/api/restart-interval', {}, 3000);
-      if (!r.ok) return;
-      const d = await r.json();
-      renderRestartInterval(d.seconds);
-    } catch(e) {}
-  }
-
-  async function saveRestartInterval() {
-    const sel = document.getElementById('restart-interval-select');
-    if (!sel) return;
-    const wanted = Number(sel.value) || 0;
-    const prev = restartIntervalSeconds;
-    renderRestartInterval(wanted);
-    try {
-      const r = await _localFetch('/api/restart-interval', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seconds: wanted }),
-      }, 3000);
-      const d = await r.json();
-      renderRestartInterval(d.seconds);
-    } catch(e) {
-      renderRestartInterval(prev);
-    }
-  }
 
   async function onToggle() {
     if (!_subLoaded) { _showToast('Загрузка…'); return; }
@@ -4727,12 +4794,15 @@
     if (!link) return;
     const modal = document.getElementById('qr-modal');
     if (!modal) return;
+    _qrModalPrevFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     _qrModalLink = link;
     _qrModalTitle = title || 'QR для Telegram';
     const titleEl = document.getElementById('qr-modal-title');
     if (titleEl) titleEl.textContent = _qrModalTitle;
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
+    const closeBtn = modal.querySelector('.qr-modal-close');
+    if (closeBtn && typeof closeBtn.focus === 'function') closeBtn.focus();
     refreshQr();
     const onKey = (e) => { if (e.key === 'Escape') closeQrModal(); };
     document.addEventListener('keydown', onKey);
@@ -4742,12 +4812,20 @@
   function closeQrModal() {
     const modal = document.getElementById('qr-modal');
     if (!modal) return;
+    const focused = document.activeElement;
+    if (focused && modal.contains(focused) && typeof focused.blur === 'function') focused.blur();
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden', 'true');
     _qrModalLink = null;
     _qrModalTitle = 'QR для Telegram';
     const titleEl = document.getElementById('qr-modal-title');
     if (titleEl) titleEl.textContent = _qrModalTitle;
+    if (_qrModalPrevFocus && document.contains(_qrModalPrevFocus) && typeof _qrModalPrevFocus.focus === 'function') {
+      _qrModalPrevFocus.focus();
+    } else if (document.body && typeof document.body.focus === 'function') {
+      document.body.focus();
+    }
+    _qrModalPrevFocus = null;
     if (modal._qrEsc) {
       document.removeEventListener('keydown', modal._qrEsc);
       modal._qrEsc = null;
@@ -4769,10 +4847,16 @@
 
   const GH_REPO = 'rafael-mansurov/tg-ws-proxy-android';
   const APK_URL = `https://github.com/${GH_REPO}/releases/download/latest-apk/tg-ws-proxy-release.apk`;
+  let _apkDlPollTimer = null;
+  let _apkDlInProgress = false;
+  let _apkInstallReady = false;
+  let _webDownloadedBlobUrl = '';
+  let _webDownloadedFilename = 'tg-ws-proxy-release.apk';
   const EXT_PROXY_FAVORITES_KEY = 'tgws_ext_proxy_favorites_v1';
   let _extProxyFavorites = new Set();
   let _qrModalLink = null;
   let _qrModalTitle = 'QR для Telegram';
+  let _qrModalPrevFocus = null;
 
   function _parseVersion(s) {
     return (s || '').trim().split('.').map(Number);
@@ -4803,21 +4887,212 @@
       if (!_isNewer(latest, current)) return;
       document.getElementById('update-version-label').textContent = `v${latest}`;
       document.getElementById('update-download-link').href = APK_URL;
+      _setUpdateDownloadVisible(true);
       document.getElementById('update-banner').style.display = 'block';
     } catch(e) {}
   }
 
+  function _setUpdateProgressUI({ show = false, progress = 0, label = 'Скачивание…', indeterminate = false } = {}) {
+    const wrap = document.getElementById('update-progress-wrap');
+    const fill = document.getElementById('update-progress-fill');
+    const txt = document.getElementById('update-progress-label');
+    const val = document.getElementById('update-progress-value');
+    if (!wrap || !fill || !txt || !val) return;
+    wrap.classList.toggle('is-on', !!show);
+    wrap.setAttribute('aria-hidden', show ? 'false' : 'true');
+    txt.textContent = label;
+    if (indeterminate) {
+      val.textContent = '…';
+      fill.style.width = '22%';
+    } else {
+      const p = Math.max(0, Math.min(100, Number(progress) || 0));
+      val.textContent = `${p}%`;
+      fill.style.width = `${p}%`;
+    }
+  }
+
+  function _setUpdateInstallReady(on) {
+    _apkInstallReady = !!on;
+    const b = document.getElementById('update-install-btn');
+    if (!b) return;
+    b.classList.toggle('is-on', _apkInstallReady);
+    b.textContent = _webDownloadedBlobUrl ? 'Открыть файл' : 'Установить обновление';
+  }
+
+  function _setUpdateDownloadVisible(on) {
+    const a = document.getElementById('update-download-link');
+    if (!a) return;
+    a.style.display = on ? '' : 'none';
+    a.setAttribute('aria-hidden', on ? 'false' : 'true');
+  }
+
+  function _stopApkDownloadPolling() {
+    if (_apkDlPollTimer) clearInterval(_apkDlPollTimer);
+    _apkDlPollTimer = null;
+  }
+
+  function _startApkDownloadPolling() {
+    _stopApkDownloadPolling();
+    _apkDlPollTimer = setInterval(async () => {
+      try {
+        const br = window.TgwsAndroid;
+        if (!br || !br.getApkDownloadStatus) return;
+        const raw = br.getApkDownloadStatus();
+        const st = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (!st || !st.state) return;
+        if (st.state === 'downloading') {
+          const hasTotal = Number(st.total) > 0;
+          const p = hasTotal ? Number(st.progress) : 0;
+          _setUpdateProgressUI({
+            show: true,
+            progress: p,
+            label: hasTotal ? 'Скачивание APK…' : 'Скачивание APK (размер неизвестен)…',
+            indeterminate: !hasTotal,
+          });
+        } else if (st.state === 'done') {
+          _apkDlInProgress = false;
+          _setUpdateProgressUI({ show: true, progress: 100, label: 'APK загружен' });
+          _setUpdateInstallReady(true);
+          _stopApkDownloadPolling();
+        } else if (st.state === 'error') {
+          _apkDlInProgress = false;
+          _setUpdateProgressUI({ show: false });
+          _setUpdateInstallReady(false);
+          _stopApkDownloadPolling();
+          _appAlert('Не удалось скачать обновление. Проверьте интернет и попробуйте снова.');
+        }
+      } catch (_) {}
+    }, 350);
+  }
+
+  function onUpdateDownloadClick(event) {
+    try { if (event) event.preventDefault(); } catch (_) {}
+    const a = document.getElementById('update-download-link');
+    const url = (a && a.href) ? a.href : APK_URL;
+    try {
+      const br = window.TgwsAndroid;
+      if (!br || !br.startApkDownload) {
+        _startWebApkDownload(url);
+        return false;
+      }
+      if (_apkDlInProgress) return false;
+      _apkDlInProgress = true;
+      _setUpdateDownloadVisible(false);
+      _setUpdateInstallReady(false);
+      _setUpdateProgressUI({ show: true, progress: 0, label: 'Запуск скачивания…' });
+      const ok = !!br.startApkDownload(url);
+      if (!ok) {
+        _apkDlInProgress = false;
+        _setUpdateDownloadVisible(true);
+        _setUpdateProgressUI({ show: false });
+        _appAlert('Не удалось начать скачивание.');
+        return false;
+      }
+      _startApkDownloadPolling();
+      return false;
+    } catch (_) {
+      _startWebApkDownload(url);
+      return false;
+    }
+  }
+
+  async function _startWebApkDownload(url) {
+    if (!url || _apkDlInProgress) return;
+    _apkDlInProgress = true;
+    _setUpdateDownloadVisible(false);
+    _setUpdateInstallReady(false);
+    _setUpdateProgressUI({ show: true, progress: 0, label: 'Скачивание APK…', indeterminate: true });
+    try {
+      const effectiveUrl = /^https?:\/\//i.test(url)
+        ? ('/api/ext-source?u=' + encodeURIComponent(url))
+        : url;
+      const resp = await fetch(effectiveUrl, { cache: 'no-store' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const total = Number(resp.headers.get('Content-Length') || 0);
+      const cd = String(resp.headers.get('Content-Disposition') || '');
+      const m = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+      _webDownloadedFilename = m ? decodeURIComponent(m[1].replace(/"/g, '')) : 'tg-ws-proxy-release.apk';
+      if (!resp.body || !resp.body.getReader) {
+        const blob = await resp.blob();
+        if (_webDownloadedBlobUrl) URL.revokeObjectURL(_webDownloadedBlobUrl);
+        _webDownloadedBlobUrl = URL.createObjectURL(blob);
+        _setUpdateProgressUI({ show: true, progress: 100, label: 'APK загружен' });
+        _setUpdateInstallReady(true);
+        return;
+      }
+      const reader = resp.body.getReader();
+      const chunks = [];
+      let received = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.byteLength || value.length || 0;
+        if (total > 0) {
+          const p = Math.max(0, Math.min(100, Math.round((received * 100) / total)));
+          _setUpdateProgressUI({ show: true, progress: p, label: 'Скачивание APK…' });
+        } else {
+          _setUpdateProgressUI({ show: true, progress: 0, label: 'Скачивание APK…', indeterminate: true });
+        }
+      }
+      const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+      if (_webDownloadedBlobUrl) URL.revokeObjectURL(_webDownloadedBlobUrl);
+      _webDownloadedBlobUrl = URL.createObjectURL(blob);
+      _setUpdateProgressUI({ show: true, progress: 100, label: 'APK загружен' });
+      _setUpdateInstallReady(true);
+    } catch (e) {
+      _setUpdateDownloadVisible(true);
+      _setUpdateProgressUI({ show: false });
+      _setUpdateInstallReady(false);
+      _appAlert('Не удалось скачать обновление. Проверьте интернет и попробуйте снова.');
+    } finally {
+      _apkDlInProgress = false;
+    }
+  }
+
+  function onUpdateInstallClick() {
+    if (!_apkInstallReady) return;
+    if (_webDownloadedBlobUrl) {
+      const a = document.createElement('a');
+      a.href = _webDownloadedBlobUrl;
+      a.download = _webDownloadedFilename || 'tg-ws-proxy-release.apk';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return;
+    }
+    try {
+      const br = window.TgwsAndroid;
+      if (br && br.installDownloadedApk) {
+        const ok = !!br.installDownloadedApk();
+        if (!ok) _appAlert('Не удалось открыть установщик APK.');
+        return;
+      }
+    } catch (_) {}
+    _appAlert('Установка доступна только в Android-приложении.');
+  }
+
   function dismissUpdate() {
     document.getElementById('update-banner').style.display = 'none';
+    _stopApkDownloadPolling();
+    _apkDlInProgress = false;
+    _setUpdateProgressUI({ show: false });
+    _setUpdateInstallReady(false);
+    _setUpdateDownloadVisible(true);
+    if (_webDownloadedBlobUrl) {
+      URL.revokeObjectURL(_webDownloadedBlobUrl);
+      _webDownloadedBlobUrl = '';
+    }
   }
 
   // ── External proxy list (источники и порядок как в docs/index.html) ───────
   const EXT_PROXY_SOURCES = [
-    { url: 'https://mtprobe.cyou/search?ee_mask=false&max_ping=350&limit=180&offset=0&search=&no_mask=true&dd_mask=true', type: 'json_mtprobe' },
-    { url: 'https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json', type: 'json' },
     { url: 'https://raw.githubusercontent.com/Therealwh/MTPproxyLIST/main/verified/proxy_all_verified.json', type: 'json_therealwh' },
     { url: 'https://player1545.github.io/mtproto-proxy-list/proxies.json', type: 'json_player' },
+    { url: 'https://raw.githubusercontent.com/Firmfox/Proxify/refs/heads/main/telegram_proxies/mtproto.txt', type: 'text' },
     { url: 'https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt', type: 'text' },
+    { url: 'https://raw.githubusercontent.com/Surfboardv2ray/TGProto/refs/heads/main/proxies-tested.txt', type: 'text' },
+    { url: 'https://raw.githubusercontent.com/MustafaBaqer/VestraNet-Nodes/main/protocols/mtproto.txt', type: 'text' },
     { url: 'https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt', type: 'text' },
   ];
 
@@ -4889,6 +5164,7 @@
 
   let _extProxyList = [];
   let _extProxyVirtualQueued = false;
+let _extProxiesLoading = false;
   const _extProxyVirtual = {
     rowHeight: 72,
     gap: 6,
@@ -4925,12 +5201,14 @@
 
   function _proxyRank(p) {
     const displayPing = _displayPing(p);
+    const hasPing = Number.isFinite(displayPing);
     return [
       _extProxyFavorites.has(_proxyKey(p)) ? 0 : 1,
-      _isLikelyEeProxy(p) ? 0 : 1,
+      hasPing ? 0 : 1,
+      hasPing ? displayPing : 999999,
       p?.port === 443 ? 0 : 1,
+      _isLikelyEeProxy(p) ? 0 : 1,
       _isDomainHost(p?.host) ? 0 : 1,
-      Number.isFinite(displayPing) ? displayPing : 999999,
       p?.host || '',
       p?.port || 0
     ];
@@ -5197,7 +5475,8 @@
 
   async function _fetchSource(src) {
     try {
-      const r = await fetch(src.url, { cache: 'no-store' });
+      const proxiedUrl = '/api/ext-source?u=' + encodeURIComponent(src.url);
+      const r = await fetch(proxiedUrl, { cache: 'no-store' });
       if (!r.ok) return [];
 
       if (src.type === 'json_mtprobe') {
@@ -5269,6 +5548,8 @@
   }
 
   async function loadExtProxies() {
+    if (_extProxiesLoading) return;
+    _extProxiesLoading = true;
     const container = document.getElementById('ext-proxy-list');
     const btn = document.getElementById('ext-refresh-btn');
     const probeBar = document.getElementById('ext-probe-bar');
@@ -5276,22 +5557,31 @@
     const probeRight = document.getElementById('ext-probe-right');
 
     let _probeFoundCount = 0;
+    let _probeStartedAt = 0;
 
     const _startProbeBar = () => {
       _probeFoundCount = 0;
+      _probeStartedAt = Date.now();
       if (probeBar) probeBar.classList.add('is-visible');
       if (probeLeft) probeLeft.textContent = 'Проверяем прокси · 0 с';
       if (probeRight) probeRight.textContent = '';
-      const start = Date.now();
       _probeTimerInterval = setInterval(() => {
-        const sec = Math.floor((Date.now() - start) / 1000);
+        const sec = Math.floor((Date.now() - _probeStartedAt) / 1000);
         if (probeLeft) probeLeft.textContent = `Проверяем прокси · ${sec} с`;
       }, 1000);
     };
 
     const _stopProbeBar = () => {
       if (_probeTimerInterval) { clearInterval(_probeTimerInterval); _probeTimerInterval = null; }
-      if (probeLeft) probeLeft.textContent = '';
+    };
+
+    const _finishProbeBar = (interrupted = false) => {
+      if (!_probeStartedAt) return;
+      const sec = Math.max(0, Math.floor((Date.now() - _probeStartedAt) / 1000));
+      if (probeBar) probeBar.classList.add('is-visible');
+      if (probeLeft) probeLeft.textContent = interrupted ? `Проверка прервана · ${sec} с` : `Проверка шла ${sec} с`;
+      if (probeRight) probeRight.textContent = _probeFoundCount > 0 ? `Найдено ${_probeFoundCount}` : 'Ничего не найдено';
+      _probeStartedAt = 0;
     };
 
     const _updateProbeFound = (n) => {
@@ -5431,6 +5721,7 @@
       );
 
       _stopProbeBar();
+      _finishProbeBar(false);
 
       if (liveList.length === 0) {
         if (container) container.innerHTML = '<div class="ext-proxy-status">Нет рабочих прокси. Попробуйте обновить.</div>';
@@ -5439,9 +5730,11 @@
 
     } catch (e) {
       _stopProbeBar();
+      _finishProbeBar(true);
       if (container) container.innerHTML = '<div class="ext-proxy-status">Ошибка загрузки. Проверьте интернет и обновите список.</div>';
       _updateExtProxyScrollTopButton();
     } finally {
+      _extProxiesLoading = false;
       if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
     }
   }
@@ -5586,13 +5879,12 @@
   syncOfflineBanner();
   document.body.classList.toggle('doc-hidden', document.hidden);
   initAuth().then(() => {
+    _warmupExtProxies();
     setTimeout(checkForUpdate, 4000); // показывать всем, независимо от подписки
     if (_subStatus === 'expired') return; // paywall уже показан
     pollStatus();
     const _fastPoll = setInterval(pollStatus, 600);
     setTimeout(() => { clearInterval(_fastPoll); setInterval(pollStatus, 3000); }, 5000);
-    fetchAutostart();
-    fetchRestartInterval();
     checkBatteryOpt();
     setInterval(checkBatteryOpt, 10000);
     if (shouldShowOnboardingInProd()) {
@@ -5600,8 +5892,16 @@
     }
     // Инициализируем индикатор без анимации
     const _ind = document.getElementById('tab-indicator');
-    if (_ind) { _ind.style.transition = 'none'; _moveTabIndicator('main'); }
+    if (_ind) { _ind.style.transition = 'none'; _syncTabIndicatorToActive(); }
     requestAnimationFrame(() => { if (_ind) _ind.style.transition = ''; });
+
+    // Держим индикатор синхронным после resize/возврата приложения и поздних layout-сдвигов.
+    window.addEventListener('resize', () => requestAnimationFrame(_syncTabIndicatorToActive), { passive: true });
+    window.addEventListener('pageshow', () => requestAnimationFrame(_syncTabIndicatorToActive), { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) requestAnimationFrame(_syncTabIndicatorToActive);
+    });
+    setTimeout(_syncTabIndicatorToActive, 120);
   });
 </script>
 
