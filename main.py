@@ -18,8 +18,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional, Tuple
+from urllib.parse import urlparse
 
 from app_log import append_plain_timestamp_line
+
+
+def _http_path(raw_path: str) -> str:
+    """Только path без ?query и #fragment (BaseHTTPRequestHandler.path их включает)."""
+    if not raw_path:
+        return "/"
+    parsed = urlparse(raw_path)
+    return parsed.path if parsed.path else "/"
+
 
 HOST_PROXY = "127.0.0.1"
 PORT_PROXY = 1443
@@ -1223,7 +1233,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         global _running
-        if self.path in ("/", "/index.html"):
+        path = _http_path(self.path)
+        if path in ("/", "/index.html"):
             try:
                 html = _inject_supabase_public(UI_FILE.read_bytes())
                 self.send_response(200)
@@ -1234,7 +1245,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == "/admin.html":
+        elif path == "/admin.html":
             try:
                 html = _inject_supabase_public(ADMIN_FILE.read_bytes())
                 self.send_response(200)
@@ -1245,7 +1256,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
 
-        elif self.path == "/icon.png":
+        elif path == "/icon.png":
             icon_path = _icon_png_path()
             if icon_path is None:
                 self.send_response(404)
@@ -1263,7 +1274,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(404)
                 self.end_headers()
 
-        elif self.path == "/cover.jpg":
+        elif path == "/cover.jpg":
             cover = _cover_jpg_path()
             if not cover.is_file():
                 self.send_response(404)
@@ -1281,7 +1292,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(404)
                 self.end_headers()
 
-        elif self.path == "/rounded-qr.js":
+        elif path == "/rounded-qr.js":
             if not ROUNDED_QR_FILE.is_file():
                 self.send_response(404)
                 self.end_headers()
@@ -1298,14 +1309,14 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(404)
                 self.end_headers()
 
-        elif self.path in ("/supabase.min.js", "/qrcode.min.js", "/qrcode-generator.min.js", "/lucide.min.js"):
+        elif path in ("/supabase.min.js", "/qrcode.min.js", "/qrcode-generator.min.js", "/lucide.min.js"):
             file_map = {
                 "/supabase.min.js": SUPABASE_JS_FILE,
                 "/qrcode.min.js": QRCODE_JS_FILE,
                 "/qrcode-generator.min.js": QRCODE_GENERATOR_JS_FILE,
                 "/lucide.min.js": LUCIDE_JS_FILE,
             }
-            js_file = file_map[self.path]
+            js_file = file_map[path]
             if not js_file.is_file():
                 self.send_response(404)
                 self.end_headers()
@@ -1322,28 +1333,28 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(404)
                 self.end_headers()
 
-        elif self.path == "/api/deep-link":
+        elif path == "/api/deep-link":
             global _deep_link_url
             url = _deep_link_url
             _deep_link_url = None  # consume once
             self._send_json({"url": url})
 
-        elif self.path == "/api/version":
+        elif path == "/api/version":
             self._send_json({"version": APP_VERSION, "serve_port": SERVE_PORT})
 
-        elif self.path == "/api/battery":
+        elif path == "/api/battery":
             self._send_json({"optimized": not _is_ignoring_battery_optimizations()})
 
-        elif self.path == "/api/autostart":
+        elif path == "/api/autostart":
             self._send_json({"enabled": _get_autostart_enabled()})
 
-        elif self.path == "/api/subscription-gate":
+        elif path == "/api/subscription-gate":
             self._send_json({"allowed": _get_subscription_proxy_allowed()})
 
-        elif self.path == "/api/restart-interval":
+        elif path == "/api/restart-interval":
             self._send_json({"seconds": _get_restart_interval_seconds()})
 
-        elif self.path == "/api/logs":
+        elif path == "/api/logs":
             try:
                 log_path = Path(_secret_storage_path().parent / LOG_FILENAME)
                 if log_path.exists():
@@ -1359,7 +1370,7 @@ class Handler(BaseHTTPRequestHandler):
                 tail = f"(ошибка чтения лога: {e})"
             self._send_json({"log": tail})
 
-        elif self.path == "/api/status":
+        elif path == "/api/status":
             if not _app_ready:
                 self._send_json({"booting": True, "running": False})
                 return
@@ -1386,7 +1397,8 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self) -> None:
-        if self.path == "/api/start":
+        path = _http_path(self.path)
+        if path == "/api/start":
             try:
                 _request_permissions()
                 ok, err = _start_service()
@@ -1407,20 +1419,20 @@ class Handler(BaseHTTPRequestHandler):
                     _write_start_log(f"UI: … {ln}", level="ERR")
                 self._send_json({"ok": False, "running": False, "error": str(e)})
 
-        elif self.path == "/api/battery":
+        elif path == "/api/battery":
             try:
                 _open_battery_optimization_settings()
             except Exception:
                 pass
             self._send_json({"ok": True})
 
-        elif self.path == "/api/autostart":
+        elif path == "/api/autostart":
             body = _read_json_body(self)
             enabled = bool(body.get("enabled", False))
             ok = _set_autostart_enabled(enabled)
             self._send_json({"ok": ok, "enabled": enabled if ok else _get_autostart_enabled()})
 
-        elif self.path == "/api/subscription-gate":
+        elif path == "/api/subscription-gate":
             body = _read_json_body(self)
             if "allowed" not in body:
                 self._send_json({"ok": False, "error": "missing_allowed"}, 400)
@@ -1431,7 +1443,7 @@ class Handler(BaseHTTPRequestHandler):
                 "allowed": bool(body.get("allowed")) if ok else _get_subscription_proxy_allowed(),
             })
 
-        elif self.path == "/api/restart-interval":
+        elif path == "/api/restart-interval":
             body = _read_json_body(self)
             try:
                 requested = int(body.get("seconds", DEFAULT_RESTART_INTERVAL_SECONDS))
@@ -1443,7 +1455,7 @@ class Handler(BaseHTTPRequestHandler):
                 "seconds": requested if ok else _get_restart_interval_seconds(),
             })
 
-        elif self.path == "/api/stop":
+        elif path == "/api/stop":
             try:
                 _stop_service()
             except Exception as e:
@@ -1451,14 +1463,14 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self._send_json({"ok": True, "running": _running, "secret": None})
 
-        elif self.path == "/api/share":
+        elif path == "/api/share":
             try:
                 ok = _share_app()
             except Exception:
                 ok = False
             self._send_json({"ok": ok})
 
-        elif self.path == "/api/proxy-lab-probe":
+        elif path == "/api/proxy-lab-probe":
             body = _read_json_body(self)
             proxies = body.get("proxies", [])
             if not isinstance(proxies, list):
@@ -1492,7 +1504,7 @@ class Handler(BaseHTTPRequestHandler):
 
             self._send_json({"results": results})
 
-        elif self.path == "/api/proxy-lab-stream":
+        elif path == "/api/proxy-lab-stream":
             body = _read_json_body(self)
             proxies = body.get("proxies", [])
             if not isinstance(proxies, list):

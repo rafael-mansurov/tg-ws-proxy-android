@@ -34,6 +34,7 @@ import android.widget.AbsoluteLayout;
 import android.view.ViewGroup.LayoutParams;
 
 import android.webkit.WebBackForwardList;
+import android.webkit.WebSettings;
 import android.webkit.WebViewClient;
 import android.webkit.WebView;
 import android.webkit.CookieManager;
@@ -167,6 +168,10 @@ public class PythonActivity extends Activity {
             mWebView = new WebView(PythonActivity.mActivity);
             mWebView.getSettings().setJavaScriptEnabled(true);
             mWebView.getSettings().setDomStorageEnabled(true);
+            // http://127.0.0.1 UI → HTTPS Supabase / fonts; без этого часть WebView режет mixed content.
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                mWebView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+            }
             mWebView.addJavascriptInterface(new TgwsJsBridge(PythonActivity.mActivity), "TgwsAndroid");
             mWebView.loadUrl("file:///android_asset/_load.html");
 

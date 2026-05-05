@@ -726,9 +726,18 @@
       window.parent.__tgwsCloseAdmin();
       return;
     }
+    try {
+      sessionStorage.setItem('tgws_skip_sub_visibility_after_admin', '1');
+    } catch (_) {}
     if (window.history.length > 1) {
-      try { history.back(); return; } catch (_) {}
+      try {
+        history.back();
+        return;
+      } catch (_) {}
     }
+    try {
+      sessionStorage.setItem('tgws_resume_from_admin_full_reload', '1');
+    } catch (_) {}
     location.href = new URL('index.html', location.href).href;
   }
 

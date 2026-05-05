@@ -2672,6 +2672,26 @@
   function openAdminPanel() {
     const ov = document.getElementById('admin-overlay');
     const fr = document.getElementById('admin-frame');
+    // Android WebView: iframe часто не делится тем же контекстом хранилища / зависает на Supabase.
+    // Полноэкранная админка — тот же origin и session, что у главной страницы.
+    try {
+      if (window.TgwsAndroid) {
+        try {
+          sessionStorage.setItem('tgws_skip_sub_visibility_after_admin', '1');
+          sessionStorage.setItem(
+            'tgws_resume_from_admin_snap',
+            JSON.stringify({
+              t: Date.now(),
+              profile: _subProfile,
+              status: _subStatus,
+              loaded: _subLoaded,
+            }),
+          );
+        } catch (_) {}
+        location.href = new URL('admin.html', location.href).href;
+        return;
+      }
+    } catch (_) {}
     if (!ov || !fr) {
       location.href = new URL('admin.html', location.href).href;
       return;
@@ -2694,6 +2714,73 @@
       const b64 = session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
       return JSON.parse(atob(b64));
     } catch { return null; }
+  }
+
+  /** Вернулись с admin.html полной перезагрузкой — без повторного запроса profiles в БД. */
+  async function _restoreSubscriptionAfterAdminFullReload() {
+    if (!_supa) return false;
+    if (sessionStorage.getItem('tgws_resume_from_admin_full_reload') !== '1') return false;
+    sessionStorage.removeItem('tgws_resume_from_admin_full_reload');
+    const raw = sessionStorage.removeItem('tgws_resume_from_admin_snap');
+    if (!raw) return false;
+    let snap;
+    try {
+      snap = JSON.parse(raw);
+    } catch (_) {
+      return false;
+    }
+    if (!snap?.profile?.id || Date.now() - snap.t > 45 * 60 * 1000) return false;
+    const { data: { session } } = await _supa.auth.getSession();
+    if (!session || session.user.id !== snap.profile.id) return false;
+
+    _subProfile = snap.profile;
+    _subStatus = snap.status;
+    _subLoaded = !!snap.loaded;
+
+    const admRow = document.getElementById('sett-admin-row');
+    if (admRow) admRow.style.display = _subProfile.is_admin ? 'flex' : 'none';
+    const promoSec = document.getElementById('promo-section');
+    if (promoSec) promoSec.style.display = '';
+
+    fetch('/api/version', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.version)
+          _supa.from('profiles').update({ app_version: d.version }).eq('id', session.user.id).then(() => {});
+      })
+      .catch(() => {});
+
+    const now = Date.now();
+    const trialStart = _subProfile.trial_start ? new Date(_subProfile.trial_start).getTime() : 0;
+    const trialEnd = trialStart + 7 * 24 * 60 * 60 * 1000;
+    const paidUntil = _subProfile.paid_until ? new Date(_subProfile.paid_until).getTime() : 0;
+
+    if (paidUntil > now) {
+      _subStatus = 'active';
+      _hideAllOverlays();
+      _updateSubBadge();
+      await _syncSubscriptionGateForBoot(true);
+      return true;
+    }
+    if (_subProfile.status === 'expired') {
+      if (_subStatus !== 'expired') _stopProxyOnExpiry();
+      _subStatus = 'expired';
+      _showPaywall();
+      await _syncSubscriptionGateForBoot(false);
+      return true;
+    }
+    if (trialStart && now < trialEnd) {
+      _subStatus = 'trial';
+      _hideAllOverlays();
+      _updateSubBadge();
+      await _syncSubscriptionGateForBoot(true);
+      return true;
+    }
+    if (_subStatus !== 'expired') _stopProxyOnExpiry();
+    _subStatus = 'expired';
+    _showPaywall();
+    await _syncSubscriptionGateForBoot(false);
+    return true;
   }
 
   async function checkSubscription() {
@@ -3427,7 +3514,8 @@
     await _checkDeepLink();
     if (_authMode === 'reset') return;
 
-    await checkSubscription();
+    const restoredFromAdmin = await _restoreSubscriptionAfterAdminFullReload();
+    if (!restoredFromAdmin) await checkSubscription();
 
     // Прогрев Edge Function админки — только для админов, fire-and-forget
     if (_subProfile?.is_admin) {
@@ -5415,6 +5503,10 @@
     if (document.visibilityState !== 'visible') return;
     if (_authMode === 'reset') return; // уже на форме нового пароля
     await _checkDeepLink();
+    if (sessionStorage.getItem('tgws_skip_sub_visibility_after_admin') === '1') {
+      sessionStorage.removeItem('tgws_skip_sub_visibility_after_admin');
+      return;
+    }
     // Перечитываем подписку при каждом выходе на передний план
     // (дебаунс 10 сек чтобы не долбить при частых переключениях)
     const now = Date.now();
