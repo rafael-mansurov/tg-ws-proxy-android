@@ -720,6 +720,47 @@
   const SUPA_URL = String(TGWS_CFG.url || '').trim();
   const SUPA_ANON = String(TGWS_CFG.anon || '').trim();
   const _supa = (SUPA_URL && SUPA_ANON) ? supabase.createClient(SUPA_URL, SUPA_ANON) : null;
+  const ADMIN_BOOT_TIMEOUT_MS = 12000;
+  const ADMIN_AUTH_SNAP_KEY = 'tgws_admin_auth_snap';
+
+  let _adminAuthSnap = null;
+
+  async function _sessionWithTimeout(timeoutMs = ADMIN_BOOT_TIMEOUT_MS) {
+    if (!_supa) return { data: { session: null } };
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('session_timeout')), timeoutMs);
+    });
+    return Promise.race([_supa.auth.getSession(), timeoutPromise]);
+  }
+
+  function _readAdminAuthSnap() {
+    try {
+      const raw = sessionStorage.getItem(ADMIN_AUTH_SNAP_KEY);
+      if (!raw) return null;
+      const v = JSON.parse(raw);
+      if (!v || typeof v !== 'object' || !v.access_token) return null;
+      if (Date.now() - Number(v.ts || 0) > 2 * 60 * 60 * 1000) return null;
+      return v;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function _getAdminAccessToken(timeoutMs = ADMIN_BOOT_TIMEOUT_MS) {
+    if (_adminAuthSnap?.access_token) return _adminAuthSnap.access_token;
+    const { data: { session } } = await _sessionWithTimeout(timeoutMs);
+    if (!session?.access_token) return null;
+    _adminAuthSnap = {
+      ts: Date.now(),
+      access_token: session.access_token,
+      user_id: session.user?.id || null,
+      email: session.user?.email || '',
+    };
+    try {
+      sessionStorage.setItem(ADMIN_AUTH_SNAP_KEY, JSON.stringify(_adminAuthSnap));
+    } catch (_) {}
+    return _adminAuthSnap.access_token;
+  }
 
   function adminGoIndex() {
     if (window.parent && window.parent !== window && typeof window.parent.__tgwsCloseAdmin === 'function') {
@@ -816,16 +857,28 @@
     document.getElementById('table-empty').style.display = 'none';
     const _usersRefBtn = document.getElementById('users-refresh-btn');
     if (_usersRefBtn) _usersRefBtn.style.display = 'none';
-
-    const { data: { session } } = await _supa.auth.getSession();
-    const resp = await fetch(SUPA_URL + '/functions/v1/admin-profiles', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + session.access_token,
-        'apikey': SUPA_ANON,
-      },
-    });
-    if (!resp.ok) {
+    try {
+      const token = await _getAdminAccessToken();
+      if (!token) {
+        adminGoIndex();
+        return;
+      }
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 12000);
+      let resp;
+      try {
+        resp = await fetch(SUPA_URL + '/functions/v1/admin-profiles', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'apikey': SUPA_ANON,
+          },
+          signal: ctrl.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+      if (!resp.ok) {
       if (resp.status === 401 || resp.status === 403) {
         if (window.parent && window.parent !== window && typeof window.parent.__tgwsCloseAdmin === 'function') {
           window.parent.__tgwsCloseAdmin();
@@ -844,12 +897,12 @@
       document.getElementById('table-loading').style.display = 'none';
       if (_usersRefBtn) _usersRefBtn.style.display = '';
       return;
-    }
-    const data = await resp.json();
-    _isSuperAdmin  = data.isSuperAdmin === true;
-    _superAdminId  = data.superAdminId ?? null;
+      }
+      const data = await resp.json();
+      _isSuperAdmin  = data.isSuperAdmin === true;
+      _superAdminId  = data.superAdminId ?? null;
 
-    _allUsers = (data.profiles || []).map(u => {
+      _allUsers = (data.profiles || []).map(u => {
       const now = Date.now();
       const trialEnd  = new Date(u.trial_start).getTime() + TRIAL_DAYS * 86400000;
       const paidUntil = u.paid_until ? new Date(u.paid_until).getTime() : 0;
@@ -860,15 +913,21 @@
       else if (now < trialEnd) status = 'trial';
       else status = 'expired';
       return { ...u, _computed_status: status };
-    });
+      });
 
-    updateStats();
-    renderTable();
-    updateArchiveSectionMeta();
-    const _archBlock = document.getElementById('archive-block');
-    if (_archBlock && _archBlock.classList.contains('is-open')) renderArchive();
-    document.getElementById('table-loading').style.display = 'none';
-    if (_usersRefBtn) _usersRefBtn.style.display = '';
+      updateStats();
+      renderTable();
+      updateArchiveSectionMeta();
+      const _archBlock = document.getElementById('archive-block');
+      if (_archBlock && _archBlock.classList.contains('is-open')) renderArchive();
+      document.getElementById('table-loading').style.display = 'none';
+      if (_usersRefBtn) _usersRefBtn.style.display = '';
+    } catch (e) {
+      document.getElementById('table-loading').style.display = 'none';
+      if (_usersRefBtn) _usersRefBtn.style.display = '';
+      _toast(e?.name === 'AbortError' ? 'Таймаут загрузки админки' : 'Ошибка загрузки админки', 'err');
+      console.error(e);
+    }
   }
 
   function updateArchiveSectionMeta() {
@@ -1503,12 +1562,16 @@
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 10000);
     try {
-      const { data: { session } } = await _supa.auth.getSession();
+      const token = await _getAdminAccessToken(6000);
+      if (!token) {
+        _toast('Сессия не найдена. Откройте админку снова.', 'err');
+        return false;
+      }
       const resp = await fetch(SUPA_URL + '/functions/v1/admin-action', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + session.access_token,
+          'Authorization': 'Bearer ' + token,
           'apikey': SUPA_ANON,
         },
         body: JSON.stringify(body),
@@ -1547,6 +1610,16 @@
     if (el) { el.textContent = '⚠️ ' + msg; el.style.color = '#ff6b50'; }
     const sp = document.querySelector('.boot-spinner');
     if (sp) sp.style.display = 'none';
+    const bs = document.getElementById('boot-screen');
+    if (bs && !document.getElementById('boot-back-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'boot-back-btn';
+      btn.className = 'btn ghost';
+      btn.style.marginTop = '14px';
+      btn.textContent = 'Назад';
+      btn.onclick = () => adminGoIndex();
+      bs.appendChild(btn);
+    }
   }
 
   // Глобальный перехват ошибок — только до загрузки приложения
@@ -1561,8 +1634,24 @@
         _bootError('Задайте TGWS_SUPABASE_URL и TGWS_SUPABASE_ANON_KEY (окружение) или файл tgws_supabase_public.json рядом с сервером приложения.');
         return;
       }
-      const { data: { session } } = await _supa.auth.getSession();
-      if (!session) {
+      _bootMsg('Подготовка админки…');
+      _adminAuthSnap = _readAdminAuthSnap();
+      if (_adminAuthSnap?.access_token) {
+        _currentUserId = _adminAuthSnap.user_id || null;
+        document.getElementById('adm-user-email').textContent = _adminAuthSnap.email || '';
+        const bs = document.getElementById('boot-screen');
+        if (bs) bs.remove();
+        document.getElementById('app').style.display = 'block';
+        _appReady = true;
+        loadUsers().catch((e) => {
+          console.error(e);
+          _toast('Ошибка загрузки пользователей', 'err');
+        });
+        return;
+      }
+      _bootMsg('Проверка сессии…');
+      const token = await _getAdminAccessToken();
+      if (!token) {
         if (window.parent && window.parent !== window && typeof window.parent.__tgwsCloseAdmin === 'function') {
           window.parent.__tgwsCloseAdmin();
           return;
@@ -1571,15 +1660,22 @@
         return;
       }
 
-      _currentUserId = session.user.id;
-      document.getElementById('adm-user-email').textContent = session.user.email;
+      _currentUserId = _adminAuthSnap?.user_id || null;
+      document.getElementById('adm-user-email').textContent = _adminAuthSnap?.email || '';
       const bs = document.getElementById('boot-screen');
       if (bs) bs.remove();
       document.getElementById('app').style.display = 'block';
       _appReady = true;
-      loadUsers();
+      loadUsers().catch((e) => {
+        console.error(e);
+        _toast('Ошибка загрузки пользователей', 'err');
+      });
     } catch(e) {
-      _bootError('Ошибка загрузки');
+      _bootError(
+        e && e.message === 'session_timeout'
+          ? 'Таймаут проверки сессии. Проверьте интернет и откройте админку снова.'
+          : 'Ошибка загрузки'
+      );
       console.error(e);
     }
   })();

@@ -2687,6 +2687,24 @@
               loaded: _subLoaded,
             }),
           );
+          // Передаём админке уже полученную в index сессию, чтобы не зависеть от getSession() на новой странице.
+          // Если чтение сессии затянется — просто откроем админку без снапа (там есть fallback/redirect).
+          const _storeSnap = async () => {
+            if (!_supa) return;
+            const t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1200));
+            try {
+              const out = await Promise.race([_supa.auth.getSession(), t]);
+              const s = out?.data?.session;
+              if (!s?.access_token) return;
+              sessionStorage.setItem('tgws_admin_auth_snap', JSON.stringify({
+                ts: Date.now(),
+                access_token: s.access_token,
+                user_id: s.user?.id || null,
+                email: s.user?.email || '',
+              }));
+            } catch (_) {}
+          };
+          _storeSnap();
         } catch (_) {}
         location.href = new URL('admin.html', location.href).href;
         return;
