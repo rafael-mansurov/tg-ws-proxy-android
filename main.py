@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import sys
 import traceback
 import secrets
 import struct
@@ -36,6 +37,9 @@ PREF_PROXY_ALLOWED_BY_SUBSCRIPTION = "proxy_allowed_by_subscription"
 LISTEN_WAIT_TIMEOUT_S = 120.0
 STOP_PORT_WAIT_TIMEOUT_S = 12.0
 DEFAULT_RESTART_INTERVAL_SECONDS = 3600
+
+_embedded_proxy_thread: Optional[threading.Thread] = None
+_embedded_proxy_stop: Optional[threading.Event] = None
 
 try:
     from version import APP_VERSION
@@ -635,6 +639,119 @@ def _wait_proxy_listen(timeout_s: float = LISTEN_WAIT_TIMEOUT_S) -> bool:
     return False
 
 
+def _write_embedded_metrics(base: Path, rx_bps: float, tx_bps: float, last_ok_ts: float = 0.0) -> None:
+    payload = {
+        "ts": int(time.time()),
+        "rx_bps": max(0.0, float(rx_bps)),
+        "tx_bps": max(0.0, float(tx_bps)),
+        "last_session_ok_ts": float(last_ok_ts),
+    }
+    try:
+        (base / METRICS_FILENAME).write_text(
+            json.dumps(payload, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _start_embedded_metrics_monitor(base: Path, tg_mod) -> None:
+    def _loop() -> None:
+        last_t = time.monotonic()
+        last_up = float(getattr(getattr(tg_mod, "_stats", None), "bytes_up", 0) or 0)
+        last_down = float(getattr(getattr(tg_mod, "_stats", None), "bytes_down", 0) or 0)
+        _write_embedded_metrics(base, 0.0, 0.0, 0.0)
+        while True:
+            time.sleep(1.0)
+            now = time.monotonic()
+            dt = max(0.2, now - last_t)
+            stats = getattr(tg_mod, "_stats", None)
+            up = float(getattr(stats, "bytes_up", last_up) or last_up)
+            down = float(getattr(stats, "bytes_down", last_down) or last_down)
+            tx_bps = (up - last_up) / dt
+            rx_bps = (down - last_down) / dt
+            last_t = now
+            last_up = up
+            last_down = down
+            last_ok_ts = float(getattr(stats, "last_session_ok_ts", 0.0) or 0.0)
+            _write_embedded_metrics(base, rx_bps, tx_bps, last_ok_ts)
+
+    threading.Thread(target=_loop, name="tgws-metrics-embedded", daemon=True).start()
+
+
+def _build_embedded_argv(secret_hex: str) -> list[str]:
+    argv = [
+        "tg-ws-proxy",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        str(PORT_PROXY),
+        "--secret",
+        secret_hex,
+        "--verbose",
+        "--log-file",
+        str(_proxy_log_path()),
+    ]
+    try:
+        from proxy.dc_resolve import resolve_kws_edge_ipv4
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = {pool.submit(resolve_kws_edge_ipv4, dc): dc for dc in (2, 4)}
+            for fut in as_completed(futures):
+                dc = futures[fut]
+                try:
+                    ip = fut.result()
+                    argv.extend(["--dc-ip", f"{dc}:{ip}"])
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return argv
+
+
+def _embedded_proxy_worker(secret_hex: str, stop_thr: threading.Event) -> None:
+    import asyncio
+
+    base = _secret_storage_path().parent
+    try:
+        argv = _build_embedded_argv(secret_hex)
+        sys.argv = argv
+        from proxy import tg_ws_proxy as tg_mod
+
+        tg_mod._configure_from_argv()
+        _start_embedded_metrics_monitor(base, tg_mod)
+        _write_start_log(
+            "UI: встроенный прокси — тот же процесс Python, что и WebView; asyncio слушает порт",
+        )
+
+        async def _main_async():
+            stop_async = asyncio.Event()
+
+            async def _bridge():
+                while not stop_thr.is_set():
+                    await asyncio.sleep(0.15)
+                stop_async.set()
+
+            asyncio.create_task(_bridge())
+            await tg_mod._run(stop_async)
+
+        asyncio.run(_main_async())
+    except Exception as e:
+        _write_start_log(f"UI: встроенный прокси: исключение в worker: {e!r}", level="ERR")
+        traceback.print_exc()
+
+
+def _stop_embedded_proxy() -> None:
+    global _embedded_proxy_thread, _embedded_proxy_stop
+    if _embedded_proxy_stop is not None:
+        _embedded_proxy_stop.set()
+    thr = _embedded_proxy_thread
+    if thr is not None and thr.is_alive():
+        thr.join(timeout=STOP_PORT_WAIT_TIMEOUT_S)
+    _embedded_proxy_thread = None
+    _embedded_proxy_stop = None
+
+
 _LOG_TS_RE = re.compile(r"^(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2})\b")
 
 
@@ -767,15 +884,19 @@ def _clear_proxy_ready_notification() -> None:
 
 
 def _start_service() -> Tuple[bool, Optional[str]]:
-    """Start foreground service from a clean state."""
-    global _running
+    """Запуск прокси в том же процессе Python, что и WebView (аналог run_local_proxy.py на ПК).
+
+    Отдельный процесс PythonService на многих сборках не поднимал listen на 127.0.0.1 —
+    UI ждал бы Connection refused до таймаута.
+    """
+    global _running, _embedded_proxy_thread, _embedded_proxy_stop
     from jnius import autoclass
 
     if len(SECRET) != 32:
         _write_start_log("UI: секрет не 32 hex — старт невозможен", level="ERR")
         return False, "Секрет не готов. Закройте приложение и откройте снова."
 
-    # Сервис читает секрет только из этого файла (не передаём секрет в Intent / PYTHON_SERVICE_ARGUMENT).
+    # Сервис (boot / tile) по-прежнему читает секрет из этого файла.
     _save_secret(SECRET)
     _write_start_log(
         "UI: новая попытка старта прокси (секрет записан во внутреннее хранилище приложения)",
@@ -788,7 +909,12 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         _write_start_log("UI: PythonActivity.mActivity is None", level="ERR")
         return False, "Интерфейс не готов. Закройте приложение и откройте снова."
 
-    # Останавливаем предыдущий инстанс через явный ComponentName — не требует класса в DEX.
+    try:
+        _write_start_log("UI: stop embedded proxy (если был)…")
+        _stop_embedded_proxy()
+    except Exception as _e:
+        _write_start_log(f"UI: stop embedded (игнор): {_e!r}", level="WARN")
+
     try:
         _write_start_log("UI: stopService(ServiceProxy)…")
         _stop_service_by_component(activity)
@@ -803,54 +929,49 @@ def _start_service() -> Tuple[bool, Optional[str]]:
         _write_start_log("UI: старый инстанс не остановился и порт не открыт", level="WARN")
         return False, "Не удалось остановить прошлый инстанс прокси. Попробуйте ещё раз."
 
-    started = False
-    fg_text = "TG WS Proxy · сервис активен · нажмите, чтобы открыть приложение"
     try:
-        # Используем только системные классы (Intent, ComponentName, Build) —
-        # app-классы (ServiceLauncher) недоступны из HTTP-handler потока
-        # из-за Android JNI thread ClassLoader restrictions.
-        Intent = autoclass("android.content.Intent")
-        ComponentName = autoclass("android.content.ComponentName")
         BuildVersion = autoclass("android.os.Build$VERSION")
         pkg = activity.getPackageName()
         sdk = int(BuildVersion.SDK_INT)
-        private_dir = activity.getFilesDir().getAbsolutePath()
-        argument = private_dir + "/app"
         _write_start_log(f"UI: pkg={pkg}, API={sdk}")
-        intent = Intent()
-        intent.setComponent(ComponentName(pkg, pkg + ".ServiceProxy"))
-        intent.putExtra("androidPrivate", private_dir)
-        intent.putExtra("androidArgument", argument)
-        intent.putExtra("serviceTitle", "TG WS Proxy")
-        intent.putExtra("serviceEntrypoint", "services/proxy_service.py")
-        intent.putExtra("pythonName", "proxy")
-        intent.putExtra("serviceStartAsForeground", "true")
-        intent.putExtra("pythonHome", argument)
-        intent.putExtra("pythonPath", argument + ":" + argument + "/lib")
-        intent.putExtra("pythonServiceArgument", "{}")
-        intent.putExtra("smallIconName", "")
-        intent.putExtra("contentTitle", "TG WS Proxy")
-        intent.putExtra("contentText", fg_text)
-        if sdk >= 26:
-            _write_start_log("UI: вызов startForegroundService(…)")
-            activity.startForegroundService(intent)
-        else:
-            _write_start_log("UI: вызов startService(…)")
-            activity.startService(intent)
-        started = True
-        _write_start_log("UI: системный вызов запуска сервиса завершился без исключения")
     except Exception as _e:
-        _write_start_log(f"UI: исключение при запуске сервиса: {_e!r}", level="ERR")
+        _write_start_log(f"UI: diag pkg/API: {_e!r}", level="WARN")
+
+    started = False
+    try:
+        stop_evt = threading.Event()
+        _embedded_proxy_stop = stop_evt
+        secret_hex = SECRET
+
+        def _worker():
+            _embedded_proxy_worker(secret_hex, stop_evt)
+
+        _embedded_proxy_thread = threading.Thread(
+            target=_worker,
+            name="tgws-embedded-proxy",
+            daemon=True,
+        )
+        _write_start_log(
+            "UI: старт встроенного прокси (один процесс с UI), без отдельного PythonService",
+        )
+        _embedded_proxy_thread.start()
+        started = True
+    except Exception as _e:
+        _write_start_log(f"UI: не удалось запустить встроенный прокси: {_e!r}", level="ERR")
         started = False
     if not started and not _probe_proxy_port_open():
-        _write_start_log("UI: сервис не стартовал и порт закрыт", level="ERR")
-        return False, "Не удалось отправить команду запуска сервиса."
+        _write_start_log("UI: поток прокси не создан и порт закрыт", level="ERR")
+        return False, "Не удалось запустить прокси."
     if not _wait_proxy_listen():
         if _probe_proxy_port_open():
             _running = True
             _notify_proxy_ready()
             _write_start_log("UI: порт открылся с задержкой после таймаута ожидания")
             return True, None
+        try:
+            _stop_embedded_proxy()
+        except Exception:
+            pass
         try:
             _stop_service_by_component(activity)
         except Exception:
@@ -860,9 +981,8 @@ def _start_service() -> Tuple[bool, Optional[str]]:
             level="WARN",
         )
         _write_start_log(
-            "UI: диагностика: Logcat по тегу «python service»; файл лога — tgws_proxy.log "
-            "во внутреннем хранилище приложения. После падения worker p4a мог игнорировать "
-            "повторный старт — нужна сборка с исправленным PythonService.onStartCommand.",
+            "UI: диагностика: tgws_proxy.log во внутреннем хранилище приложения; "
+            "прокси для переключателя из UI работает в процессе приложения (не PythonService).",
             level="INFO",
         )
         return False, (
@@ -895,6 +1015,10 @@ def _stop_service() -> None:
     global _running
     from jnius import autoclass
 
+    try:
+        _stop_embedded_proxy()
+    except Exception:
+        pass
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
     try:
         _stop_service_by_component(PythonActivity.mActivity)
