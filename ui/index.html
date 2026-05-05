@@ -151,6 +151,35 @@
     }
     .page.is-active { display: flex; }
 
+    /* Pull-to-refresh visual skeleton */
+    .ptr-refresh-mask {
+      position: fixed;
+      inset: 0;
+      z-index: 99990;
+      display: none;
+      pointer-events: none;
+      background: rgba(8, 8, 12, 0.76);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      padding: calc(env(safe-area-inset-top, 16px) + 84px) 18px calc(env(safe-area-inset-bottom, 16px) + 90px);
+    }
+    .ptr-refresh-mask.is-on { display: block; }
+    .ptr-sk {
+      border-radius: 16px;
+      background: linear-gradient(110deg, rgba(255,255,255,0.05) 8%, rgba(255,255,255,0.14) 18%, rgba(255,255,255,0.05) 33%);
+      background-size: 220% 100%;
+      animation: ptrShimmer 1.15s linear infinite;
+    }
+    .ptr-sk + .ptr-sk { margin-top: 12px; }
+    .ptr-sk.status { height: 92px; }
+    .ptr-sk.row { height: 74px; }
+    .ptr-sk.secret { height: 86px; }
+    .ptr-sk.cta { height: 48px; border-radius: 24px; margin-top: 16px; }
+    @keyframes ptrShimmer {
+      from { background-position: 100% 0; }
+      to   { background-position: -100% 0; }
+    }
+
     /* ── Content ── */
     .content {
       flex: 1;
@@ -1408,6 +1437,12 @@
   <svg id="ptr-spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5" stroke-linecap="round">
     <path d="M12 2a10 10 0 1 0 10 10"/>
   </svg>
+</div>
+<div id="ptr-refresh-mask" class="ptr-refresh-mask" aria-hidden="true">
+  <div class="ptr-sk status"></div>
+  <div class="ptr-sk row"></div>
+  <div class="ptr-sk secret"></div>
+  <div class="ptr-sk cta"></div>
 </div>
 
   <div class="header">
@@ -5434,6 +5469,7 @@
     let startY = 0, pulling = false, triggered = false;
     const indicator = document.getElementById('ptr-indicator');
     const spinner   = document.getElementById('ptr-spinner');
+    const refreshMask = document.getElementById('ptr-refresh-mask');
     let spinAngle = 0, spinRAF = null;
 
     function _spin() {
@@ -5476,6 +5512,11 @@
     }, { passive: true });
 
     let _ptrBusy = false;
+    function _setRefreshMask(on) {
+      if (!refreshMask) return;
+      refreshMask.classList.toggle('is-on', !!on);
+      refreshMask.setAttribute('aria-hidden', on ? 'false' : 'true');
+    }
 
     document.addEventListener('touchend', async () => {
       if (!pulling) return;
@@ -5483,6 +5524,7 @@
       _resetIndicator();
       if (!wasTriggered || _ptrBusy) return;
       _ptrBusy = true;
+      _setRefreshMask(true);
 
       // Блокируем все касания на странице
       const main = document.getElementById('page-main');
@@ -5507,6 +5549,7 @@
           main.style.opacity = '1';
           setTimeout(() => { main.style.transition = ''; }, 250);
         }
+        _setRefreshMask(false);
         document.body.style.pointerEvents = '';
         _ptrBusy = false;
       }

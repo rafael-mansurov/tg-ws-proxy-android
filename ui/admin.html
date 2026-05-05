@@ -1622,6 +1622,17 @@
     }
   }
 
+  function _showAdminShellEarly() {
+    if (_appReady) return;
+    const bs = document.getElementById('boot-screen');
+    if (bs) bs.remove();
+    document.getElementById('app').style.display = 'block';
+    _appReady = true;
+    renderUsersSkeleton(7);
+    const _usersRefBtn = document.getElementById('users-refresh-btn');
+    if (_usersRefBtn) _usersRefBtn.style.display = 'none';
+  }
+
   // Глобальный перехват ошибок — только до загрузки приложения
   let _appReady = false;
   window.onerror = (msg, src, line) => { if (!_appReady) _bootError('Ошибка загрузки (' + line + ')'); else console.error(msg, src, line); };
@@ -1634,15 +1645,12 @@
         _bootError('Задайте TGWS_SUPABASE_URL и TGWS_SUPABASE_ANON_KEY (окружение) или файл tgws_supabase_public.json рядом с сервером приложения.');
         return;
       }
+      _showAdminShellEarly();
       _bootMsg('Подготовка админки…');
       _adminAuthSnap = _readAdminAuthSnap();
       if (_adminAuthSnap?.access_token) {
         _currentUserId = _adminAuthSnap.user_id || null;
         document.getElementById('adm-user-email').textContent = _adminAuthSnap.email || '';
-        const bs = document.getElementById('boot-screen');
-        if (bs) bs.remove();
-        document.getElementById('app').style.display = 'block';
-        _appReady = true;
         loadUsers().catch((e) => {
           console.error(e);
           _toast('Ошибка загрузки пользователей', 'err');
@@ -1662,10 +1670,6 @@
 
       _currentUserId = _adminAuthSnap?.user_id || null;
       document.getElementById('adm-user-email').textContent = _adminAuthSnap?.email || '';
-      const bs = document.getElementById('boot-screen');
-      if (bs) bs.remove();
-      document.getElementById('app').style.display = 'block';
-      _appReady = true;
       loadUsers().catch((e) => {
         console.error(e);
         _toast('Ошибка загрузки пользователей', 'err');
