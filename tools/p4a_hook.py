@@ -1,9 +1,12 @@
 """p4a hook: copy patched assets/java and inject extra Android components."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import re
 import shutil
 import xml.etree.ElementTree as ET
+from typing import Optional
 
 ANDROID_NS = "http://schemas.android.com/apk/res/android"
 ET.register_namespace("android", ANDROID_NS)
@@ -204,12 +207,11 @@ def _patch_gradle_compile_sdk(dist: Path, min_sdk: int = 34) -> None:
         bg.write_text(text, encoding="utf-8")
 
 
-def _find_dist_dir() -> Path:
-    """Return the Gradle distribution directory (the one that owns src/main/AndroidManifest.xml).
+def _find_dist_dir() -> Optional[Path]:
+    """Каталог Gradle-dist с `src/main/AndroidManifest.xml`.
 
-    p4a may call hooks with CWD set to the project root instead of the dist dir,
-    so we cannot rely on Path("src/main/...") being correct.  We resolve the dist
-    dir explicitly: first check CWD, then search inside .buildozer.
+    На этапе `toolchain create` каталога dist ещё нет — нельзя подставлять cwd (корень
+    репозитория): оверлей писал бы в hostcwd/src/... и ломал сборку.
     """
     cwd = Path.cwd()
     if (cwd / "src" / "main" / "AndroidManifest.xml").is_file():
@@ -225,13 +227,19 @@ def _find_dist_dir() -> Path:
         # AndroidManifest.xml → src/main → src → dist_dir
         return manifests[0].parent.parent.parent
 
-    return cwd  # fallback: hope CWD is correct
+    return None
 
 
 def _apply_tgws_build_overlay():
     """Копирует Java/res и правит манифест. Дважды: после build.py и сразу перед gradle assemble (p4a toolchain)."""
     root = Path(__file__).resolve().parent
     dist = _find_dist_dir()
+    if dist is None:
+        print(
+            f"[tgws-hook] skip overlay: dist not ready yet (cwd={Path.cwd()})",
+            flush=True,
+        )
+        return
 
     print(f"[tgws-hook] dist_dir={dist}  cwd={Path.cwd()}", flush=True)
 
